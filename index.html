@@ -1595,7 +1595,7 @@
     `);
 
                 // 2. Fetch Structure (ส่ง subject ไปด้วย)
-                fetch(`${APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}`)
+                fetch(`${APPSCRIPT_URL}?action=getStructure`)
                     .then(res => res.json())
                     .then(data => {
                         globalStructure = data;
@@ -1610,7 +1610,7 @@
                         }
 
                         // 3. Fetch Questions (ส่ง subject ไปด้วย เพื่อกรองโจทย์)
-                        return fetch(`${APPSCRIPT_URL}?action=getQuestions&subject`);
+                        return fetch(`${APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}`);
                     })
                     .then(res => res.json())
                     .then(questions => {
