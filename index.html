@@ -111,7 +111,7 @@
         gap: 1.5rem;
     }
 
-    /* -------------------- NEW: Topic Selection Container (Replaces checkbox-container) -------------------- */
+    /* -------------------- NEW: Category Selection Container (Replaces checkbox-container) -------------------- */
     .selection-container {
         width: 100%;
         max-width: 900px;
@@ -131,8 +131,8 @@
         text-align: center;
     }
 
-    /* -------------------- NEW: Status Bar for Selected Topics -------------------- */
-    #selected-topics-status {
+    /* -------------------- NEW: Status Bar for Selected Category -------------------- */
+    #selected-category-status {
         margin-top: 15px;
         margin-bottom: 20px;
         padding: 10px 15px;
@@ -149,7 +149,7 @@
         gap: 8px;
     }
 
-    .status-topic-button {
+    .status-category-button {
         padding: 6px 10px;
         border: 1px solid var(--color-primary);
         border-radius: 20px;
@@ -165,12 +165,12 @@
         user-select: none;
     }
 
-    .status-topic-button:hover {
+    .status-category-button:hover {
         background-color: var(--color-primary-hover);
         border-color: var(--color-primary-hover);
     }
 
-    .status-topic-button i {
+    .status-category-button i {
         font-size: 0.8em;
         margin-left: 3px;
     }
@@ -269,10 +269,10 @@
         border-color: var(--color-toggle-mcq);
     }
 
-    /* เน้นสีสำหรับกลุ่ม AI Topics */
+    /* เน้นสีสำหรับกลุ่ม AI Category */
     .accordion-group:nth-of-type(6) input[type="checkbox"]:checked+.toggle-button {
         background-color: var(--color-toggle-ai);
-        /* สีม่วงสำหรับ AI Topics */
+        /* สีม่วงสำหรับ AI Category */
         border-color: var(--color-toggle-ai);
     }
 
@@ -294,7 +294,7 @@
         margin-bottom: 1rem;
     }
 
-    /* --- Topic/Question Text - BIGGER & BOLDER --- */
+    /* --- Category/Question Text - BIGGER & BOLDER --- */
     #question {
         font-weight: 700;
         margin-bottom: 1.5rem;
@@ -659,7 +659,7 @@
     }
 
     /* 3. Container ของ Badge */
-    .topics-badge-container {
+    .category-badge-container {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
@@ -668,8 +668,8 @@
         align-items: center;
     }
 
-    /* 4. ตัว Badge (Topic) - หัวใจหลัก */
-    .topic-badge {
+    /* 4. ตัว Badge (Category) - หัวใจหลัก */
+    .category-badge {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -688,14 +688,14 @@
     }
 
     /* 4.1 สไตล์ Approved (สีเขียว) */
-    .topic-badge.approved {
+    .category-badge.approved {
         background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
         color: #155724;
         border: none;
         box-shadow: 0 4px 6px rgba(150, 230, 161, 0.4);
     }
 
-    .topic-badge.approved i {
+    .category-badge.approved i {
         background: rgba(255, 255, 255, 0.5);
         border-radius: 50%;
         padding: 4px;
@@ -704,7 +704,7 @@
     }
 
     /* 4.2 สไตล์ Suggested (สีส้ม/เหลือง) - แบบ Interactive */
-    .topic-badge.suggested {
+    .category-badge.suggested {
         background-color: #fff;
         color: #d35400;
         border: 2px solid #ffcc80;
@@ -714,7 +714,7 @@
     }
 
     /* Effect ตอนเอาเมาส์ชี้ (Hover) */
-    .topic-badge.suggested:hover {
+    .category-badge.suggested:hover {
         background-color: #ffe0b2;
         border-color: #ffb74d;
         color: #e65100;
@@ -724,7 +724,7 @@
     }
 
     /* Effect ตอนกด (Active) */
-    .topic-badge.suggested:active {
+    .category-badge.suggested:active {
         transform: translateY(-1px) scale(0.98);
         box-shadow: 0 2px 5px rgba(255, 167, 38, 0.3);
     }
@@ -1204,7 +1204,7 @@
             padding: 8px 10px;
         }
 
-        #selected-topics-status {
+        #selected-category-status {
             font-size: 1rem;
         }
     }
@@ -1250,8 +1250,8 @@
                         เลือกจากตัวเลือกเดิม:
                     </p>
                     <select id="report-correct-choice-select"
-                        style="width: 100%; padding: 10px; margin-bottom: 10px; font-size: 1.4rem; border-radius: 5px; border: 2px solid #28a745; background-color: #fff; cursor: pointer; transition: all 0.3s ease;"></select>
-                    <option value="">-- เลือกข้อที่ถูกต้องจากตัวเลือกด้านบน --</option>
+                        style="width: 100%; padding: 10px; margin-bottom: 10px; font-size: 1.4rem; border-radius: 5px; border: 2px solid #28a745; background-color: #fff; cursor: pointer; transition: all 0.3s ease;">
+                        <option value="">-- เลือกข้อที่ถูกต้องจากตัวเลือกด้านบน --</option>
                     </select>
 
                     <!-- Option 2: Suggest new -->
@@ -1363,7 +1363,7 @@
                     <h6 style="font-size: 1.1rem; color: #28a745; margin-bottom: 8px;">
                         <i class="fas fa-check-circle"></i> หัวข้อปัจจุบัน (Approved)
                     </h6>
-                    <div id="current-topics-container" class="topics-badge-container">
+                    <div id="current-category-container" class="category-badge-container">
                         <!-- Badges will be injected here -->
                         <span class="empty-state-text">- ยังไม่มีหัวข้อ -</span>
                     </div>
@@ -1374,7 +1374,7 @@
                     <h6 style="font-size: 1.1rem; color: #fd7e14; margin-bottom: 8px;">
                         <i class="fas fa-clock"></i> รออนุมัติ (คลิกเพื่อโหวตเห็นด้วย +1)
                     </h6>
-                    <div id="suggested-topics-container" class="topics-badge-container">
+                    <div id="suggested-category-container" class="category-badge-container">
                         <span class="empty-state-text"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</span>
                     </div>
                 </div>
@@ -1402,12 +1402,12 @@
             </div>
         </div>
 
-        <!-- ***** Topic Selection Area (Accordion UI) ***** -->
+        <!-- ***** Category Selection Area (Accordion UI) ***** -->
         <div class="selection-container">
             <h2>✅ เลือกหัวข้อได้เลยย</h2>
 
             <!-- Status Bar -->
-            <div id="selected-topics-status">
+            <div id="selected-category-status">
                 <p class="small-text" style="margin: 0; color: #007bff; font-weight: 700;">
                     กำลังโหลดรายวิชา...
                 </p>
@@ -1472,7 +1472,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>Topic</th>
+                    <th>Category</th>
                     <th>Question</th>
                     <th>Correct Answer</th>
                     <th>Your Answer</th>
@@ -1526,7 +1526,7 @@
         $(function () {
 
             // --- CONFIG ---
-            const APPSCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwghcdH-RfKhXBga3tCTsUz1xcwQ7BDbVsxuWhfJufJjygwHtfWdFWNJDbDsw98bnqa/exec';
+            const APPSCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxT1vh2RRnVLR8HVFQZcKvhGwIliJNBhxAIWOUEZ7s7m7lOp6JWyn7ASSmgzsxNDzsH/exec';
 
             // --- THSARABUN FONT ---
             const thSarabunBase64 = '';
@@ -1556,10 +1556,10 @@
             const $searchResultsContainer = $('#search-results-container');
             const $progressModal = $('#progress-modal-card');
             const $pdfChoiceModal = $('#pdf-choice-modal');
-            const $selectedTopicsStatus = $('#selected-topics-status'); // NEW Selector
+            const $selectedCategoryStatus = $('#selected-category-status'); // NEW Selector
 
             // --- STATE VARIABLES ---
-            let globalStructure = { subjects: [], topics: [] };
+            let globalStructure = { subjects: [], category: [] };
             let allQuestions = [];
             let currentQuestions = [];
             let current_question = {};
@@ -1588,14 +1588,14 @@
                     ? `กำลังโหลดข้อมูลวิชา: <b>${subjectParam}</b> ...`
                     : `กำลังโหลดข้อมูลทั้งหมด...`;
 
-                $('#selected-topics-status').html(`
+                $('#selected-category-status').html(`
         <p class="small-text" style="color: #007bff;">
             <i class="fas fa-spinner fa-spin"></i> ${loadingText}
         </p>
     `);
 
                 // 2. Fetch Structure (ส่ง subject ไปด้วย)
-                fetch(`${APPSCRIPT_URL}?action=getStructure`)
+                fetch(`${APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}`)
                     .then(res => res.json())
                     .then(data => {
                         globalStructure = data;
@@ -1610,7 +1610,7 @@
                         }
 
                         // 3. Fetch Questions (ส่ง subject ไปด้วย เพื่อกรองโจทย์)
-                        return fetch(`${APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}`);
+                        return fetch(`${APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}`)
                     })
                     .then(res => res.json())
                     .then(questions => {
@@ -1623,7 +1623,7 @@
                         });
 
                         // UI Feedback: โหลดเสร็จสิ้น
-                        $('#selected-topics-status').html(`
+                        $('#selected-category-status').html(`
                 <p class="small-text" style="color:green; font-weight:bold;">
                     <i class="fas fa-check-circle"></i> โหลดข้อมูลเสร็จสิ้น (${allQuestions.length} ข้อ) พร้อมเริ่มทำข้อสอบ
                 </p>
@@ -1642,7 +1642,7 @@
                         console.error("Init App Error:", err);
 
                         // UI Feedback: กรณีเกิดข้อผิดพลาด
-                        $('#selected-topics-status').html(`
+                        $('#selected-category-status').html(`
                 <p class="small-text" style="color:red;">
                     <i class="fas fa-exclamation-triangle"></i> เกิดข้อผิดพลาดในการโหลดข้อมูล (กรุณารีเฟรชหน้าเว็บ)
                 </p>
@@ -1652,7 +1652,7 @@
             }
 
             function fetchPendingVotes(questionId) {
-                const $container = $('#suggested-topics-container');
+                const $container = $('#suggested-category-container');
                 $container.html('<span class="empty-state-text"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</span>');
 
                 // ต้องเพิ่ม action=getPendingVotes ใน AppScript
@@ -1665,20 +1665,20 @@
                             return;
                         }
 
-                        // data ควรเป็น [{topicId: 'xxx', count: 3}, ...]
+                        // data ควรเป็น [{categoryId: 'xxx', count: 3}, ...]
                         data.forEach(item => {
-                            const topicName = getTopicNameById(item.topicId);
+                            const categoryName = getCategoryNameById(item.categoryId);
                             const $badge = $(`
-                    <div class="topic-badge suggested" title="คลิกเพื่อโหวตเห็นด้วย">
-                        ${topicName} 
+                    <div class="category-badge suggested" title="คลิกเพื่อโหวตเห็นด้วย">
+                        ${categoryName} 
                         <span class="vote-count-badge">${item.count} <i class="fas fa-user"></i></span>
                     </div>
                 `);
 
                             // Feature: คลิกที่ Badge เพื่อโหวตทันที (Upvote)
                             $badge.on('click', function () {
-                                if (confirm(`ต้องการโหวตเห็นด้วยกับหัวข้อ "${topicName}" ใช่ไหม?`)) {
-                                    submitSingleVote(item.topicId);
+                                if (confirm(`ต้องการโหวตเห็นด้วยกับหัวข้อ "${categoryName}" ใช่ไหม?`)) {
+                                    submitSingleVote(item.categoryId);
                                 }
                             });
 
@@ -1696,29 +1696,29 @@
                 $container.empty();
 
                 // data.subjects = [{year, subjectId, subjectName, accordionGroup}]
-                // data.topics = [{topicId, subjectRef, accordionGroup, topicName}]
+                // data.category = [{categoryId, subjectRef, accordionGroup, categoryName}]
 
-                // 1. Group Topics by Subject & AccordionGroup
-                // เราจะสร้าง Accordion ตาม "AccordionGroup" ที่ระบุใน Sheet Structure/Topics
+                // 1. Group Category by Subject & AccordionGroup
+                // เราจะสร้าง Accordion ตาม "AccordionGroup" ที่ระบุใน Sheet Structure/Category
 
                 // หากลุ่ม Accordion ที่ไม่ซ้ำกันจาก Structure
                 // (สมมติว่า AccordionGroup คือ Key หลักในการแบ่งกลุ่ม)
                 const groups = {};
 
-                data.topics.forEach(topic => {
-                    const key = topic.accordionGroup || 'Uncategorized';
+                data.category.forEach(category => {
+                    const key = category.accordionGroup || 'Uncategorized';
                     if (!groups[key]) groups[key] = [];
-                    groups[key].push(topic);
+                    groups[key].push(category);
                 });
 
                 // สร้าง HTML
-                for (const [groupName, topics] of Object.entries(groups)) {
+                for (const [groupName, category] of Object.entries(groups)) {
                     // หา Subject Name มาประกอบ (ถ้าจำเป็น)
                     // ในที่นี้ใช้ GroupName เป็น Header
 
-                    let topicButtons = topics.map(t => `
-                <input type="checkbox" id="${t.topicId}" name="topics" value="${t.topicId}" hidden>
-                <label for="${t.topicId}" class="toggle-button" title="${t.topicName}">${t.topicName}</label>
+                    let categoryButtons = category.map(t => `
+                <input type="checkbox" id="${t.categoryId}" name="category" value="${t.categoryId}" hidden>
+                <label for="${t.categoryId}" class="toggle-button" title="${t.categoryName}">${t.categoryName}</label>
             `).join('');
 
                     let html = `
@@ -1727,7 +1727,7 @@
                         <i class="fas fa-folder" style="margin-right: 10px;"></i> ${groupName}
                     </summary>
                     <div class="button-grid">
-                        ${topicButtons}
+                        ${categoryButtons}
                     </div>
                 </details>
             `;
@@ -1735,14 +1735,14 @@
                 }
 
                 // Bind Events สำหรับ Checkbox ใหม่
-                $('input[type="checkbox"][name="topics"]').on('change', () => {
+                $('input[type="checkbox"][name="category"]').on('change', () => {
                     updateQuestionSet();
-                    updateSelectedTopicsStatus();
+                    updateSelectedCategoryStatus();
                 });
             }
 
-            function renderCurrentTopics() {
-                const $container = $('#current-topics-container');
+            function renderCurrentCategory() {
+                const $container = $('#current-category-container');
                 $container.empty();
 
                 let cats = current_question.category;
@@ -1756,20 +1756,20 @@
                     return;
                 }
 
-                cats.forEach(topicId => {
-                    // หาชื่อ Topic จาก globalStructure
-                    const topicName = getTopicNameById(topicId);
+                cats.forEach(categoryId => {
+                    // หาชื่อ Category จาก globalStructure
+                    const categoryName = getCategoryNameById(categoryId);
                     const html = `
-            <span class="topic-badge approved" title="หัวข้อนี้ถูกยืนยันแล้ว">
-                ${topicName} <i class="fas fa-check" style="margin-left:5px;"></i>
+            <span class="category-badge approved" title="หัวข้อนี้ถูกยืนยันแล้ว">
+                ${categoryName} <i class="fas fa-check" style="margin-left:5px;"></i>
             </span>`;
                     $container.append(html);
                 });
             }
             // --- Status Bar Update Function ---
-            function updateSelectedTopicsStatus() {
-                const $status = $('#selected-topics-status');
-                const selected = $('input[type="checkbox"][name="topics"]:checked');
+            function updateSelectedCategoryStatus() {
+                const $status = $('#selected-category-status');
+                const selected = $('input[type="checkbox"][name="category"]:checked');
 
                 $status.empty();
                 if (selected.length === 0) {
@@ -1777,7 +1777,7 @@
                 } else {
                     selected.each(function () {
                         const label = $(`label[for='${this.id}']`).text();
-                        $status.append(`<button class="status-topic-button" onclick="$('#${this.id}').click()">${label} <i class="fas fa-times"></i></button>`);
+                        $status.append(`<button class="status-category-button" onclick="$('#${this.id}').click()">${label} <i class="fas fa-times"></i></button>`);
                     });
                 }
             }
@@ -1787,37 +1787,37 @@
                 // เก็บ state ข้อที่ทำไปแล้ว
                 const previouslyAnswered = {};
                 currentQuestions.forEach(q => {
-                    if (q.state) previouslyAnswered[q.uniqueId] = { select: q.select, state: q.state };
+                    if (q.state) previouslyAnswered[q.questionId] = { select: q.select, state: q.state };
                 });
 
                 // หา ID หัวข้อที่เลือก
-                const selectedTopicIds = $('input[type="checkbox"][name="topics"]:checked').map(function () {
+                const selectedCategoryIds = $('input[type="checkbox"][name="category"]:checked').map(function () {
                     return this.value;
                 }).get();
 
                 currentQuestions = [];
 
-                if (selectedTopicIds.length === 0) {
+                if (selectedCategoryIds.length === 0) {
                     // ถ้าไม่เลือกอะไรเลย (หรือให้โหลดทั้งหมด)
                     currentQuestions = allQuestions;
                 } else {
                     // Filter ข้อสอบที่มี category ตรงกับที่เลือก
-                    // allQuestions[i].category คือ Array ของ TopicID ที่ข้อสอบนั้นอยู่
+                    // allQuestions[i].category คือ Array ของ CategoryID ที่ข้อสอบนั้นอยู่
                     currentQuestions = allQuestions.filter(q => {
                         // เช็คว่า Category ของข้อสอบ มีอยู่ใน list ที่เลือกหรือไม่
                         if (!q.category) return false;
                         // q.category อาจเป็น string หรือ array
                         let cats = Array.isArray(q.category) ? q.category : [q.category];
-                        return cats.some(c => selectedTopicIds.includes(c));
+                        return cats.some(c => selectedCategoryIds.includes(c));
                     });
                 }
 
                 // Restore State
                 score = 0;
                 currentQuestions.forEach(q => {
-                    if (previouslyAnswered[q.uniqueId]) {
-                        q.select = previouslyAnswered[q.uniqueId].select;
-                        q.state = previouslyAnswered[q.uniqueId].state;
+                    if (previouslyAnswered[q.questionId]) {
+                        q.select = previouslyAnswered[q.questionId].select;
+                        q.state = previouslyAnswered[q.questionId].state;
                         if (q.state && q.select === q.answer) score++;
                     } else {
                         q.state = false;
@@ -1834,7 +1834,7 @@
                     $imageContainer.hide();
                     showQuestion();
                 }
-                updateSelectedTopicsStatus();
+                updateSelectedCategoryStatus();
             }
 
             // ค้นหา function sortCurrentQuestions() แล้วแทนที่ด้วยโค้ดนี้
@@ -2019,10 +2019,10 @@
                 filteredQuestions.forEach(q => {
                     const selectStyle = q.select === q.answer ? 'color: green;' : 'color: red;';
                     const selectText = `<span style="${selectStyle}">${q.select}</span>`;
-                    const foundId = globalStructure.topics.find(t =>
-                        Array.isArray(q.category) ? q.category.includes(t.topicId) : q.category === t.topicId
-                    )?.topicId;
-                    const topicLabel = foundId ? $(`label[for='${foundId}']`).text() : 'Unknown Topic';
+                    const foundId = globalStructure.category.find(t =>
+                        Array.isArray(q.category) ? q.category.includes(t.categoryId) : q.category === t.categoryId
+                    )?.categoryId;
+                    const categoryLabel = foundId ? $(`label[for='${foundId}']`).text() : 'Unknown Category';
                     const choicesFormatted = q.choices ? q.choices.split('///').map(c => `<li>${c}</li>`).join('') : 'N/A';
                     const explanationText = q.explain ? q.explain.replace(/\n/g, '<br>').replace(/\*+/g, match => '<b>' + '*'.repeat(match.length) + '</b>') : 'No explanation available.';
                     const selectContent = displayAnswerContent(q.select);
@@ -2030,7 +2030,7 @@
 
                     rowsHtml += `
                         <tr>
-                            <td>${topicLabel}</td>
+                            <td>${categoryLabel}</td>
                             <td>${q.problem}</td>
                             <td>${answerContent}</td>
                             <td>${q.select ? (q.select === q.answer ? `<span style="color:green">${selectContent}</span>` : `<span style="color:red">${selectContent}</span>`) : 'N/A'}</td>
@@ -2178,7 +2178,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 10%;">Topic</th>
+                            <th style="width: 10%;">Category</th>
                             <th style="width: 40%;">Question & Choices</th>
                             <th style="width: 15%;">Answer</th>
                             <th style="width: 25%;">Explanation</th>
@@ -2188,16 +2188,16 @@
                     <tbody>`;
 
                 searchResults.forEach(q => {
-                    // หาชื่อ Topic
-                    let topicLabel = 'Unknown';
+                    // หาชื่อ Category
+                    let categoryLabel = 'Unknown';
                     // เช็คจาก globalStructure ที่โหลดมา (ถ้ามี)
-                    if (typeof globalStructure !== 'undefined' && globalStructure.topics) {
-                        const foundTopic = globalStructure.topics.find(t =>
-                            Array.isArray(q.category) ? q.category.includes(t.topicId) : q.category === t.topicId
+                    if (typeof globalStructure !== 'undefined' && globalStructure.category) {
+                        const foundCategory = globalStructure.category.find(t =>
+                            Array.isArray(q.category) ? q.category.includes(t.categoryId) : q.category === t.categoryId
                         );
-                        if (foundTopic) topicLabel = foundTopic.topicName || foundTopic.topicId;
+                        if (foundCategory) categoryLabel = foundCategory.categoryName || foundCategory.categoryId;
                     } else if (q.category) {
-                        topicLabel = Array.isArray(q.category) ? q.category.join(', ') : q.category;
+                        categoryLabel = Array.isArray(q.category) ? q.category.join(', ') : q.category;
                     }
 
                     // --- Highlight โจทย์ ---
@@ -2237,7 +2237,7 @@
 
                     resultsHtml += `
                     <tr>
-                        <td><small>${topicLabel}</small></td>
+                        <td><small>${categoryLabel}</small></td>
                         <td style="text-align: left;">
                             <strong>${problemHighlighted}</strong>
                             <ul style="margin-left: 20px; padding-left: 0; list-style-type: upper-alpha;">
@@ -2270,10 +2270,10 @@
 
             const isUrl = (s) => s && (typeof s === 'string') && (s.includes('drive.google.com') || s.startsWith('http'));
 
-            function getTopicNameById(topicId) {
-                if (!globalStructure.topics) return topicId;
-                const found = globalStructure.topics.find(t => t.topicId === topicId);
-                return found ? found.topicName : topicId;
+            function getCategoryNameById(categoryId) {
+                if (!globalStructure.category) return categoryId;
+                const found = globalStructure.category.find(t => t.categoryId === categoryId);
+                return found ? found.categoryName : categoryId;
             }
 
             const displayAnswerContent = (text) => {
@@ -2322,18 +2322,18 @@
                 const answeredStates = {};
                 currentQuestions.forEach(q => {
                     if (q.state) {
-                        answeredStates[q.uniqueId] = { select: q.select };
+                        answeredStates[q.questionId] = { select: q.select };
                     }
                 });
-                const selectedTopics = globalStructure.topics
-                    .filter(t => $(`#${t.topicId}`).is(':checked'))
-                    .map(t => t.topicId);
+                const selectedCategory = globalStructure.category
+                    .filter(t => $(`#${t.categoryId}`).is(':checked'))
+                    .map(t => t.categoryId);
                 const state = {
-                    topics: selectedTopics,
+                    category: selectedCategory,
                     answered: answeredStates,
                     index: questionIndex,
                     isRandom: isRandomized,
-                    order: currentQuestions.map(q => q.uniqueId)
+                    order: currentQuestions.map(q => q.questionId)
                 };
                 return btoa(JSON.stringify(state));
             };
@@ -2344,8 +2344,8 @@
                     const state = JSON.parse(stateJSON);
 
                     $('input[type="checkbox"]').prop('checked', false);
-                    state.topics.forEach(topicId => {
-                        $(`#${topicId}`).prop('checked', true);
+                    state.category.forEach(categoryId => {
+                        $(`#${categoryId}`).prop('checked', true);
                     });
 
                     isRandomized = state.isRandom;
@@ -2356,12 +2356,12 @@
                     const newOrderedQuestions = [];
                     let newScore = 0;
 
-                    state.order.forEach(uniqueId => {
-                        const question = currentQuestions.find(q => q.uniqueId === uniqueId);
+                    state.order.forEach(questionId => {
+                        const question = currentQuestions.find(q => q.questionId === questionId);
                         if (question) {
-                            if (state.answered[uniqueId]) {
+                            if (state.answered[questionId]) {
                                 question.state = true;
-                                question.select = state.answered[uniqueId].select;
+                                question.select = state.answered[questionId].select;
                                 if (question.select === question.answer) {
                                     newScore++;
                                 }
@@ -2392,13 +2392,13 @@
             async function saveResultsToPdf() {
                 // --- 1. DATA PREPARATION ---
                 const save = {
-                    topic: [],
+                    category: [],
                     questions: currentQuestions,
                     score: score,
                 };
-                globalStructure.topics.forEach(topic => {
-                    if ($(`#${topic.topicId}`).is(':checked')) {
-                        save.topic.push(topic.topicName);
+                globalStructure.category.forEach(category => {
+                    if ($(`#${category.categoryId}`).is(':checked')) {
+                        save.category.push(category.categoryName);
                     }
                 });
 
@@ -2560,9 +2560,9 @@
                 }
 
                 // 2. เตรียมข้อมูลหัวข้อ
-                const selectedTopics = globalStructure.topics
-                    .filter(t => $(`#${t.topicId}`).is(':checked'))
-                    .map(t => t.topicName);
+                const selectedCategory = globalStructure.category
+                    .filter(t => $(`#${t.categoryId}`).is(':checked'))
+                    .map(t => t.categoryName);
 
                 // 3. ตั้งค่า jsPDF และฟอนต์
                 const { jsPDF } = window.jspdf;
@@ -2599,10 +2599,10 @@
                 y += 15;
 
                 doc.setFontSize(16);
-                const topicsText = `หัวข้อ: ${selectedTopics.join(", ") || "ทั้งหมด"}`;
-                const splitTopics = doc.splitTextToSize(topicsText, contentWidth);
-                doc.text(splitTopics, pageMargin, y);
-                y += (splitTopics.length * lineHeight) + 10;
+                const categoryText = `หัวข้อ: ${selectedCategory.join(", ") || "ทั้งหมด"}`;
+                const splitCategory = doc.splitTextToSize(categoryText, contentWidth);
+                doc.text(splitCategory, pageMargin, y);
+                y += (splitCategory.length * lineHeight) + 10;
 
                 // ==========================================
                 // ส่วนที่ 1: รายการคำถาม (Questions)
@@ -2758,10 +2758,12 @@
                 doc.save('MDKKU-Quiz-Practice.pdf');
             }
 
-            function saveReportToGoogleSheet(from, topic, question, questionImages, allChoices, suggestedChoice, report, time) {
+            function saveReportToGoogleSheet(from, category, question, questionImages, allChoices, suggestedChoice, report, time) {
+            // 1. เพิ่ม key 'action' เพื่อให้ Server รู้ว่านี่คือการส่ง Report
                 const data = {
+                    action: 'submitReport',  // <--- สำคัญมาก ต้องตรงกับฝั่ง Google Apps Script
                     from: from,
-                    topic: topic,
+                    category: category,
                     question: question,
                     questionImages: questionImages,
                     allChoices: allChoices,
@@ -2769,21 +2771,30 @@
                     report: report,
                     time: time
                 };
-                fetch(APPSCRIPT_URL, {
-                    method: "POST", mode: "no-cors",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify(data)
-                }).then(response => {
-                    console.log("Report saved to Google Sheet successfully");
-                }).catch(error => {
-                    console.error("Error saving report to Google Sheet:", error);
-                });
-            }
 
+                // 2. ปรับ Config ของ fetch
+                fetch(APPSCRIPT_URL, {
+                    method: "POST",
+                    redirect: "follow", // <--- สำคัญ: เพื่อให้ตาม Redirect ของ Google ได้
+                    headers: { "Content-Type": "text/plain;charset=utf-8" }, // ใช้ text/plain เพื่อหลีกเลี่ยง Preflight check
+                    body: JSON.stringify(data)
+                })
+                    .then(response => response.json()) // ลองแปลงเป็น JSON ดูผลลัพธ์
+                    .then(result => {
+                        console.log("Server response:", result);
+                        if (result.result === "success") {
+                            // แจ้งเตือนความสำเร็จ (ถ้าต้องการ)
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error saving report:", error);
+                        // ถึงจะ error ใน console (เช่น SyntaxError จากการ redirect) 
+                    });
+            }
             function addVoteRow() {
                 // ใช้ globalStructure ที่โหลดมาตอนต้น เพื่อสร้าง Dropdown
                 // globalStructure.subjects = [{subjectId, subjectName, ...}]
-                // globalStructure.topics = [{topicId, topicName, subjectRef, accordionGroup}]
+                // globalStructure.category = [{categoryId, categoryName, subjectRef, accordionGroup}]
 
                 // 1. Create Subject Options
                 // Extract Unique Subjects from structure
@@ -2809,7 +2820,7 @@
                 <button class="btn-remove-row"><i class="fas fa-minus"></i></button>
                 <select class="vote-select subject-select">${subjectOptions}</select>
                 <select class="vote-select group-select" disabled><option value="">-- เลือกกลุ่ม --</option></select>
-                <select class="vote-select topic-select" disabled><option value="">-- เลือกหัวข้อ --</option></select>
+                <select class="vote-select category-select" disabled><option value="">-- เลือกหัวข้อ --</option></select>
             </div>
         `;
 
@@ -2820,16 +2831,16 @@
                 $row.find('.subject-select').on('change', function () {
                     const subjId = $(this).val();
                     const $groupSelect = $row.find('.group-select');
-                    const $topicSelect = $row.find('.topic-select');
+                    const $categorySelect = $row.find('.category-select');
 
                     $groupSelect.empty().append('<option value="">-- เลือกกลุ่ม --</option>').prop('disabled', true);
-                    $topicSelect.empty().append('<option value="">-- เลือกหัวข้อ --</option>').prop('disabled', true);
+                    $categorySelect.empty().append('<option value="">-- เลือกหัวข้อ --</option>').prop('disabled', true);
 
                     if (subjId) {
                         // Find Accordion Groups belonging to this Subject
-                        // จาก globalStructure.topics ที่มี subjectRef = subjId
-                        const relatedTopics = globalStructure.topics.filter(t => t.subjectRef === subjId);
-                        const groups = [...new Set(relatedTopics.map(t => t.accordionGroup))];
+                        //                    egory ที่มี subjectRef = subjId
+                        const relatedCategory = globalStructure.category.filter(t => t.subjectRef === subjId);
+                        const groups = [...new Set(relatedCategory.map(t => t.accordionGroup))];
 
                         groups.forEach(g => {
                             $groupSelect.append(`<option value="${g}">${g}</option>`);
@@ -2841,16 +2852,16 @@
                 $row.find('.group-select').on('change', function () {
                     const groupName = $(this).val();
                     const subjId = $row.find('.subject-select').val();
-                    const $topicSelect = $row.find('.topic-select');
+                    const $categorySelect = $row.find('.category-select');
 
-                    $topicSelect.empty().append('<option value="">-- เลือกหัวข้อ --</option>').prop('disabled', true);
+                    $categorySelect.empty().append('<option value="">-- เลือกหัวข้อ --</option>').prop('disabled', true);
 
                     if (groupName && subjId) {
-                        const topics = globalStructure.topics.filter(t => t.subjectRef === subjId && t.accordionGroup === groupName);
-                        topics.forEach(t => {
-                            $topicSelect.append(`<option value="${t.topicId}">${t.topicName}</option>`);
+                        const category = globalStructure.category.filter(t => t.subjectRef === subjId && t.accordionGroup === groupName);
+                        category.forEach(t => {
+                            $categorySelect.append(`<option value="${t.categoryId}">${t.categoryName}</option>`);
                         });
-                        $topicSelect.prop('disabled', false);
+                        $categorySelect.prop('disabled', false);
                     }
                 });
 
@@ -2859,19 +2870,19 @@
                 });
             }
 
-            function submitSingleVote(topicId) {
-                submitVoteData([topicId]);
+            function submitSingleVote(categoryId) {
+                submitVoteData([categoryId]);
             }
 
-            function submitVoteData(topicsArray) {
+            function submitVoteData(categoryArray) {
                 // ปิดปุ่มกันกดซ้ำ
                 $('#btn-submit-vote').prop('disabled', true).text('กำลังส่ง...');
 
                 const payload = {
                     action: 'submitVote',
-                    questionId: current_question.uniqueId,
+                    questionId: current_question.questionId,
                     questionText: current_question.problem,
-                    suggestedTopics: topicsArray
+                    suggestedCategory: categoryArray
                 };
 
                 fetch(APPSCRIPT_URL, {
@@ -2888,14 +2899,15 @@
                     $('#btn-submit-vote').prop('disabled', false).text('ยืนยัน');
                 });
             }
+
             // --- EVENT LISTENERS ---
             // Listener for the new toggle buttons (via hidden checkbox change)
-            $('input[type="checkbox"][name="topics"]').on('change', () => updateQuestionSet());
+            $('input[type="checkbox"][name="category"]').on('change', () => updateQuestionSet());
 
-            $selectedTopicsStatus.on('click', '.status-topic-button', function () {
-                const topicId = $(this).data('topic-id');
+            $selectedCategoryStatus.on('click', '.status-category-button', function () {
+                const categoryId = $(this).data('category-id');
                 // Uncheck the original checkbox and trigger change event
-                $(`#${topicId}`).prop('checked', false).trigger('change');
+                $(`#${categoryId}`).prop('checked', false).trigger('change');
             });
 
             $toggleRandomBtn.on('click', function () {
@@ -3052,19 +3064,37 @@
             });
 
             $('#submit-report').on('click', () => {
-                // 1. ดึง Topic ID จากข้อปัจจุบัน
-                let currentTopicIds = current_question.category || [];
-                // ถ้าเป็น Array ให้รวมเป็น string, ถ้าไม่มีให้ว่างไว้
-                let topicString = Array.isArray(currentTopicIds) ? currentTopicIds.join(", ") : currentTopicIds;
+                // 1. ดึง Category และแปลงให้เป็น Array เสมอ (เพื่อป้องกัน Error กรณีเป็น String)
+                let rawCat = current_question.category;
+                let catsArray = [];
 
-                // 2. หา "Subject" (วิชา) จาก Topic ID ผ่าน globalStructure
-                let subjectFrom = "Unknown Subject"; // ค่า Default
+                if (Array.isArray(rawCat)) {
+                    catsArray = rawCat;
+                } else if (rawCat) {
+                    catsArray = [rawCat]; // แปลง String เป็น Array
+                }
 
-                if (globalStructure.topics && Array.isArray(currentTopicIds) && currentTopicIds.length > 0) {
-                    // เอา Topic แรกของข้อนี้ไปค้นหาว่าอยู่วิชาอะไร
-                    const matchedTopicInfo = globalStructure.topics.find(t => t.topicId === currentTopicIds[0]);
-                    if (matchedTopicInfo && matchedTopicInfo.subjectRef) {
-                        subjectFrom = matchedTopicInfo.subjectRef; // ได้ค่า เช่น "GI", "NS"
+                // สร้าง String สำหรับส่งเข้า Report
+                let categoryString = catsArray.join(", ");
+
+                // 2. หา "Subject" (วิชา)
+                let subjectFrom = "Unknown Subject";
+
+                // วิธีที่ 2.1: หาจาก Category ID ของข้อนั้น (แม่นยำที่สุด)
+                if (globalStructure.category && catsArray.length > 0) {
+                    const matchedCategoryInfo = globalStructure.category.find(t => t.categoryId === catsArray[0]);
+                    if (matchedCategoryInfo && matchedCategoryInfo.subjectRef) {
+                        subjectFrom = matchedCategoryInfo.subjectRef;
+                    }
+                }
+
+                // วิธีที่ 2.2: (FIX) ถ้าหาไม่เจอ ให้เอาจาก URL Filter ที่ user เลือกเข้ามา
+                // แก้ปัญหา: เลือกคำถามทุกข้อจากวิชาที่ filter อยู่แล้ว report ส่งไม่ไป/ไม่มีชื่อวิชา
+                if (subjectFrom === "Unknown Subject") {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const subjectParam = urlParams.get('subject');
+                    if (subjectParam) {
+                        subjectFrom = subjectParam;
                     }
                 }
 
@@ -3107,9 +3137,9 @@
 
                 // ส่งข้อมูล
                 saveReportToGoogleSheet(
-                    subjectFrom,        // <--- ส่งชื่อวิชาแบบ Dynamic ที่นี่
-                    topicString,        // ส่งหัวข้อของข้อนั้นๆ
-                    $question.text(),
+                    subjectFrom,        // data.from (Subject)
+                    categoryString,     // data.category
+                    $question.text(),   // data.question
                     questionImagesString,
                     allChoices,
                     suggestedChoice,
@@ -3120,7 +3150,6 @@
                 $reportCard.fadeOut();
                 $feedbackSave.text("ขอบคุณสำหรับรายงานครับ!").show().fadeOut(2000);
             });
-
             $('#cancel-report').on('click', () => $reportCard.fadeOut());
 
             // --- Progress Modal Event Listeners ---
@@ -3209,7 +3238,7 @@
             // --- Vote Modal Event Listeners ---
             // Open Modal
             $('#btn-open-vote').on('click', () => {
-                if (!current_question || !current_question.uniqueId) {
+                if (!current_question || !current_question.questionId) {
                     alert("กรุณาเลือกข้อสอบก่อน");
                     return;
                 }
@@ -3218,10 +3247,10 @@
                 $('#vote-question-preview').text(current_question.problem.substring(0, 150) + (current_question.problem.length > 150 ? "..." : ""));
 
                 // B. แสดงหัวข้อปัจจุบัน (Approved)
-                renderCurrentTopics();
+                renderCurrentCategory();
 
                 // C. แสดงหัวข้อที่คนอื่นเสนอ (Pending) - ต้องดึงจาก API
-                fetchPendingVotes(current_question.uniqueId);
+                fetchPendingVotes(current_question.questionId);
 
                 // D. รีเซ็ตฟอร์มเลือกหัวข้อ
                 $('#vote-rows-container').empty();
@@ -3234,13 +3263,13 @@
             $('#btn-submit-vote').on('click', () => {
                 const votes = [];
                 $('.vote-row').each(function () {
-                    const topicId = $(this).find('.topic-select').val();
-                    if (topicId) {
+                    const categoryId = $(this).find('.category-select').val();
+                    if (categoryId) {
                         // เช็ค Unique: อย่าส่งซ้ำกับที่มีอยู่แล้วใน Approved
-                        if (current_question.category.includes(topicId)) {
+                        if (current_question.category.includes(categoryId)) {
                             // ข้าม หรือแจ้งเตือนก็ได้ แต่ในที่นี้จะกรองออกเงียบๆ
                         } else {
-                            votes.push(topicId);
+                            votes.push(categoryId);
                         }
                     }
                 });
