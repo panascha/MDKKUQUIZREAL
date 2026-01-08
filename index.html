@@ -695,6 +695,87 @@
         transform: scale(1.01);
     }
 
+    /* =========================================
+   Custom Confirm Modal Styles
+   ========================================= */
+
+.custom-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    animation: fadeIn 0.2s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+.custom-confirm-overlay:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.custom-confirm-card {
+    background: var(--color-surface);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    max-width: 90%;
+    width: 360px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+    font-family: var(--font-primary);
+    font-weight: 500;
+}
+
+.custom-confirm-card p {
+    margin: 0 0 16px;
+    font-size: 1.3rem;
+    color: var(--color-text);
+    line-height: 1.5;
+}
+
+.confirm-actions {
+    text-align: right;
+}
+
+.confirm-button {
+    border: none;
+    padding: 10px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: background 0.3s, transform 0.1s;
+}
+
+.confirm-button:active {
+    transform: scale(0.98);
+}
+
+.confirm-no {
+    background: var(--color-light);
+    color: var(--color-dark);
+    margin-right: 8px;
+}
+
+.confirm-no:hover {
+    background: var(--color-light-hover);
+}
+
+.confirm-yes {
+    background: var(--color-correct); /* ใช้สีเขียวสำหรับยืนยัน */
+    color: white;
+}
+
+.confirm-yes:hover {
+    background: #157347; /* เข้มขึ้นเมื่อ hover */
+}
+
     /* Category Badges */
     .category-badge-container {
         display: flex;
@@ -1469,9 +1550,9 @@
             (ถัดไป), Spacebar (เลือก), Enter (ส่งคำตอบ)
         </div>
         <div class="info-banner"
-            style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 12px 15px; margin-top: 15px; font-size: 1.3rem; color: #856404;font-weight: 900;">
-            <strong style="color: #d32f2f; font-size: 1.1rem;">⭐</strong> <span>NEW FEATURE!!!</span>
-            <strong>"ใครสนใจช่วยแยกเลคเชอร์ของข้อสอบเก่า (MCQ,FMT) "</strong> คลิกเลย! → คิดว่าคำถามมาจากเลคเชอร์ไหน
+            style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 12px 15px; margin-top: 15px; font-size: 1.5rem; color: #856404;font-weight: 900;">
+            <strong style="color: #d32f2f; font-size: 1.5rem;">⭐</strong> <span style="font-size: 1.5rem;">NEW FEATURE!!!</span>
+            <strong>ใครสนใจช่วย</strong> <strong style="font-weight: 900; color: #d32f2f;">แยกเลคเชอร์ของข้อสอบเก่า</strong> <strong>(MCQ,FMT)</strong> คลิกเลย! → คิดว่าคำถามมาจากเลคเชอร์ไหน
             เอาไปใส่เลคนั้นได้เลย
         </div>
     </div>
@@ -1632,6 +1713,7 @@
         let isRandomized = true;
         let isShowingAllAnswers = false;
         let isCompactAnswerMode = false;
+        let pendingVotesCache = {};
 
 
         // =========================================
@@ -1775,8 +1857,10 @@
 
             $questionIndex.text(`${questionIndex + 1}/${currentQuestions.length}`);
 
-            renderVoteNotification(current_question.questionId);
-
+            if (pendingVotesCache[current_question.questionId]) {
+                renderVoteNotificationUI(current_question.questionId, pendingVotesCache[current_question.questionId]);
+            }
+            fetchPendingVotes(current_question.questionId);
             setTimeout(() => {
                 $choices.find('button').first().focus();
             }, 50);
@@ -1926,66 +2010,101 @@
         // V. UI & Utility Helpers
         // =========================================
 
-        function renderVoteNotification(questionId) {
+        function renderVoteNotificationUI(questionId, data, isInitialLoad = true) {
             const $bar = $('#vote-notification-bar');
-            $bar.empty(); // เคลียร์ก่อนทุกครั้ง
+            if (isInitialLoad) $bar.empty(); // เคลียร์เฉพาะตอนโหลดใหม่ ไม่ใช่ตอน Refresh
 
-            // ไม่แสดงถ้ายังไม่ได้โหลดคำถาม
-            if (!questionId) return;
+            const votes = data.votes || [];
+            const thresholds = data.thresholds || { approve: 20, confirm: 50 };
 
-            fetch(`${APPSCRIPT_URL}?action=getPendingVotes&qid=${questionId}`)
-                .then(res => res.json())
-                .then(data => {
-                    const votes = data.votes || [];
-                    const thresholds = data.thresholds || { approve: 20, confirm: 50 }; // Fallback
+            if (votes.length === 0) {
+                if (isInitialLoad) $bar.empty();
+                return;
+            }
 
-                    if (votes.length === 0) {
-                        return; // ไม่มีโหวตที่รอการอนุมัติ
-                    }
+            // กรองเอาเฉพาะโหวตที่ยังไม่ครบ Confirm (Verified)
+            const incompleteVotes = votes.filter(v => (parseInt(v.count) || 0) < thresholds.confirm);
+            if (incompleteVotes.length === 0) return;
 
-                    // หาโหวตที่มีจำนวนสูงสุดในสถานะ Pending/Approved (ที่ไม่ใช่ Verified)
-                    const topVote = votes.reduce((max, current) => {
-                        return (parseInt(current.count) || 0) > (parseInt(max.count) || 0) ? current : max;
-                    }, { count: -1, categoryId: null, status: null });
+            // หาโหวตที่มีจำนวนสูงสุดในกลุ่มที่ยังไม่ครบ
+            const topVote = incompleteVotes.reduce((max, current) => {
+                return (parseInt(current.count) || 0) > (parseInt(max.count) || 0) ? current : max;
+            }, { count: -1, categoryId: null, status: null });
 
-                    if (!topVote.categoryId) return; // ไม่พบโหวตใดๆ
+            if (!topVote.categoryId) return;
 
-                    const currentCount = parseInt(topVote.count) || 0;
-                    let target = thresholds.approve;
-                    let statusLabel = 'เพื่ออนุมัติ';
+            const categoryName = getCategoryNameById(topVote.categoryId);
+            const currentCount = parseInt(topVote.count) || 0;
+            const status = topVote.status;
 
-                    // กำหนดเป้าหมายถัดไป
-                    if (topVote.status === 'Approved' || currentCount >= thresholds.approve) {
-                        target = thresholds.confirm;
-                        statusLabel = 'เพื่อยืนยัน';
-                    }
+            let nextTarget = thresholds.approve;
+            let statusLabel = 'เพื่ออนุมัติ';
+            let bgColor = '#fff3cd';
+            let textColor = '#856404';
 
-                    const votesRemaining = target - currentCount;
+            if (status === 'Approved' || currentCount >= thresholds.approve) {
+                nextTarget = thresholds.confirm;
+                statusLabel = 'เพื่อยืนยัน';
+                bgColor = '#d1e7dd';
+                textColor = '#0f5132';
+            }
 
-                    // ข้อความแสดง
-                    const statusText = votesRemaining > 0
-                        ? `ขาดอีก <b style="color: #d32f2f;">${votesRemaining}</b> โหวต ${statusLabel}!`
-                        : `<b style="color: #198754;">ครบแล้ว!</b> รอ Admin ตรวจสอบ`;
+            const votesRemaining = nextTarget - currentCount;
 
-                    const categoryName = getCategoryNameById(topVote.categoryId);
+            const statusText = votesRemaining > 0
+                ? `ขาดอีก <b style="color: ${textColor};">${votesRemaining}</b> โหวต ${statusLabel}!`
+                : `<b style="color: ${textColor};">รอ Admin ตรวจสอบ</b>`;
 
-                    const html = `
-                        <div class="vote-notification-badge" style="margin-top: -10px; margin-bottom: 10px; padding: 8px 15px; border-radius: 20px; 
-                             background-color: #ffe0b2; color: #cc5500; font-weight: 700; display: flex; align-items: center; cursor: pointer;
-                             box-shadow: 0 2px 5px rgba(255, 107, 26, 0.2);"
-                             onclick="$('#btn-open-vote').trigger('click');">
-                            <i class="fas fa-tags" style="margin-right: 5px;"></i>
-                            <span style="font-size: 1.1rem; margin-right: 8px;">"${categoryName}"</span>
-                            <span style="font-size: 0.95rem; font-weight: 600;">${statusText}</span>
+            const html = `
+                <div id="quick-vote-badge"
+                    data-category-id="${topVote.categoryId}"
+                    style="margin-top: -10px; margin-bottom: 10px; padding: 10px 20px; border-radius: 25px; 
+                         background-color: ${bgColor}; color: ${textColor}; font-weight: 700; 
+                         display: flex; align-items: center; justify-content: center; cursor: pointer;
+                         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border: 2px solid ${textColor};
+                         transition: all 0.3s ease-in-out;">
+                    <i class="fas fa-tags" style="margin-right: 8px;"></i>
+                    <span style="font-size: 1.2rem; margin-right: 12px;">เสนอหัวข้อ: <b>${categoryName}</b></span>
+                    <span style="font-size: 1.1rem; font-weight: 600;">(${statusText})</span>
+                </div>
+            `;
+
+            // แสดงผลบน Notification Bar
+            $bar.html(html);
+
+            // Bind Event to the dynamically created badge
+            $bar.find('#quick-vote-badge').on('click', function () {
+                const categoryIdToVote = $(this).data('category-id');
+                const catName = $(this).find('b').first().text();
+
+                const msg = `ต้องการโหวตเห็นด้วยกับหัวข้อ "${catName}" ใช่ไหม?`;
+                const $confirm = $(`
+<div class="custom-confirm-overlay">
+                            <div class="custom-confirm-card">
+                                <p>${msg}</p>
+                                <div class="confirm-actions">
+                                    <button class="confirm-no confirm-button">
+                                        ยกเลิก
+                                    </button>
+                                    <button class="confirm-yes confirm-button">
+                                        ยืนยัน
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    `;
-                    $bar.html(html);
+                `);
 
-                })
-                .catch(err => {
-                    console.error("Vote Notification Error:", err);
-                    // $bar.html('<p class="small-text" style="color:red">Error loading votes</p>');
+                $('body').append($confirm);
+
+                $confirm.find('.confirm-no').on('click', function () {
+                    $confirm.remove();
                 });
+
+                $confirm.find('.confirm-yes').on('click', function () {
+                    submitSingleVote(categoryIdToVote, true); // true = Refresh notification bar
+                    $confirm.remove();
+                });
+            });
         }
 
         // --- Category/UI Rendering ---
@@ -2501,85 +2620,95 @@
         // =========================================
 
         function fetchPendingVotes(questionId) {
-            const $container = $('#suggested-category-container');
-            $container.html('<span class="empty-state-text"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</span>');
-
-            // 1. Fetch data
+            // Fetch data from server
             fetch(`${APPSCRIPT_URL}?action=getPendingVotes&qid=${questionId}`)
                 .then(res => res.json())
-                .then(data => { // data is now { votes: [], thresholds: {} }
-                    const votes = data.votes || [];
-                    const thresholds = data.thresholds || { approve: 20, confirm: 50 }; // Default fallback
+                .then(data => {
+                    // 1. Update Cache
+                    pendingVotesCache[questionId] = data;
 
-                    $container.empty();
-                    if (votes.length === 0) {
-                        $container.html('<span class="empty-state-text">- ยังไม่มีข้อเสนอใหม่ -</span>');
-                        return;
+                    // 2. Render Notification Bar with fresh data
+                    renderVoteNotificationUI(questionId, data, false);
+
+                    // 3. Render Modal Content if it's currently open
+                    if ($('#vote-category-modal').is(':visible')) {
+                        renderModalPendingVotes(data);
                     }
+                })
+                .catch(err => {
+                    console.error("Fetch Pending Votes Error:", err);
+                });
+        }
 
-                    // 2. Render Badges with remaining votes logic
-                    votes.forEach(item => {
-                        const categoryName = getCategoryNameById(item.categoryId);
-                        const currentCount = parseInt(item.count) || 0;
-                        const status = item.status;
+        function renderModalPendingVotes(data) {
+            const $container = $('#suggested-category-container');
+            const votes = data.votes || [];
+            const thresholds = data.thresholds || { approve: 20, confirm: 50 };
 
-                        let nextTarget = thresholds.approve;
-                        let statusLabel = 'เพื่ออนุมัติ';
+            $container.empty();
+            if (votes.length === 0) {
+                $container.html('<span class="empty-state-text">- ยังไม่มีข้อเสนอใหม่ -</span>');
+                return;
+            }
 
-                        // Logic to determine the next goal
-                        if (status === 'Approved' || currentCount >= thresholds.approve) {
-                            nextTarget = thresholds.confirm;
-                            statusLabel = 'เพื่อยืนยัน';
-                        }
+            votes.forEach(item => {
+                const categoryName = getCategoryNameById(item.categoryId);
+                const currentCount = parseInt(item.count) || 0;
+                const status = item.status;
 
-                        const votesRemaining = nextTarget - currentCount;
-                        // ข้อความที่แสดง: ถ้าเหลือ > 0 ให้บอกว่าเหลือเท่าไหร่, ถ้าไม่เหลือแล้วให้แสดงจำนวนโหวตปัจจุบัน
-                        const statusText = votesRemaining > 0
-                            ? `${votesRemaining} โหวต ${statusLabel}`
-                            : `${currentCount} โหวตแล้ว!`;
+                let nextTarget = thresholds.approve;
+                let statusLabel = 'เพื่ออนุมัติ';
 
-                        const $badge = $(`
-                            <div class="category-badge suggested" title="คลิกเพื่อโหวตเห็นด้วย">
-                                ${categoryName} 
-                                <span class="vote-count-badge">${currentCount} <i class="fas fa-user"></i></span>
-                                <span class="votes-remaining-text" style="font-size: 0.85rem; margin-left: 5px; color: #ffeb3b; font-weight: 700;">(${statusText})</span>
-                            </div>
-                        `);
+                if (status === 'Approved' || currentCount >= thresholds.approve) {
+                    nextTarget = thresholds.confirm;
+                    statusLabel = 'เพื่อยืนยัน';
+                }
 
-                        // Feature: คลิกที่ Badge เพื่อโหวตทันที (Upvote)
-                        $badge.on('click', function () {
-                            const msg = `ต้องการโหวตเห็นด้วยกับหัวข้อ "${categoryName}" ใช่ไหม?`;
-                            const $confirm = $(`
-                                <div class="custom-confirm-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:9999;">
-                                    <div style="background:#fff;border-radius:8px;padding:16px;max-width:90%;width:360px;box-shadow:0 4px 18px rgba(0,0,0,0.2);">
-                                        <p style="margin:0 0 12px;font-size:15px;color:#222;">${msg}</p>
-                                        <div style="text-align:right;">
-                                            <button class="confirm-no" style="background:#e0e0e0;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;margin-right:8px;">ยกเลิก</button>
-                                            <button class="confirm-yes" style="background:#28a745;color:#fff;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;">ยืนยัน</button>
+                const votesRemaining = nextTarget - currentCount;
+                const statusText = votesRemaining > 0
+                    ? `${votesRemaining} โหวต ${statusLabel}`
+                    : `${currentCount} โหวตแล้ว!`;
+
+                const $badge = $(`
+                    <div class="category-badge suggested" title="คลิกเพื่อโหวตเห็นด้วย">
+                        ${categoryName} 
+                        <span class="vote-count-badge">${currentCount} <i class="fas fa-user"></i></span>
+                        <span class="votes-remaining-text" style="font-size: 0.85rem; margin-left: 5px; color: #ffeb3b; font-weight: 700;">(${statusText})</span>
+                    </div>
+                `);
+
+                $badge.on('click', function () {
+                    const msg = `ต้องการโหวตเห็นด้วยกับหัวข้อ "${categoryName}" ใช่ไหม?`;
+                    const $confirm = $(`
+                                <div class="custom-confirm-overlay">
+                                    <div class="custom-confirm-card">
+                                        <p>${msg}</p>
+                                        <div class="confirm-actions">
+                                            <button class="confirm-no confirm-button">
+                                                ยกเลิก
+                                            </button>
+                                            <button class="confirm-yes confirm-button">
+                                                ยืนยัน
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
                             `);
 
-                            $('body').append($confirm);
+                    $('body').append($confirm);
 
-                            $confirm.find('.confirm-no').on('click', function () {
-                                $confirm.remove();
-                            });
-
-                            $confirm.find('.confirm-yes').on('click', function () {
-                                submitSingleVote(item.categoryId);
-                                $confirm.remove();
-                            });
-                        });
-
-                        $container.append($badge);
+                    $confirm.find('.confirm-no').on('click', function () {
+                        $confirm.remove();
                     });
-                })
-                .catch(err => {
-                    console.error(err);
-                    $container.html('<span class="empty-state-text" style="color:red">โหลดข้อมูลไม่สำเร็จ</span>');
+
+                    $confirm.find('.confirm-yes').on('click', function () {
+                        submitSingleVote(item.categoryId);
+                        $confirm.remove();
+                    });
                 });
+                
+                $container.append($badge);
+            });
         }
 
         function saveReportToGoogleSheet(from, category, question, questionImages, allChoices, suggestedChoice, report, time) {
@@ -2695,12 +2824,11 @@
             });
         }
 
-        function submitSingleVote(categoryId) {
-            submitVoteData([categoryId]);
+        function submitSingleVote(categoryId, shouldRefreshUI = false) {
+            submitVoteData([categoryId], shouldRefreshUI);
         }
 
-        function submitVoteData(categoryArray) {
-            // ปิดปุ่มกันกดซ้ำ
+        function submitVoteData(categoryArray, shouldRefreshUI = false) {
             $('#btn-submit-vote').prop('disabled', true).text('กำลังส่ง...');
 
             const payload = {
@@ -2716,9 +2844,15 @@
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload)
             }).then(() => {
-                alert("บันทึกข้อมูลเรียบร้อย ขอบคุณครับ! 🙏");
+                alert("ขอบคุณสำหรับการโหวต!");
                 $('#vote-category-modal').fadeOut();
                 $('#btn-submit-vote').prop('disabled', false).text('ยืนยัน');
+
+                // **NEW: Clear cache and refresh UI after voting**
+                if (shouldRefreshUI && current_question.questionId) {
+                    delete pendingVotesCache[current_question.questionId];
+                    fetchPendingVotes(current_question.questionId);
+                }
             }).catch(err => {
                 alert("เกิดข้อผิดพลาด");
                 $('#btn-submit-vote').prop('disabled', false).text('ยืนยัน');
