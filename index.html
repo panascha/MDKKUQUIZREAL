@@ -1873,7 +1873,7 @@
             $voteNotificationBar.empty();
 
             // Question Text
-            $question.html(current_question.problem ? current_question.problem.replace(/\n/g, '<br>') : "");
+            $question.html((current_question.category ? `<small style="color: #666;">[${current_question.category[0]}]</small><br>` : "") + (current_question.problem ? current_question.problem.replace(/\n/g, '<br>') : ""));
 
             // Images
             currentImageArray = current_question.img ?
