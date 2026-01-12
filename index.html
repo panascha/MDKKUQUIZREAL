@@ -1910,9 +1910,9 @@
 
         function finishLoading() {
             $('#loading-overlay').hide();
-            $('html, body').animate({
-                scrollTop: $("#quiz-container").offset().top - 20
-            }, 800);
+            //$('html, body').animate({
+              //  scrollTop: $("#quiz-container").offset().top - 20
+            //}, 800);
         }
 
         // =========================================
@@ -2133,6 +2133,30 @@
         // =========================================
         // V. UI & Utility Helpers
         // =========================================
+
+                                // 2. กำหนดสี Highlight ให้แต่ละคำค้นหา
+        const colors = ['#FFECB3', '#FFCDD2', '#C8E6C9', '#BBDEFB', '#D1C4E9', '#FFE0B2', '#F0F4C3', '#DCEDC8', '#FFCCBC', '#D7CCC8'];
+        const termColors = {};
+        let colorIndex = 0;
+
+                            // --- Helper Function สำหรับ Highlight คำ ---
+
+        const highlight = (text) => {
+            if (!text) return "";
+            let highlightedText = String(text);
+
+            // วนลูป Highlight ทุกคำค้นหา
+            for (const term in termColors) {
+                if (!term) continue;
+                // Escape regex characters
+                const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`(${safeTerm})`, 'gi');
+                const color = termColors[term];
+
+                highlightedText = highlightedText.replace(regex, `<mark style="background-color: ${color}; color: #000; padding: 0 2px; border-radius: 2px;">$1</mark>`);
+            }
+            return highlightedText;
+        };
 
         function renderVoteNotificationUI(questionId, data, isInitialLoad = true) {
             const $bar = $('#vote-notification-bar');
@@ -2484,42 +2508,59 @@
         // --- Results Table ---
         const showSubmission = (filter = 'all') => {
             let rowsHtml = '';
+            // กรองเฉพาะข้อที่ทำแล้ว (state == true)
             const filteredQuestions = currentQuestions.slice().reverse().filter(q => {
-                if (!q.state) return false; // Only show answered questions
-
-                if (filter === 'correct') {
-                    return q.select === q.answer;
-                } else if (filter === 'incorrect') {
-                    return q.select !== q.answer;
-                }
-                return true; // 'all' or any other case
+                if (!q.state) return false;
+                if (filter === 'correct') return q.select === q.answer;
+                if (filter === 'incorrect') return q.select !== q.answer;
+                return true;
             });
 
             filteredQuestions.forEach(q => {
-                const selectStyle = q.select === q.answer ? 'color: green;' : 'color: red;';
-                const selectText = `<span style="${selectStyle}">${q.select}</span>`;
-                const foundId = globalStructure.category.find(t =>
-                    Array.isArray(q.category) ? q.category.includes(t.categoryId) : q.category === t.categoryId
-                )?.categoryId;
-                const categoryLabel = foundId ? $(`label[for='cat-${foundId}']`).text() : 'Unknown Category';
-                const choicesFormatted = q.choices ? q.choices.split('///').map(c => `<li>${c}</li>`).join('') : 'N/A';
-                const explanationText = q.explain ? q.explain.replace(/\n/g, '<br>').replace(/\*+/g, match => '<b>' + '*'.repeat(match.length) + '</b>') : 'No explanation available.';
-                const selectContent = displayAnswerContent(q.select);
-                const answerContent = displayAnswerContent(q.answer);
+                // ค้นหาชื่อหมวดหมู่
+                let categoryLabel = 'ไม่ระบุ';
+                if (q.category && globalStructure.category) {
+                    const firstCatId = Array.isArray(q.category) ? q.category[0] : q.category;
+                    const foundCat = globalStructure.category.find(t => t.categoryId == firstCatId);
+                    if (foundCat) categoryLabel = foundCat.categoryName;
+                }
 
+                                const choicesFormatted = q.choices ? q.choices.split('///').map(c => {
+                    const trimmedC = c.trim();
+                    if (isUrl(trimmedC)) {
+                        return `<li><img src="${transformUrl(trimmedC)}" class="search-img-thumb" alt="Choice Image"></li>`;
+                    } else {
+                        return `<li>${highlight(trimmedC)}</li>`;
+                    }
+                }).join('') : '';
+
+                const explanationText = q.explain ? q.explain.replace(/\n/g, '<br>').replace(/\*+/g, match => '<b>' + '*'.repeat(match.length) + '</b>') : '-';
+                const selectContent = displayAnswerContent(q.select);
+                const answerContent = q.answer;
+                                let problemImageHtml = 'No image';
+                if (q.img) {
+                    const imgList = q.img.split('///').map(url => url.trim()).filter(Boolean);
+                    problemImageHtml = imgList.map(url =>
+                        `<a href="${url}" target="_blank"><img src="${transformUrl(url)}" class="search-img-thumb" alt="Q Img"></a>`
+                    ).join(' ');
+                }
                 rowsHtml += `
                     <tr>
-                        <td>${categoryLabel}</td>
-                        <td>${q.problem}</td>
-                        <td>${answerContent}</td>
-                        <td>${q.select ? (q.select === q.answer ? `<span style="color:green">${selectContent}</span>` : `<span style="color:red">${selectContent}</span>`) : 'N/A'}</td>
-                        <td><pre style="white-space: pre-wrap; font-family: var(--font-primary);">${explanationText}</pre></td>
-                        <td><a href="${q.img}" target="_blank">${q.img ? `<img src="${transformUrl(q.img)}" alt="Question Image" style="max-width: 100px; max-height: 100px;">` : 'No image'}</a></td>
-                    </tr>`;
+                            <td>${categoryLabel}</td>
+                            <td style="text-align: left;">
+                                <strong>${q.problem.replace(/\n/g, '<br>')}</strong>
+                                <ul style="margin-top: 5px; padding-left: 20px; list-style-type: disc;">
+                                    ${choicesFormatted}
+                                </ul>
+                            </td>
+                            <td>${answerContent}</td>
+                            <td>${q.select === q.answer ? `<span style="color:green">${selectContent}</span>` : `<span style="color:red">${selectContent}</span>`}</td>
+                            <td style="font-weight: 600;">${explanationText}</td>
+                                <td><div style="max-width:150px; max-height:100px; overflow:auto;">${problemImageHtml}</div></td>
+                        </tr>`;
             });
             $tableBody.html(rowsHtml);
         };
-
 
         // =========================================
         // VII. Search Functionality
@@ -2562,10 +2603,7 @@
             const terms = rawTerms.map(term => term.replace(/^["“”]|["“”]$/g, '')); // ลบ Quote หัวท้าย
             const operators = ['and', 'or', 'not'];
 
-            // 2. กำหนดสี Highlight ให้แต่ละคำค้นหา
-            const colors = ['#FFECB3', '#FFCDD2', '#C8E6C9', '#BBDEFB', '#D1C4E9', '#FFE0B2', '#F0F4C3', '#DCEDC8', '#FFCCBC', '#D7CCC8'];
-            const termColors = {};
-            let colorIndex = 0;
+
             terms.forEach((term) => {
                 if (!operators.includes(term) && term.length > 0) {
                     termColors[term] = colors[colorIndex % colors.length];
@@ -2635,24 +2673,6 @@
                 return;
             }
 
-            // --- Helper Function สำหรับ Highlight คำ ---
-            const highlight = (text) => {
-                if (!text) return "";
-                let highlightedText = String(text);
-
-                // วนลูป Highlight ทุกคำค้นหา
-                for (const term in termColors) {
-                    if (!term) continue;
-                    // Escape regex characters
-                    const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const regex = new RegExp(`(${safeTerm})`, 'gi');
-                    const color = termColors[term];
-
-                    highlightedText = highlightedText.replace(regex, `<mark style="background-color: ${color}; color: #000; padding: 0 2px; border-radius: 2px;">$1</mark>`);
-                }
-                return highlightedText;
-            };
-
             // 5. สร้างตารางผลลัพธ์ (Render Table)
             let resultsHtml = `
                 <p class="small-text" style="color: #28a745; font-weight: bold;">พบ ${searchResults.length} ข้อ</p>
@@ -2719,17 +2739,17 @@
 
                 resultsHtml += `
                     <tr>
-                        <td><small>${categoryLabel}</small></td>
+                        <td>${categoryLabel}</td>
                         <td style="text-align: left;">
                             <strong>${problemHighlighted}</strong>
-                            <ul style="margin-left: 20px; padding-left: 0; list-style-type: upper-alpha;">
+                            <ul style="margin-left: 20px; padding-left: 0;">
                                 ${choicesFormatted}
                             </ul>
                         </td>
                         <td style="color: var(--color-correct); font-weight: bold; text-align: center;">
                             ${answerFormatted}
                         </td>
-                        <td><div style="white-space: pre-wrap; font-size: 0.9em;">${explanationText}</div></td>
+                        <td><div style="white-space: pre-wrap; font-size: 0.9em; font-weight: 600;">${explanationText}</div></td>
                         <td style="text-align: center;">${problemImageHtml}</td>
                     </tr>`;
             });
@@ -3578,6 +3598,8 @@ async function submitVoteData(categoryArray, shouldRefreshUI = false) {
             current_question.select = selected;
             current_question.state = true;
             checkAnswerUI(selected);
+            showSubmission($('#submission-filter').val()); 
+
         });
 
         $choices.on("click", "button", function () {
