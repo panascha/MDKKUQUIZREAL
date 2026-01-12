@@ -1986,7 +1986,9 @@
             }
             fetchPendingVotes(current_question.questionId);
             setTimeout(() => {
-                $choices.find('button').first().focus();
+                $choices.find('button').first().focus({
+                    preventScroll: true
+                });
             }, 50);
         }
 
