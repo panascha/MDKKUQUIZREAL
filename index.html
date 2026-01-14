@@ -626,13 +626,13 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        z-index: 1000;
+        z-index: 10000;
         background-color: var(--color-surface);
         border-radius: var(--border-radius);
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
         width: 90%;
         max-width: 600px;
-        max-height: 80vh;
+        max-height: 90vh;
         overflow-y: auto;
     }
 
@@ -2166,35 +2166,48 @@
                 showSubmission();
 
                 setTimeout(() => {
-                    // 1. เช็คโควต้า: ถ้าโหวตสำเร็จครบ 2 ครั้งแล้ว ไม่ต้องเด้ง
-                    if (sessionAutoVoteCount >= MAX_AUTO_VOTE) return;
+                    console.log("--- Auto Vote Trigger Check ---");
 
-                    // 2. เช็ค Exclusion: ถ้าข้อนี้มีมากกว่า 1 หัวข้ออยู่แล้ว ไม่ต้องเด้ง (ถือว่าสมบูรณ์แล้ว)
-                    // หมายเหตุ: category อาจเป็น array หรือ string ให้แปลงเป็น array ก่อนเช็ค length
+                    // 1. เช็คโควต้า
+                    if (sessionAutoVoteCount >= MAX_AUTO_VOTE) {
+                        console.log("❌ Skipped: Quota reached (" + sessionAutoVoteCount + "/" + MAX_AUTO_VOTE + ")");
+                        return;
+                    }
+
+                    // 2. เช็ค Exclusion (มีหมวดหมู่มากกว่า 1 แล้ว)
                     let cats = Array.isArray(current_question.category) ? current_question.category : [current_question.category];
-                    // กรอง Uncategorized ออกก่อนนับ (เผื่อบางข้อมี Uncategorized ติดมา)
                     cats = cats.filter(c => c && c !== 'Uncategorized');
-                    if (cats.length > 1) return;
 
-                    // 3. เช็ค Exclusion: ถ้าเป็นหมวด AI ไม่ต้องเด้ง
-                    // หา Accordion Group ของข้อปัจจุบัน
+                    // Log ดูว่าข้อนี้มีกี่หมวด
+                    console.log("Current Categories:", cats);
+
+                    if (cats.length > 1) {
+                        console.log("❌ Skipped: Already has multiple categories");
+                        return;
+                    }
+
+                    // 3. เช็ค Exclusion (AI)
                     let isAiQuestion = false;
                     if (globalStructure.category) {
-                        // เช็คจาก Category ID ตัวแรกที่มี
                         const firstCatId = cats.length > 0 ? cats[0] : null;
                         if (firstCatId) {
                             const catObj = globalStructure.category.find(c => c.categoryId === firstCatId);
+                            // เช็คว่าเจอ Object ไหม
                             if (catObj && catObj.accordionGroup && catObj.accordionGroup.toLowerCase().includes("by ai")) {
                                 isAiQuestion = true;
                             }
                         }
                     }
-                    if (isAiQuestion) return;
+                    if (isAiQuestion) {
+                        console.log("❌ Skipped: AI Question");
+                        return;
+                    }
 
-                    // ผ่านเงื่อนไขทั้งหมด -> เปิด Modal แบบ Auto
-                    openVoteModal(true); // true = โหมด Auto
+                    // ผ่านเงื่อนไขทั้งหมด
+                    console.log("✅ Check Passed: Opening Modal...");
+                    openVoteModal(true);
 
-                }, 80); // หน่วงเวลาเล็กน้อยให้ User เห็นเฉลยก่อน
+                }, 80);
             };
 
             function checkAnswerUI(selectedVal, updateScore = true) {
