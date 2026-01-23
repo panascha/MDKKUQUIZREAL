@@ -2374,6 +2374,11 @@
             // V. UI & Utility Helpers
             // =========================================
 
+            const getSelectedCategoryNames = () => {
+                return globalStructure.category
+                    .filter(t => $(`input[data-category-id="${t.categoryId}"]`).is(':checked'))
+                    .map(t => t.categoryName);
+            };
             // 2. กำหนดสี Highlight ให้แต่ละคำค้นหา
             const colors = ['#FFECB3', '#FFCDD2', '#C8E6C9', '#BBDEFB', '#D1C4E9', '#FFE0B2', '#F0F4C3', '#DCEDC8', '#FFCCBC', '#D7CCC8'];
             const termColors = {};
@@ -4129,12 +4134,17 @@
                 $pdfChoiceModal.fadeOut();
             });
             $('#save-results-pdf-btn').on('click', () => {
-                sendActivityLog('DOWNLOAD_PDF_RESULT', "", "Score: " + score);
+                const selectedCats = getSelectedCategoryNames().join(' / '); // ดึงชื่อ Category
+                // Logging: result=Category Names, metadata=Format (Result)
+                sendActivityLog('DOWNLOAD_PDF_RESULT', "", selectedCats, "Format: Result");
                 saveResultsToPdf();
                 $pdfChoiceModal.fadeOut();
             });
             $('#save-practice-pdf-btn').on('click', () => {
-                sendActivityLog('DOWNLOAD_PDF_PRACTICE', "", "Count: " + currentQuestions.length);
+                const selectedCats = getSelectedCategoryNames().join(' / '); // ดึงชื่อ Category
+                const format = isCompactAnswerMode ? 'Practice - Compact (ย่อ)' : 'Practice - Full (ละเอียด)';
+                // Logging: result=Category Names, metadata=Format (Practice - Compact/Full)
+                sendActivityLog('DOWNLOAD_PDF_PRACTICE', "", selectedCats, "Format: " + format);
                 savePracticeSheetToPdf();
                 $pdfChoiceModal.fadeOut();
             });
