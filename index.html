@@ -4100,12 +4100,7 @@
             $('#next-question').on('click', nextQuestion);
             $('#prev-question').on('click', prevQuestion);
             $('#submit-btn').on('click', () => {
-                if (current_question.state) return;
-                const selected = $choices.find('button.selected').data('answer');
-                if (!selected) { Swal.fire("กรุณาเลือกคำตอบ"); return; }
-
-                current_question.select = selected;
-                current_question.state = true;
+                submitQuestion();
                 const resultStatus = (selected === current_question.answer) ? 'CORRECT' : 'INCORRECT';
                 sendActivityLog('ANSWER', current_question.questionId, resultStatus, "Choice: " + selected);
                 checkAnswerUI(selected);
