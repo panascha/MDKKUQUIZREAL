@@ -69,6 +69,13 @@
         /* General Styling */
         --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         --border-radius: 8px;
+
+        /* Z-Index Layers */
+        --zi-fab: 100;            /* ปุ่มลอย */
+    --zi-modal-card: 1000;    /* Modal พื้นฐาน */
+    --zi-report-card: 1100;   /* Modal รายงานปัญหา (ให้สูงกว่านิดหน่อย) */
+    --zi-overlay: 9999;       /* Loading Overlay */
+    --zi-confirm: 10000;      /* หน้าต่างยืนยันโหวต (สูงสุด) */
     }
 
     /* =========================================
@@ -576,6 +583,8 @@
         color: black;
         font-weight: 700;
         margin-top: 1rem;
+            z-index: var(--zi-report-card);
+
     }
 
     #report:hover {
@@ -627,7 +636,7 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        z-index: 10000;
+        z-index: var(--zi-modal-card);
         background-color: var(--color-surface);
         border-radius: var(--border-radius);
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
@@ -708,7 +717,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 99999;
+    z-index: var(--zi-confirm);
         opacity: 0;
         animation: fadeIn 0.2s ease-in-out forwards;
     }
@@ -800,6 +809,7 @@
         letter-spacing: 0.3px;
         transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
     }
 
     /* Approved Style (Green) */
@@ -1286,7 +1296,7 @@
         position: fixed;
         right: 2%;
         top: 40%;
-        z-index: 100;
+        z-index: var(--zi-fab);
         display: flex;
         flex-direction: column;
         gap: 10px;
@@ -1346,7 +1356,7 @@
         max-height: 85vh !important;
         
         /* เผื่อกรณี Google Site บัง */
-        z-index: 2147483647 !important; 
+        z-index: 2147483647 !important; /* ค่าสูงสุดของ 32-bit int */
     }
 
         .container {
@@ -1429,6 +1439,10 @@
             font-size: 1rem;
         }
     }
+
+    #loading-overlay {
+    z-index: var(--zi-overlay);
+}
 </style>
 
 <body>
@@ -2469,7 +2483,7 @@
 
             function renderVoteNotificationUI(questionId, data, isInitialLoad = true) {
                 const $bar = $('#vote-notification-bar');
-                if (isInitialLoad) $bar.empty(); // เคลียร์เฉพาะตอนโหลดใหม่ ไม่ใช่ตอน Refresh
+                if (isInitialLoad) $bar.empty();
 
                 const votes = data.votes || [];
                 const thresholds = data.thresholds || { approve: 20, confirm: 50 };
@@ -2479,11 +2493,11 @@
                     return;
                 }
 
-                // กรองเอาเฉพาะโหวตที่ยังไม่ครบ Confirm (Verified)
+                // กรองเอาเฉพาะโหวตที่ยังไม่ครบ Confirm
                 const incompleteVotes = votes.filter(v => (parseInt(v.count) || 0) < thresholds.confirm);
                 if (incompleteVotes.length === 0) return;
 
-                // หาโหวตที่มีจำนวนสูงสุดในกลุ่มที่ยังไม่ครบ
+                // หาโหวตที่มีจำนวนสูงสุด
                 const topVote = incompleteVotes.reduce((max, current) => {
                     return (parseInt(current.count) || 0) > (parseInt(max.count) || 0) ? current : max;
                 }, { count: -1, categoryId: null, status: null });
@@ -2507,7 +2521,6 @@
                 }
 
                 const votesRemaining = nextTarget - currentCount;
-
                 const statusText = votesRemaining > 0
                     ? `ขาดอีก <b style="color: ${textColor};">${votesRemaining}</b> โหวต ${statusLabel}!`
                     : `<b style="color: ${textColor};">รอ Admin ตรวจสอบ</b>`;
@@ -2519,52 +2532,53 @@
                          background-color: ${bgColor}; color: ${textColor}; font-weight: 700; 
                          display: flex; align-items: center; justify-content: center; cursor: pointer;
                          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border: 2px solid ${textColor};
-                         transition: all 0.3s ease-in-out;">
+                         transition: all 0.3s ease-in-out; z-index: 10;">
                     <i class="fas fa-tags" style="margin-right: 8px;"></i>
                     <span style="font-size: 1.2rem; margin-right: 12px;">เสนอหัวข้อ: <b>${categoryName}</b></span>
                     <span style="font-size: 1.1rem; font-weight: 600;">(${statusText})</span>
                 </div>
             `;
 
-                // แสดงผลบน Notification Bar
                 $bar.html(html);
 
-                // Bind Event to the dynamically created badge
+                // ปรับปรุง Event คลิกให้รองรับ Downvote (-1)
                 $bar.find('#quick-vote-badge').on('click', function () {
                     const categoryIdToVote = $(this).data('category-id');
                     const catName = $(this).find('b').first().text();
 
-                    const msg = `ต้องการโหวตเห็นด้วยกับหัวข้อ "${catName}" ใช่ไหม?`;
-                    const $confirm = $(`
-<div class="custom-confirm-overlay">
-                            <div class="custom-confirm-card">
-                                <p>${msg}</p>
-                                <div class="confirm-actions">
-                                    <button class="confirm-no confirm-button">
-                                        ยกเลิก
-                                    </button>
-                                    <button class="confirm-yes confirm-button">
-                                        ยืนยัน
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                `);
-
-                    $('body').append($confirm);
-
-                    $confirm.find('.confirm-no').on('click', function () {
-                        $confirm.remove();
-                    });
-
-                    $confirm.find('.confirm-yes').on('click', function () {
-                        submitSingleVote(categoryIdToVote, true); // true = Refresh notification bar
-                        $confirm.remove();
+                    Swal.fire({
+                        title: 'คุณเห็นด้วยกับหัวข้อนี้หรือไม่?',
+                        html: `หัวข้อ: <b>"${catName}"</b>`,
+                        icon: 'question',
+                        showDenyButton: true, // เพิ่มปุ่ม "ไม่เห็นด้วย"
+                        showCancelButton: true,
+                        confirmButtonText: 'เห็นด้วย (+1)',
+                        denyButtonText: 'ไม่เห็นด้วย (-1)',
+                        cancelButtonText: 'ยกเลิก',
+                        confirmButtonColor: '#198754', // สีเขียว
+                        denyButtonColor: '#dc3545',    // สีแดง
+                        // ปรับ z-index ของ Swal ให้สูงที่สุด
+                        customClass: {
+                            container: 'swal-highest-z'
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // กดเห็นด้วย: ส่ง delta = 1
+                            submitSingleVote(categoryIdToVote, true, 1);
+                        } else if (result.isDenied) {
+                            // กดไม่เห็นด้วย: ส่ง delta = -1
+                            submitSingleVote(categoryIdToVote, true, -1);
+                            Swal.fire({
+                                title: 'บันทึกโหวตลบ',
+                                text: 'หากคะแนนรวมติดลบ หัวข้อนี้จะถูกนำออกทันที',
+                                icon: 'info',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        }
                     });
                 });
             }
-
-            // --- Category/UI Rendering ---
             // --- Category/UI Rendering ---
             function renderAccordionUI(data) {
                 const $container = $('#dynamic-accordion-area');
