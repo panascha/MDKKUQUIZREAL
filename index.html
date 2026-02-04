@@ -2170,6 +2170,11 @@
                 $choices.empty();
 
                 $voteNotificationBar.empty();
+                if (pendingVotesCache[current_question.questionId]) {
+                    renderVoteNotificationUI(current_question.questionId, pendingVotesCache[current_question.questionId]);
+                }
+                fetchPendingVotes(current_question.questionId);
+
 
                 // Question Text
                 var categoryName = "";
@@ -2480,6 +2485,7 @@
             };
 
             function renderVoteNotificationUI(questionId, data, isInitialLoad = true) {
+                    if (questionId !== current_question.questionId) return;
                 const $bar = $('#vote-notification-bar');
                 if (isInitialLoad) $bar.empty();
 
@@ -3259,7 +3265,7 @@
                     $msgContainer.html(`
             <h6 style="margin:0; font-weight:800; font-size:1.2rem;"><i class="fas fa-exclamation-circle"></i> ช่วยกันแยกเลคเชอร์หน่อยนะครับ 1 ครั้งที่ใช้เว็บจะให้ช่วยแยกแค่คนละ 2 ข้อ ถ้าไม่รู้กดข้ามไปแยกข้อต่อไปได้ </h6>
             <h1 style="margin:5px 0 0 0; font-size:1.5rem; text-align:left; color:#721c24;">
-                เหลืออีก ${remaining} ข้อครับ 🙏
+                เหลืออีก ${remaining} ข้อครับ 🙏 <u>เลื่อนลงด้านล่างเพื่อแยกหัวข้อ ↓</u>
             </h1>
             <p class="small-text" style="margin:5px 0 0 0; font-size:1rem; text-align:left; color:#721c24;">
                 เนื่องจากข้อสอบเก่าในฐานข้อมูลยังมีเลคเชอร์ต่างๆ random ปนกันอยู่ การช่วยระบุ "เลคเชอร์" จะช่วยให้เพื่อนๆ เลือกฝึกทำข้อสอบเฉพาะเรื่องที่อยากทบทวนได้แม่นยำขึ้นครับ
