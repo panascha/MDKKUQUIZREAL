@@ -2234,10 +2234,10 @@
             }
 
             const nextQuestion = () => {
-                if (!currentQuestions[questionIndex]?.state && !isShowingAllAnswers) {
-                    Swal.fire("กรุณาส่งคำตอบก่อน");
-                    return;
-                }
+                //if (!currentQuestions[questionIndex]?.state && !isShowingAllAnswers) {
+                  //  Swal.fire("กรุณาส่งคำตอบก่อน");
+                    //return;
+                //}
                 if (questionIndex < currentQuestions.length - 1) {
                     questionIndex++;
                     showQuestion();
