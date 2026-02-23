@@ -1298,6 +1298,98 @@
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
     }
 
+/* =========================================
+   [NEW] Search Suggestions Styling
+   ========================================= */
+
+/* 1. Container จัดระเบียบชิป */
+#suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;        /* เว้นระยะห่างระหว่างปุ่ม */
+    margin-top: 10px;
+    align-items: center;
+}
+
+/* 2. ตัว Chip (ปุ่มแนะนำ) */
+.suggestion-chip {
+    /* Layout & Sizing */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;       /* เพิ่ม Padding ให้ปุ่มใหญ่ขึ้น กดง่ายในมือถือ */
+    border-radius: 50px;      /* ทรงแคปซูล (Pill shape) */
+    
+    /* Typography */
+    font-family: var(--font-primary);
+    font-size: 1.1rem;        /* ตัวหนังสือใหญ่ขึ้น */
+    font-weight: 500;
+    line-height: 1.2;
+    
+    /* Colors & Borders */
+    background-color: #ffffff;
+    color: var(--color-primary); /* สีน้ำเงินตาม Theme */
+    border: 2px solid var(--color-primary); /* เส้นขอบหนาขึ้นเล็กน้อย */
+    
+    /* Decorate (เงาและมิติ) */
+    box-shadow: 0 4px 6px rgba(26, 115, 232, 0.15); /* เงานุ่มๆ */
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Animation นุ่มนวล */
+    
+    /* Mobile Touch Target */
+    min-height: 44px; /* มาตรฐาน Apple/Android สำหรับปุ่มกด */
+}
+
+/* 3. จัดการ Text ด้านใน */
+.suggestion-chip .original-term {
+    font-size: 0.9em;
+    color: #888;              /* สีเทาจางๆ */
+    text-decoration: line-through; /* ขีดฆ่าคำผิด */
+    text-decoration-thickness: 2px;
+    margin-right: 8px;
+    opacity: 0.8;
+    font-weight: 400;
+}
+
+.suggestion-chip i {
+    font-size: 0.9em;
+    margin: 0 8px;
+    color: var(--color-primary);
+    transition: transform 0.2s;
+}
+
+.suggestion-chip b {
+    font-weight: 800;
+    font-size: 1.15em; /* คำที่ถูกให้ใหญ่กว่านิดหน่อย */
+    letter-spacing: 0.5px;
+}
+
+/* 4. Hover State (เมื่อเอาเมาส์ชี้) */
+.suggestion-chip:hover {
+    background-color: var(--color-primary);
+    color: #ffffff;
+    transform: translateY(-4px) scale(1.02); /* ลอยขึ้น + ขยาย */
+    box-shadow: 0 8px 15px rgba(26, 115, 232, 0.3); /* เงาลึกขึ้น */
+    border-color: var(--color-primary);
+}
+
+.suggestion-chip:hover .original-term {
+    color: rgba(255, 255, 255, 0.6); /* เปลี่ยนสีคำผิดให้กลืนกับพื้นหลัง */
+    text-decoration-color: rgba(255, 255, 255, 0.8);
+}
+
+.suggestion-chip:hover i {
+    color: #ffffff;
+    transform: translateX(3px); /* ลูกศรขยับไปขวา */
+}
+
+/* 5. Active State (ตอนกดคลิก) */
+.suggestion-chip:active {
+    transform: translateY(-1px) scale(0.98); /* ยุบลงเล็กน้อย */
+    box-shadow: 0 2px 4px rgba(26, 115, 232, 0.2);
+}
+
     /* =========================================
        12. Floating Action Buttons (FABs)
        ========================================= */
@@ -1448,6 +1540,26 @@
         #selected-category-status {
             font-size: 1rem;
         }
+
+        #suggestion-chips {
+        justify-content: flex-start; /* ชิดซ้าย */
+        gap: 8px;
+    }
+
+    .suggestion-chip {
+        padding: 8px 16px;     /* ลด padding นิดหน่อยแต่ยังกดง่าย */
+        font-size: 1rem;       /* ลดขนาดฟอนต์ให้พอดีจอเล็ก */
+        flex: 0 1 auto;        /* ให้ความกว้างยืดหดตามเนื้อหา */
+        max-width: 100%;       /* ไม่ให้ล้นจอ */
+    }
+    
+    /* ถ้าคำยาวมากๆ ให้ตัดคำ */
+    .suggestion-chip b {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+    }
     }
 
     #loading-overlay {
@@ -1841,6 +1953,12 @@
             <h2>ค้นหาจากโจทย์ทั้งหมด</h2>
             <input type="text" id="search-input" placeholder="พิมพ์คำค้นหาในโจทย์, ตัวเลือก, หรือคำอธิบาย...">
 
+            <div id="search-suggestions-container"
+                style="width: 100%; max-width: 600px; text-align: left; margin-top: 5px; display: none;">
+                <p class="small-text" style="margin: 0; font-size: 1rem; color: #666;">Did you mean?</p>
+                <div id="suggestion-chips" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;"></div>
+            </div>
+
             <div style="width: 100%; max-width: 600px; text-align: left; margin-top: 5px;">
                 <small style="color: #666; cursor: pointer;" onclick="$('#search-help').slideToggle()">
                     <i class="fas fa-info-circle"></i> วิธีใช้การค้นหา (คลิกเพื่อดู)
@@ -2025,7 +2143,8 @@
             let sessionAutoVoteCount = 0; // นับจำนวนครั้งที่ทำสำเร็จใน Session นี้
             const MAX_AUTO_VOTE = 2;      // จำนวนสูงสุดที่จะเด้งอัตโนมัติ
             let votedQuestionIds = new Set(); // เก็บ ID ของข้อที่โหวตไปแล้วเพื่อไม่ให้ console.log ซ้ำ
-
+            let searchDictionary = new Set(); // เก็บคำศัพท์ทั้งหมด
+            let originalSearchQuery = ""; // เก็บคำค้นหาตั้งต้น
 
             // =========================================
             // III. Initialization
@@ -2056,7 +2175,8 @@
                         console.log("🚀 Loading from IndexedDB (No size limit issue)");
                         globalStructure = localData.structure;
                         allQuestions = localData.questions;
-
+                        buildSearchDictionary();
+                        
                         renderAccordionUI(globalStructure);
                         updateQuestionSet();
                         updateSubjectUI(subjectParam);
@@ -2077,7 +2197,7 @@
 
                     globalStructure = resStruct;
                     allQuestions = resQues.map((q, index) => ({ ...q, _originalIndex: index }));
-
+                    buildSearchDictionary();
                     // 4. บันทึกลง IndexedDB (เก็บได้มหาศาล ไม่ติด QuotaExceeded)
                     await setCacheDB(cacheKey, { structure: globalStructure, questions: allQuestions });
                     await setCacheDB(verKey, serverVersion);
@@ -2981,58 +3101,219 @@
                     $(input).data('initialized', true); // ตั้งค่าว่าถูก initialize แล้ว
                 }
             });
+            // [NEW] 1. ฟังก์ชันสร้าง Dictionary (เรียกใช้ครั้งเดียวตอนโหลดข้อมูลเสร็จ)
+            function buildSearchDictionary() {
+                searchDictionary.clear();
+                console.log("Building Search Dictionary...");
+
+                allQuestions.forEach(q => {
+                    // รวมข้อความจากทุก field
+                    const text = `${q.problem || ''} ${q.choices || ''} ${q.explain || ''}`;
+
+                    // แยกคำ: แยกด้วย Space, Newline, และเครื่องหมายต่างๆ
+                    // หมายเหตุ: ภาษาไทยถ้าไม่มีเว้นวรรค อาจจะแยกได้ไม่สมบูรณ์ แต่จะดึง English terms และคำที่มีเว้นวรรคได้
+                    const tokens = text.split(/[\s\n\r\t\(\)\[\]\{\}"'\/\\,\.\-\?\!]+/);
+
+                    tokens.forEach(t => {
+                        const cleanT = t.trim().toLowerCase();
+                        // เก็บเฉพาะคำที่มีความยาว 2 ตัวอักษรขึ้นไป และไม่ใช่ตัวเลขล้วน
+                        if (cleanT.length > 1 && isNaN(cleanT)) {
+                            searchDictionary.add(cleanT);
+                        }
+                    });
+                });
+                console.log(`Dictionary built with ${searchDictionary.size} words.`);
+            }
+
+            // [NEW] 2. Levenshtein Distance Algorithm (คำนวณความห่างของคำ)
+            function levenshtein(a, b) {
+                if (a.length === 0) return b.length;
+                if (b.length === 0) return a.length;
+
+                const matrix = [];
+
+                // increment along the first column of each row
+                for (let i = 0; i <= b.length; i++) {
+                    matrix[i] = [i];
+                }
+
+                // increment each column in the first row
+                for (let j = 0; j <= a.length; j++) {
+                    matrix[0][j] = j;
+                }
+
+                // Fill in the rest of the matrix
+                for (let i = 1; i <= b.length; i++) {
+                    for (let j = 1; j <= a.length; j++) {
+                        if (b.charAt(i - 1) == a.charAt(j - 1)) {
+                            matrix[i][j] = matrix[i - 1][j - 1];
+                        } else {
+                            matrix[i][j] = Math.min(
+                                matrix[i - 1][j - 1] + 1, // substitution
+                                Math.min(
+                                    matrix[i][j - 1] + 1, // insertion
+                                    matrix[i - 1][j] + 1  // deletion
+                                )
+                            );
+                        }
+                    }
+                }
+
+                return matrix[b.length][a.length];
+            }
+
+            // [NEW] 3. หาคำใกล้เคียง (Suggestions)
+            function findSuggestions(term) {
+                term = term.toLowerCase().replace(/["“”]/g, ''); // เอา quote ออกก่อนเทียบ
+                if (term.length < 2) return [];
+
+                const suggestions = [];
+                const maxDistance = Math.floor(term.length * 0.4); // ยอมรับความผิดพลาดได้ประมาณ 40% ของความยาวคำ
+
+                // Loop เช็คทุกคำใน Dictionary (Optimize: หยุดเมื่อเจอมากพอ หรือใช้ structure ที่ดีกว่านี้ถ้าข้อมูลเยอะมาก)
+                for (const word of searchDictionary) {
+                    // Case A: Subset/Superset (คำที่ค้นเป็นส่วนหนึ่งของคำใน dict หรือกลับกัน)
+                    if (word.includes(term) && word !== term) {
+                        suggestions.push({ word: word, score: 0.1, type: 'subset' }); // score ต่ำ = ดี
+                    }
+                    // Case B: Fuzzy Match (คำคล้าย)
+                    else {
+                        const dist = levenshtein(term, word);
+                        if (dist <= maxDistance) {
+                            suggestions.push({ word: word, score: dist, type: 'fuzzy' });
+                        }
+                    }
+                }
+
+                // เรียงลำดับความน่าจะเป็น: Subset มาก่อน แล้วตามด้วย Fuzzy ที่ใกล้ที่สุด
+                suggestions.sort((a, b) => a.score - b.score);
+
+                // เอาแค่ 5 คำแรกที่ใกล้เคียงที่สุด
+                return suggestions.slice(0, 5).map(s => s.word);
+            }
+
             const performSearch = () => {
+                // 1. Reset Highlight Colors & Index
                 for (const member in termColors) delete termColors[member];
                 colorIndex = 0;
 
-                let searchTerm = $searchInput.val().trim().toLowerCase();
+                // 2. รับค่าจาก Input
+                let searchTerm = $searchInput.val().trim();
 
-                // ลบ "" ถ้าผู้ใช้ไม่ได้พิมพ์อะไรข้างใน (เช่น เหลือแค่ "")
+                // กรณีไม่ได้พิมพ์อะไร หรือพิมพ์แค่ ""
                 if (searchTerm === '""' || !searchTerm) {
                     $searchResultsContainer.html('<p class="small-text">กรุณาป้อนคำเพื่อค้นหา</p>');
+                    $('#search-suggestions-container').hide();
                     return;
                 }
 
-                // 1. แยกคำค้นหาและ Operator (รองรับ AND, OR, NOT และคำใน "...")
+                // 3. แยกคำค้นหา (Terms) และ Operators
+                // Regex นี้จะแยกคำใน Quote ออกมาเป็นก้อนเดียว, และแยกคำปกติด้วย Space
                 const rawTerms = searchTerm.match(/(?:[^\s"“”]+|"[^"]*"|“[^”]*”)+/g) || [];
-                const terms = rawTerms.map(term => term.replace(/^["“”]|["“”]$/g, '')); // ลบ Quote หัวท้าย
+
+                // Clean Terms: ลบ Quote หัวท้ายออกเพื่อใช้ในการค้นหาเนื้อหา
+                const terms = rawTerms.map(term => term.replace(/^["“”]|["“”]$/g, ''));
                 const operators = ['and', 'or', 'not'];
 
+                // 4. Process Suggestions (หาคำแนะนำสำหรับแต่ละคำ)
+                const allSuggestionsMap = new Map();
+                let foundAnySuggestion = false;
 
-                terms.forEach((term) => {
-                    if (!operators.includes(term) && term.length > 0) {
-                        termColors[term] = colors[colorIndex % colors.length];
+                terms.forEach(term => {
+                    const lowerTerm = term.toLowerCase();
+
+                    // ข้าม Operator และคำที่สั้นเกินไป
+                    if (!operators.includes(lowerTerm) && lowerTerm.length > 1) {
+
+                        // เช็ค Dictionary: ถ้าไม่มีคำนี้ในระบบ ให้หาคำใกล้เคียง
+                        // (ต้องมั่นใจว่าเรียก buildSearchDictionary() ตอนโหลดเว็บแล้ว)
+                        if (typeof searchDictionary !== 'undefined' && !searchDictionary.has(lowerTerm)) {
+                            const similarWords = findSuggestions(lowerTerm); // ฟังก์ชันจากขั้นตอนก่อนหน้า
+                            if (similarWords.length > 0) {
+                                allSuggestionsMap.set(term, similarWords);
+                                foundAnySuggestion = true;
+                            }
+                        }
+
+                        // กำหนดสี Highlight ให้คำนั้น (ใช้ในการแสดงผลตาราง)
+                        termColors[lowerTerm] = colors[colorIndex % colors.length];
                         colorIndex++;
                     }
                 });
 
-                // 3. กรองคำถาม (Filter Logic)
+                // 5. Render UI Suggestions (แสดงปุ่มแนะนำคำ)
+                const $suggestContainer = $('#search-suggestions-container');
+                const $suggestChips = $('#suggestion-chips');
+                $suggestChips.empty();
+
+                if (foundAnySuggestion) {
+                    allSuggestionsMap.forEach((suggs, originalTerm) => {
+                        suggs.forEach(sWord => {
+                            // สร้างปุ่ม Chip
+                            const $chip = $(`
+                    <div class="suggestion-chip" title="แทนที่ '${originalTerm}' ด้วย '${sWord}'">
+                        <span class="original-term">${originalTerm}</span>
+                        <i class="fas fa-arrow-right" style="font-size:0.8em; margin-right:5px;"></i>
+                        <b>${sWord}</b>
+                    </div>
+                `);
+
+                            // Click Event: กดแล้วแทนที่คำเดิมใน Input ด้วยคำใหม่ + ใส่ Quote
+                            $chip.on('click', function () {
+                                let currentVal = $searchInput.val();
+                                const replacement = `"${sWord}"`; // คำใหม่ต้องมี Quote เสมอเพื่อให้ค้นหาแม่นยำ
+
+                                // Escape ตัวอักษรพิเศษในคำเดิม (เช่น ., ?, *) ป้องกัน Regex พัง
+                                const escapedTerm = originalTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+                                // Regex: ค้นหาคำเดิม ที่อาจจะมีหรือไม่มี Quote (" หรือ “ หรือ ”) ครอบอยู่
+                                // ["“”]?  -> หมายถึง อาจมีเครื่องหมายคำพูดนำหน้า
+                                // ${escapedTerm} -> คำค้นหาเดิม
+                                // ["“”]?  -> หมายถึง อาจมีเครื่องหมายคำพูดปิดท้าย
+                                // 'g' -> แทนที่ทั้งหมดถ้าเจอหลายคำ
+                                const regex = new RegExp(`["“”]?${escapedTerm}["“”]?`, 'g');
+
+                                // ทำการแทนที่ (กิน Quote เก่าเข้าไปด้วย แล้วแทนด้วย "คำใหม่")
+                                currentVal = currentVal.replace(regex, replacement);
+
+                                $searchInput.val(currentVal);
+                                performSearch(); // ค้นหาใหม่ทันที
+                            });
+
+                            $suggestChips.append($chip);
+                        });
+                    });
+                    $suggestContainer.show();
+                } else {
+                    $suggestContainer.hide();
+                }
+
+                // 6. Filter Questions (กรองข้อสอบตามเงื่อนไข AND/OR/NOT)
                 let searchResults = allQuestions.filter(q => {
                     let includeQuestion = false;
-                    let currentOperator = 'or'; // Default operator คือ OR
+                    let currentOperator = 'or'; // Default operator
 
-                    // ถ้าไม่มีคำค้นหาเลย
                     if (terms.length === 0) return false;
 
-                    // Loop ผ่านคำค้นหาทีละคำ
                     for (let i = 0; i < terms.length; i++) {
-                        const term = terms[i];
+                        const term = terms[i].toLowerCase();
 
                         if (operators.includes(term)) {
                             currentOperator = term;
                         } else {
-                            // ตรวจสอบว่าคำค้นหาปรากฏในส่วนต่างๆ หรือไม่
+                            // เช็คว่ามีคำค้นหาอยู่ในส่วนต่างๆ หรือไม่
                             const termInQuestion =
                                 (q.problem && q.problem.toLowerCase().includes(term)) ||
                                 (q.choices && q.choices.toLowerCase().includes(term)) ||
                                 (q.explain && q.explain.toLowerCase().includes(term));
 
-                            // Logic แรกสุด (ตัวแรก)
-                            if (i === 0 || (i === 1 && operators.includes(terms[0]))) {
+                            // Logic การรวมผลลัพธ์
+                            if (i === 0 || (i === 1 && operators.includes(terms[0].toLowerCase()))) {
+                                // คำแรก หรือ คำที่สอง(ถ้าคำแรกเป็น operator)
                                 if (currentOperator === 'not') includeQuestion = !termInQuestion;
                                 else includeQuestion = termInQuestion;
                             } else {
-                                // Logic ต่อเนื่อง
+                                // คำถัดๆ ไป
                                 if (currentOperator === 'and') {
                                     includeQuestion = includeQuestion && termInQuestion;
                                 } else if (currentOperator === 'or') {
@@ -3041,14 +3322,13 @@
                                     includeQuestion = includeQuestion && !termInQuestion;
                                 }
                             }
-                            // Reset operator เป็น 'or' สำหรับคำถัดไป ถ้าไม่ได้ระบุ (Implicit OR)
-                            currentOperator = 'or';
+                            currentOperator = 'or'; // Reset operator
                         }
                     }
                     return includeQuestion;
                 });
 
-                // 4. ตัดคำถามซ้ำ (Deduplication)
+                // 7. Deduplication (ลบโจทย์ซ้ำ)
                 const questionTexts = new Set();
                 searchResults = searchResults.filter(q => {
                     const problemText = q.problem ? q.problem.replace(/^\d+\.\s*/, '') : '';
@@ -3063,31 +3343,35 @@
                     }
                 });
 
+                // 8. Handle No Results
                 if (searchResults.length === 0) {
-                    $searchResultsContainer.html('<p class="small-text">ไม่พบผลลัพธ์ที่ตรงกัน</p>');
+                    let msg = '<p class="small-text">ไม่พบผลลัพธ์ที่ตรงกัน</p>';
+                    if (foundAnySuggestion) {
+                        msg += '<p class="small-text" style="color:#1a73e8; font-weight:bold;">ลองกดเลือกคำแนะนำที่ระบบเสนอให้ด้านบนดูไหม?</p>';
+                    }
+                    $searchResultsContainer.html(msg);
                     return;
                 }
 
-                // 5. สร้างตารางผลลัพธ์ (Render Table)
+                // 9. Render Results Table (แสดงผลลัพธ์)
                 let resultsHtml = `
-                <p class="small-text" style="color: #28a745; font-weight: bold;">พบ ${searchResults.length} ข้อ</p>
-                <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 10%;">Category</th>
-                            <th style="width: 40%;">Question & Choices</th>
-                            <th style="width: 15%;">Answer</th>
-                            <th style="width: 25%;">Explanation</th>
-                            <th style="width: 10%;">Image</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
+    <p class="small-text" style="color: #28a745; font-weight: bold;">พบ ${searchResults.length} ข้อ</p>
+    <div style="overflow-x: auto;">
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 10%;">Category</th>
+                <th style="width: 40%;">Question & Choices</th>
+                <th style="width: 15%;">Answer</th>
+                <th style="width: 25%;">Explanation</th>
+                <th style="width: 10%;">Image</th>
+            </tr>
+        </thead>
+        <tbody>`;
 
                 searchResults.forEach(q => {
-                    // หาชื่อ Category
+                    // 9.1 หาชื่อ Category
                     let categoryLabel = 'Unknown';
-                    // เช็คจาก globalStructure ที่โหลดมา (ถ้ามี)
                     if (typeof globalStructure !== 'undefined' && globalStructure.category) {
                         const foundCategory = globalStructure.category.find(t =>
                             Array.isArray(q.category) ? q.category.includes(t.categoryId) : q.category === t.categoryId
@@ -3097,10 +3381,10 @@
                         categoryLabel = Array.isArray(q.category) ? q.category.join(', ') : q.category;
                     }
 
-                    // --- Highlight โจทย์ ---
+                    // 9.2 Highlight โจทย์
                     const problemHighlighted = highlight(q.problem).replace(/\n/g, '<br>');
 
-                    // --- ส่วนจัดการตัวเลือก ---
+                    // 9.3 Format ตัวเลือก (Choices)
                     const choicesFormatted = q.choices ? q.choices.split('///').map(c => {
                         const trimmedC = c.trim();
                         if (isUrl(trimmedC)) {
@@ -3110,7 +3394,7 @@
                         }
                     }).join('') : '';
 
-                    // --- ส่วนจัดการเฉลย ---
+                    // 9.4 Format เฉลย (Answer)
                     let answerFormatted = q.answer;
                     if (isUrl(q.answer)) {
                         answerFormatted = `<img src="${transformUrl(q.answer)}" class="search-img-thumb" alt="Answer Image">`;
@@ -3118,12 +3402,12 @@
                         answerFormatted = highlight(q.answer);
                     }
 
-                    // --- ส่วนคำอธิบาย ---
+                    // 9.5 Format คำอธิบาย (Explanation)
                     let explanationText = q.explain ? q.explain : '-';
                     explanationText = highlight(explanationText);
                     explanationText = explanationText.replace(/\n/g, '<br>').replace(/\*([^*]+)\*/g, '<b>$1</b>');
 
-                    // --- ส่วนรูปโจทย์ ---
+                    // 9.6 Format รูปโจทย์ (Problem Images)
                     let problemImageHtml = 'No image';
                     if (q.img) {
                         const imgList = q.img.split('///').map(url => url.trim()).filter(Boolean);
@@ -3132,27 +3416,27 @@
                         ).join(' ');
                     }
 
+                    // 9.7 Append Row
                     resultsHtml += `
-                    <tr>
-                        <td>${categoryLabel}</td>
-                        <td style="text-align: left;">
-                            <strong>${problemHighlighted}</strong>
-                            <ul style="margin-left: 20px; padding-left: 0;">
-                                ${choicesFormatted}
-                            </ul>
-                        </td>
-                        <td style="color: var(--color-correct); font-weight: bold; text-align: center;">
-                            ${answerFormatted}
-                        </td>
-                        <td><div style="white-space: pre-wrap; font-size: 0.9em; font-weight: 600;">${explanationText}</div></td>
-                        <td style="text-align: center;">${problemImageHtml}</td>
-                    </tr>`;
+        <tr>
+            <td>${categoryLabel}</td>
+            <td style="text-align: left;">
+                <strong>${problemHighlighted}</strong>
+                <ul style="margin-left: 20px; padding-left: 0;">
+                    ${choicesFormatted}
+                </ul>
+            </td>
+            <td style="color: var(--color-correct); font-weight: bold; text-align: center;">
+                ${answerFormatted}
+            </td>
+            <td><div style="white-space: pre-wrap; font-size: 0.9em; font-weight: 600;">${explanationText}</div></td>
+            <td style="text-align: center;">${problemImageHtml}</td>
+        </tr>`;
                 });
 
                 resultsHtml += `</tbody></table></div>`;
                 $searchResultsContainer.html(resultsHtml);
             };
-
 
             // =========================================
             // VIII. Reporting & Voting
