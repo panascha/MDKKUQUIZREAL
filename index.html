@@ -2503,11 +2503,18 @@
 
             // --- Sorting/Filtering ---
             function sortCurrentQuestions() {
+                const answered = currentQuestions.filter(q => q.state);
+                const unanswered = currentQuestions.filter(q => !q.state);
+
                 if (isRandomized) {
-                    currentQuestions.sort(() => Math.random() - 0.5);
+                    answered.sort(() => Math.random() - 0.5);
+                    unanswered.sort(() => Math.random() - 0.5);
                 } else {
-                    currentQuestions.sort((a, b) => a._originalIndex - b._originalIndex);
+                    answered.sort((a, b) => a._originalIndex - b._originalIndex);
+                    unanswered.sort((a, b) => a._originalIndex - b._originalIndex);
                 }
+
+                currentQuestions = [...answered, ...unanswered];
             }
 
             function updateQuestionSet(shouldSort = true) {
@@ -4459,6 +4466,9 @@
                 sortCurrentQuestions(); // เรียกฟังก์ชันเรียงใหม่
                 questionIndex = 0;      // รีเซ็ตไปข้อแรก
                 showQuestion();         // แสดงผล
+
+                const currentFilter = $('#submission-filter').val();
+                showSubmission(currentFilter); 
             });
             $('#toggle-review-mode-btn').on('click', function () {
                 isReviewMode = !isReviewMode;
