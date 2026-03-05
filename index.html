@@ -2161,49 +2161,64 @@
                 $('#loading-overlay').css('display', 'flex');
 
                 try {
-                    // 1. ลองดึงข้อมูลจากเครื่อง (Cache) มาแสดงก่อนทันที โดยไม่รอ Server
-                    const localData = await getCacheDB(cacheKey);
-                    if (localData) {
-                        console.log("🚀 Fast Load from Cache");
+                    // 1. ดึงข้อมูลเวอร์ชันจาก Server และข้อมูลจาก Cache มาพร้อมๆ กันเพื่อความเร็ว
+                    const [versionResponse, localVer, localData] = await Promise.all([
+                        fetch(`${APPSCRIPT_URL}?action=checkVersion`).then(r => r.json()),
+                        getCacheDB(verKey),
+                        getCacheDB(cacheKey)
+                    ]);
+
+                    const serverVersion = versionResponse.v;
+
+                    // 2. ตรวจสอบเงื่อนไข: ถ้าเวอร์ชันตรงกัน และมีข้อมูลใน Cache
+                    if (localVer === serverVersion && localData) {
+                        console.log("🚀 Version match! Loading from Cache...");
+
                         globalStructure = localData.structure;
                         allQuestions = localData.questions;
-                        buildSearchDictionary();
+
+                        // นำข้อมูลจาก Cache ไปใช้งานทันที
                         renderAccordionUI(globalStructure);
-                        updateQuestionSet(false); // ไม่ต้องสุ่มใหม่เพื่อความเร็ว
+                        updateQuestionSet(false); // ไม่ต้องสุ่มใหม่เพื่อให้ลำดับเหมือนเดิมที่เคยทำค้างไว้
+                        buildSearchDictionary();
                         updateSubjectUI(subjectParam);
-                        $('#loading-overlay').hide(); // ปิด Spinner ทันทีที่เจอข้อมูลเก่า
+
+                        $('#loading-overlay').hide();
+                        return; // จบการทำงาน ไม่ต้องโหลด Question ใหม่จาก server
                     }
 
-                    // 2. เช็คเวอร์ชันจาก Server ในพื้นหลัง
-                    fetch(`${APPSCRIPT_URL}?action=checkVersion`)
-                        .then(r => r.json())
-                        .then(async (resVer) => {
-                            const serverVersion = resVer.v;
-                            const localVer = await getCacheDB(verKey);
+                    // 3. ถ้าเวอร์ชันไม่ตรง หรือไม่มีข้อมูลใน Cache ให้โหลดใหม่ทั้งหมด
+                    console.log("🔄 Version mismatch or No Cache. Fetching fresh data...");
 
-                            // ถ้าเวอร์ชันไม่ตรง หรือไม่มีข้อมูลในเครื่องเลย ค่อยโหลดใหม่
-                            if (localVer !== serverVersion || !localData) {
-                                console.log("🔄 Update detected, fetching new data...");
-                                const resStruct = await fetch(`${APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}`).then(r => r.json());
-                                const resQues = await fetch(`${APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}`).then(r => r.json());
+                    const [resStruct, resQues] = await Promise.all([
+                        fetch(`${APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}`).then(r => r.json()),
+                        fetch(`${APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}`).then(r => r.json())
+                    ]);
 
-                                globalStructure = resStruct;
-                                allQuestions = resQues.map((q, index) => ({ ...q, _originalIndex: index }));
+                    globalStructure = resStruct;
+                    allQuestions = resQues.map((q, index) => ({ ...q, _originalIndex: index }));
 
-                                // บันทึกใหม่
-                                await setCacheDB(cacheKey, { structure: globalStructure, questions: allQuestions });
-                                await setCacheDB(verKey, serverVersion);
+                    // 4. บันทึกข้อมูลใหม่ลง Cache (IndexedDB)
+                    await setCacheDB(cacheKey, { structure: globalStructure, questions: allQuestions });
+                    await setCacheDB(verKey, serverVersion);
 
-                                // อัปเดตหน้าจอ
-                                renderAccordionUI(globalStructure);
-                                updateQuestionSet();
-                                buildSearchDictionary();
-                                $('#loading-overlay').hide();
-                            }
-                        });
+                    // 5. แสดงผล UI
+                    renderAccordionUI(globalStructure);
+                    updateQuestionSet();
+                    buildSearchDictionary();
+                    updateSubjectUI(subjectParam);
 
                 } catch (err) {
                     console.error("Init Error:", err);
+                    // กรณี Internet มีปัญหา แต่มี Cache เก่า ให้ฝืนใช้ของเก่าไปก่อน
+                    const fallbackData = await getCacheDB(cacheKey);
+                    if (fallbackData) {
+                        globalStructure = fallbackData.structure;
+                        allQuestions = fallbackData.questions;
+                        renderAccordionUI(globalStructure);
+                        updateQuestionSet();
+                    }
+                } finally {
                     $('#loading-overlay').hide();
                 }
             }
