@@ -4888,8 +4888,26 @@
                 if ($reportCard.is(":visible") || $progressModal.is(":visible") || $pdfChoiceModal.is(":visible")) return;
                 if (e.key === 'ArrowRight') nextQuestion();
                 else if (e.key === 'ArrowLeft') prevQuestion();
-                else if (e.key === 'Enter' && $choices.find("button.selected").length > 0) submitQuestion();
-                else if (e.key === ' ' && document.activeElement.tagName === 'BUTTON' && $(document.activeElement).parent().is('#choices')) {
+                else if (e.key === 'Enter') {
+                    const $focusedElement = $(document.activeElement);
+
+                    // เช็คว่าตอนนี้เรากำลังโฟกัสอยู่ที่ปุ่มตัวเลือกใน #choices หรือไม่
+                    if ($focusedElement.parent().is('#choices')) {
+                        e.preventDefault(); // กันการเลื่อนหน้าจอหรืออาการแปลกๆ
+
+                        if ($focusedElement.hasClass('selected')) {
+                            // 1. ถ้าข้อที่โฟกัสอยู่ "ถูกเลือกไว้แล้ว" ให้ส่งคำตอบ
+                            submitQuestion();
+                        } else {
+                            // 2. ถ้าข้อที่โฟกัสอยู่ "ยังไม่ถูกเลือก" ให้ทำการเลือก (Select)
+                            $focusedElement.trigger('click');
+                        }
+                    }
+                    // กรณีโฟกัสอยู่ที่อื่น (เช่น ปุ่มถัดไป) แต่มีข้อที่เลือกค้างไว้แล้ว
+                    else if ($choices.find("button.selected").length > 0) {
+                        submitQuestion();
+                    }
+                }                else if (e.key === ' ' && document.activeElement.tagName === 'BUTTON' && $(document.activeElement).parent().is('#choices')) {
                     //e.preventDefault();
                     $(document.activeElement).trigger('click');
                 }
