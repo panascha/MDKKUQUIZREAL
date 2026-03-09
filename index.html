@@ -65,6 +65,12 @@
         /* Green for MCQ Group */
         --color-toggle-ai: #6f42c1;
         /* Purple for AI Category */
+        --pastel-anatomy: #FFF0F0; --active-anatomy: #FFC1C1; --text-anatomy: #000000;
+    --pastel-physio: #F0F7FF; --active-physio: #B3D7FF; --text-physio: #000000;
+    --pastel-micro: #F5F0FF; --active-micro: #D1C4E9; --text-micro: #000000;
+    --pastel-patho: #F0FFF4; --active-patho: #C1EFC4; --text-patho: #000000;
+    --pastel-pharm: #FFF9F0; --active-pharm: #FFE0B2; --text-pharm: #000000;
+    --pastel-clinical: #F0FFFF; --active-clinical: #B2EBF2; --text-clinical: #000000;
 
         /* General Styling */
         --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -305,25 +311,29 @@
         border-color: #adb5bd;
     }
 
-    /* Style when button is selected (General) */
-    input[type="checkbox"]:checked+.toggle-button {
-        background-color: var(--color-primary);
-        color: white;
-        border-color: var(--color-primary);
-        box-shadow: 0 2px 5px rgba(26, 115, 232, 0.3);
-    }
+/* Base style for toggle-button with category colors */
+.toggle-button.cat-anatomy { background-color: var(--pastel-anatomy); border-color: #FFDADA; color: var(--text-anatomy); }
+.toggle-button.cat-physio { background-color: var(--pastel-physio); border-color: #D1E3FF; color: var(--text-physio); }
+.toggle-button.cat-micro { background-color: var(--pastel-micro); border-color: #E6D9FF; color: var(--text-micro); }
+.toggle-button.cat-patho { background-color: var(--pastel-patho); border-color: #D9FFDE; color: var(--text-patho); }
+.toggle-button.cat-pharm { background-color: var(--pastel-pharm); border-color: #FFEBCF; color: var(--text-pharm); }
+.toggle-button.cat-clinical { background-color: var(--pastel-clinical); border-color: #D1F7F7; color: var(--text-clinical); }
 
-    /* Style override for MCQ group */
-    .accordion-group:nth-of-type(n+2):nth-of-type(-n+5) input[type="checkbox"]:checked+.toggle-button {
-        background-color: var(--color-toggle-mcq);
-        border-color: var(--color-toggle-mcq);
-    }
+/* Hover States */
+.toggle-button.cat-anatomy:hover { background-color: #FFE0E0; }
+.toggle-button.cat-physio:hover { background-color: #E1EFFF; }
+.toggle-button.cat-micro:hover { background-color: #ECE0FF; }
+.toggle-button.cat-patho:hover { background-color: #E0FFE5; }
+.toggle-button.cat-pharm:hover { background-color: #FFF2DB; }
+.toggle-button.cat-clinical:hover { background-color: #E0F9F9; }
 
-    /* Style override for AI Category group */
-    .accordion-group:nth-of-type(6) input[type="checkbox"]:checked+.toggle-button {
-        background-color: var(--color-toggle-ai);
-        border-color: var(--color-toggle-ai);
-    }
+/* Selected/Checked States (Override general primary color) */
+input[type="checkbox"]:checked + .toggle-button.cat-anatomy { background-color: var(--active-anatomy); color: #000; border-color: #FF8080; }
+input[type="checkbox"]:checked + .toggle-button.cat-physio { background-color: var(--active-physio); color: #000; border-color: #80BFFF; }
+input[type="checkbox"]:checked + .toggle-button.cat-micro { background-color: var(--active-micro); color: #000; border-color: #B39DDB; }
+input[type="checkbox"]:checked + .toggle-button.cat-patho { background-color: var(--active-patho); color: #000; border-color: #81C784; }
+input[type="checkbox"]:checked + .toggle-button.cat-pharm { background-color: var(--active-pharm); color: #000; border-color: #FFB74D; }
+input[type="checkbox"]:checked + .toggle-button.cat-clinical { background-color: var(--active-clinical); color: #000; border-color: #4DD0E1; }
 
 
     /* =========================================
@@ -2772,65 +2782,98 @@
                 const $container = $('#dynamic-accordion-area');
                 $container.empty();
 
-                // 1. Pre-calculate question counts for each category
-                // สร้าง Map เพื่อนับจำนวนข้อสอบในแต่ละหมวดหมู่
                 const categoryCounts = {};
-
                 if (typeof allQuestions !== 'undefined' && allQuestions.length > 0) {
                     allQuestions.forEach(q => {
-                        // ตรวจสอบว่า category เป็น array หรือค่าเดียว แล้วแปลงเป็น array เสมอ
                         const cats = Array.isArray(q.category) ? q.category : [q.category];
-
-                        cats.forEach(catId => {
-                            if (catId) {
-                                categoryCounts[catId] = (categoryCounts[catId] || 0) + 1;
-                            }
-                        });
+                        cats.forEach(catId => { if (catId) categoryCounts[catId] = (categoryCounts[catId] || 0) + 1; });
                     });
                 }
 
-                // data.subjects = [{year, subjectId, subjectName, accordionGroup}]
-                // data.category = [{categoryId, subjectRef, accordionGroup, categoryName}]
+                // Helper function สำหรับแยกแยะหมวดหมู่จากชื่อ
+                function getCategoryColorClass(catId) {
+                    const id = catId.toUpperCase();
+                    let termToCheck = id;
 
-                // หากลุ่ม Accordion ที่ไม่ซ้ำกันจาก Structure
+                    // 1. ถ้าเป็นหมวดที่ถูกสกัดมา (Extracted) 
+                    // ให้ดึงเอาเฉพาะคำที่อยู่ระหว่าง _ ตัวสุดท้าย กับ _Extracted
+                    // ตัวอย่าง: EN_51MCQ1_BiochemistryClinical_RADIOandCLINICAL_Extracted
+                    // จะดึงมาแค่: RADIOANDCLINICAL
+                    if (id.includes("_EXTRACTED")) {
+                        const segments = id.split("_EXTRACTED")[0].split("_");
+                        termToCheck = segments[segments.length - 1];
+                    }
+
+                    // 2. เช็คเงื่อนไขตามลำดับความสำคัญ (เอาคำเฉพาะทางขึ้นก่อน)
+
+                    // --- อันดับ 1: RADIO / CLINICAL ---
+                    if (termToCheck.includes("RADIO") || termToCheck.includes("CLINICAL")) {
+                        return "cat-clinical";
+                    }
+
+                    // --- อันดับ 2: ANATOMY ---
+                    if (termToCheck.includes("ANATOMY") || termToCheck.includes("ANA")) {
+                        return "cat-anatomy";
+                    }
+
+                    // --- อันดับ 3: MICRO / PARASITO ---
+                    if (termToCheck.includes("PARASITO") || termToCheck.includes("MICRO")) {
+                        return "cat-micro";
+                    }
+
+                    // --- อันดับ 4: PATHO ---
+                    if (termToCheck.includes("PATHO")) {
+                        return "cat-patho";
+                    }
+
+                    // --- อันดับ 5: PHYSIO / BIOCHEM ---
+                    if (termToCheck.includes("PHYSIO") || termToCheck.includes("BIOCHEM")) {
+                        return "cat-physio";
+                    }
+
+                    // --- อันดับ 6: PHARM ---
+                    if (termToCheck.includes("PHARM")) {
+                        return "cat-pharm";
+                    }
+
+                    return ""; // สีขาวปกติ
+                }
                 const groups = {};
-
                 data.category.forEach(category => {
                     const key = category.accordionGroup || 'Uncategorized';
                     if (!groups[key]) groups[key] = [];
                     groups[key].push(category);
                 });
 
-                // สร้าง HTML
-                for (const [groupName, category] of Object.entries(groups)) {
-                    let categoryButtons = category.map(t => {
-                        // ดึงจำนวนข้อจากตัวแปรที่นับไว้ (ถ้าไม่มีให้เป็น 0)
+                for (const [groupName, categories] of Object.entries(groups)) {
+                    let categoryButtons = categories.map(t => {
                         const count = categoryCounts[t.categoryId] || 0;
+                        const colorClass = getCategoryColorClass(t.categoryId); // เรียกใช้ฟังก์ชันแยกสี
 
                         return `
-                    <input type="checkbox" id="cat-${t.categoryId}" 
-                           data-category-id="${t.categoryId}" 
-                           name="category" value="${t.categoryId}" hidden>
-                    <label for="cat-${t.categoryId}" class="toggle-button" title="${t.categoryName} (มี ${count} ข้อ)">
-                        ${t.categoryName} <span style="font-size: 0.85em; opacity: 0.7; margin-left: 3px;">(${count})</span>
-                    </label>
-                `;
+                <input type="checkbox" id="cat-${t.categoryId}" 
+                       data-category-id="${t.categoryId}" 
+                       name="category" value="${t.categoryId}" hidden>
+                <label for="cat-${t.categoryId}" class="toggle-button ${colorClass}" title="${t.categoryName} (มี ${count} ข้อ)">
+                    ${t.categoryName} <span style="font-size: 0.9em; opacity: 0.7; margin-left: 3px;">(${count})</span>
+                </label>
+            `;
                     }).join('');
 
                     let html = `
-                    <details class="accordion-group">
-                        <summary class="accordion-header">
-                            <i class="fas fa-folder" style="margin-right: 10px;"></i> ${groupName}
-                        </summary>
-                        <div class="button-grid">
-                            ${categoryButtons}
-                        </div>
-                    </details>
-                `;
+            <details class="accordion-group">
+                <summary class="accordion-header">
+                    <i class="fas fa-folder" style="margin-right: 10px;"></i> ${groupName}
+                </summary>
+                <div class="button-grid">
+                    ${categoryButtons}
+                </div>
+            </details>
+        `;
                     $container.append(html);
                 }
 
-                // Bind Events สำหรับ Checkbox ใหม่
+                // Re-bind change events
                 $('input[type="checkbox"][name="category"]').on('change', () => {
                     updateQuestionSet();
                     updateSelectedCategoryStatus();
