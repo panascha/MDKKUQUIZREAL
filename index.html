@@ -71,6 +71,7 @@
     --pastel-patho: #F0FFF4; --active-patho: #C1EFC4; --text-patho: #000000;
     --pastel-pharm: #FFF9F0; --active-pharm: #FFE0B2; --text-pharm: #000000;
     --pastel-clinical: #F0FFFF; --active-clinical: #B2EBF2; --text-clinical: #000000;
+    --color-toggle-non: #ffffff; /* Gray for Non-category */
 
         /* General Styling */
         --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -194,41 +195,41 @@
 
     /* Status Bar for Selected Category */
     #selected-category-status {
-        margin-top: 15px;
-        margin-bottom: 20px;
-        padding: 10px 15px;
-        border: 1px solid var(--color-primary);
-        border-radius: var(--border-radius);
-        background-color: #e3f2fd;
-        /* Light blue background */
-        min-height: 40px;
-        align-items: center;
-        justify-content: flex-start;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
+    margin-top: 15px;
+    margin-bottom: 20px;
+    padding: 12px 15px;
+    border: 1px dashed var(--color-primary);
+    border-radius: var(--border-radius);
+    background-color: #f8fbff;
+    min-height: 45px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
 
     .status-category-button {
-        padding: 6px 10px;
-        border: 1px solid var(--color-primary);
-        border-radius: 20px;
-        background-color: var(--color-primary);
-        color: white;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        font-size: 1.1rem;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        user-select: none;
-    }
+    padding: 4px 12px;
+    border: 1px solid var(--color-primary);
+    border-radius: 16px;
+    background-color: white;
+    color: var(--color-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 4px rgba(26, 115, 232, 0.1);
+}
 
     .status-category-button:hover {
-        background-color: var(--color-primary-hover);
-        border-color: var(--color-primary-hover);
-    }
+    background-color: #fdeaea;
+    color: var(--color-wrong);
+    border-color: var(--color-wrong);
+    transform: translateY(-1px);
+}
 
     .status-category-button i {
         font-size: 0.8em;
@@ -285,6 +286,18 @@
         border-top: 1px solid #eee;
     }
 
+    /* Badge แสดงจำนวนใน Accordion */
+.selected-count-badge {
+    background-color: var(--color-primary);
+    color: white;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 0.9rem;
+    margin-left: auto; /* ดันไปทางขวา */
+    font-weight: 800;
+    display: none; /* ซ่อนถ้าเป็น 0 */
+}
+
     /* Toggle Buttons Styles */
     .button-grid {
         display: flex;
@@ -318,6 +331,7 @@
 .toggle-button.cat-patho { background-color: var(--pastel-patho); border-color: #D9FFDE; color: var(--text-patho); }
 .toggle-button.cat-pharm { background-color: var(--pastel-pharm); border-color: #FFEBCF; color: var(--text-pharm); }
 .toggle-button.cat-clinical { background-color: var(--pastel-clinical); border-color: #D1F7F7; color: var(--text-clinical); }
+.toggle-button.cat-non { background-color: var(--color-toggle-non); border-color: #4a4a4a; color: black; }
 
 /* Hover States */
 .toggle-button.cat-anatomy:hover { background-color: #FFE0E0; }
@@ -326,7 +340,7 @@
 .toggle-button.cat-patho:hover { background-color: #E0FFE5; }
 .toggle-button.cat-pharm:hover { background-color: #FFF2DB; }
 .toggle-button.cat-clinical:hover { background-color: #E0F9F9; }
-
+.toggle-button.cat-non:hover { background-color: #d7d7d7; }
 /* Selected/Checked States (Override general primary color) */
 input[type="checkbox"]:checked + .toggle-button.cat-anatomy { background-color: var(--active-anatomy); color: #000; border-color: #FF8080; }
 input[type="checkbox"]:checked + .toggle-button.cat-physio { background-color: var(--active-physio); color: #000; border-color: #80BFFF; }
@@ -334,7 +348,7 @@ input[type="checkbox"]:checked + .toggle-button.cat-micro { background-color: va
 input[type="checkbox"]:checked + .toggle-button.cat-patho { background-color: var(--active-patho); color: #000; border-color: #81C784; }
 input[type="checkbox"]:checked + .toggle-button.cat-pharm { background-color: var(--active-pharm); color: #000; border-color: #FFB74D; }
 input[type="checkbox"]:checked + .toggle-button.cat-clinical { background-color: var(--active-clinical); color: #000; border-color: #4DD0E1; }
-
+input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444444; color: white; border-color: #000000; }
 
     /* =========================================
        5. Quiz Core UI (ส่วนหลักของแบบทดสอบ)
@@ -584,6 +598,21 @@ input[type="checkbox"]:checked + .toggle-button.cat-clinical { background-color:
         background-color: #5a32a3;
     }
 
+    .btn-clear-all {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.btn-clear-all:hover {
+    background-color: #5a6268;
+}
 
     #toggle-random-btn {
         background-color: #e8710a;
@@ -2790,54 +2819,23 @@ input[type="checkbox"]:checked + .toggle-button.cat-clinical { background-color:
                     });
                 }
 
-                // Helper function สำหรับแยกแยะหมวดหมู่จากชื่อ
+                // Helper color logic (เหมือนเดิม)
                 function getCategoryColorClass(catId) {
                     const id = catId.toUpperCase();
                     let termToCheck = id;
-
-                    // 1. ถ้าเป็นหมวดที่ถูกสกัดมา (Extracted) 
-                    // ให้ดึงเอาเฉพาะคำที่อยู่ระหว่าง _ ตัวสุดท้าย กับ _Extracted
-                    // ตัวอย่าง: EN_51MCQ1_BiochemistryClinical_RADIOandCLINICAL_Extracted
-                    // จะดึงมาแค่: RADIOANDCLINICAL
                     if (id.includes("_EXTRACTED")) {
                         const segments = id.split("_EXTRACTED")[0].split("_");
                         termToCheck = segments[segments.length - 1];
                     }
-
-                    // 2. เช็คเงื่อนไขตามลำดับความสำคัญ (เอาคำเฉพาะทางขึ้นก่อน)
-
-                    // --- อันดับ 1: RADIO / CLINICAL ---
-                    if (termToCheck.includes("RADIO") || termToCheck.includes("CLINICAL")) {
-                        return "cat-clinical";
-                    }
-
-                    // --- อันดับ 2: ANATOMY ---
-                    if (termToCheck.includes("ANATOMY") || termToCheck.includes("ANA")) {
-                        return "cat-anatomy";
-                    }
-
-                    // --- อันดับ 3: MICRO / PARASITO ---
-                    if (termToCheck.includes("PARASITO") || termToCheck.includes("MICRO")) {
-                        return "cat-micro";
-                    }
-
-                    // --- อันดับ 4: PATHO ---
-                    if (termToCheck.includes("PATHO")) {
-                        return "cat-patho";
-                    }
-
-                    // --- อันดับ 5: PHYSIO / BIOCHEM ---
-                    if (termToCheck.includes("PHYSIO") || termToCheck.includes("BIOCHEM")) {
-                        return "cat-physio";
-                    }
-
-                    // --- อันดับ 6: PHARM ---
-                    if (termToCheck.includes("PHARM")) {
-                        return "cat-pharm";
-                    }
-
-                    return ""; // สีขาวปกติ
+                    if (termToCheck.includes("RADIO") || termToCheck.includes("CLINICAL")) return "cat-clinical";
+                    if (termToCheck.includes("ANATOMY") || termToCheck.includes("ANA")) return "cat-anatomy";
+                    if (termToCheck.includes("PARASITO") || termToCheck.includes("MICRO")) return "cat-micro";
+                    if (termToCheck.includes("PATHO")) return "cat-patho";
+                    if (termToCheck.includes("PHYSIO") || termToCheck.includes("BIOCHEM")) return "cat-physio";
+                    if (termToCheck.includes("PHARM")) return "cat-pharm";
+                    return "";
                 }
+
                 const groups = {};
                 data.category.forEach(category => {
                     const key = category.accordionGroup || 'Uncategorized';
@@ -2848,22 +2846,24 @@ input[type="checkbox"]:checked + .toggle-button.cat-clinical { background-color:
                 for (const [groupName, categories] of Object.entries(groups)) {
                     let categoryButtons = categories.map(t => {
                         const count = categoryCounts[t.categoryId] || 0;
-                        const colorClass = getCategoryColorClass(t.categoryId); // เรียกใช้ฟังก์ชันแยกสี
+                        const colorClass = getCategoryColorClass(t.categoryId);
 
                         return `
                 <input type="checkbox" id="cat-${t.categoryId}" 
                        data-category-id="${t.categoryId}" 
                        name="category" value="${t.categoryId}" hidden>
-                <label for="cat-${t.categoryId}" class="toggle-button ${colorClass}" title="${t.categoryName} (มี ${count} ข้อ)">
-                    ${t.categoryName} <span style="font-size: 0.9em; opacity: 0.7; margin-left: 3px;">(${count})</span>
+                <label for="cat-${t.categoryId}" class="toggle-button ${colorClass}" title="${t.categoryName}">
+                    ${t.categoryName} <span style="font-size: 0.8em; opacity: 0.6;">(${count})</span>
                 </label>
             `;
                     }).join('');
 
                     let html = `
-            <details class="accordion-group">
+            <details class="accordion-group" data-group-name="${groupName}">
                 <summary class="accordion-header">
-                    <i class="fas fa-folder" style="margin-right: 10px;"></i> ${groupName}
+                    <i class="fas fa-folder" style="margin-right: 10px;"></i> 
+                    <span>${groupName}</span>
+                    <span class="selected-count-badge">0</span>
                 </summary>
                 <div class="button-grid">
                     ${categoryButtons}
@@ -2910,20 +2910,50 @@ input[type="checkbox"]:checked + .toggle-button.cat-clinical { background-color:
                 const selected = $('input[type="checkbox"][name="category"]:checked');
 
                 $status.empty();
+
                 if (selected.length === 0) {
-                    $status.html('<p class="small-text" style="color: #007bff;">ยังไม่ได้เลือกหัวข้อ</p>');
+                    $status.html('<p class="small-text" style="color: #999; margin:0;">ยังไม่ได้เลือกหัวข้อ</p>');
                 } else {
+                    // เพิ่มปุ่มล้างทั้งหมด
+                    $status.append(`<button class="btn-clear-all" onclick="clearAllCategories()"><i class="fas fa-trash-alt"></i> ล้างทั้งหมด (${selected.length})</button>`);
+
                     selected.each(function () {
                         const categoryId = $(this).data('category-id');
                         const categoryObj = globalStructure.category.find(c => c.categoryId === categoryId);
                         const labelName = categoryObj ? categoryObj.categoryName : categoryId;
 
-                        $status.append(`<button class="status-category-button" data-category-id="${categoryId}" onclick="uncheckCategory('${categoryId.replace(/'/g, "\\'")}')">${labelName} <i class="fas fa-times"></i></button>`);
+                        $status.append(`
+                <button class="status-category-button" title="คลิกเพื่อเอาออก" 
+                        onclick="uncheckCategory('${categoryId.replace(/'/g, "\\'")}')">
+                    ${labelName} <i class="fas fa-times"></i>
+                </button>
+            `);
                     });
                 }
+
+                // --- Logic: อัปเดต Badge ตัวเลขใน Accordion ---
+                $('.accordion-group').each(function () {
+                    const $group = $(this);
+                    const totalInGroup = $group.find('input[type="checkbox"]').length;
+                    const checkedInGroup = $group.find('input[type="checkbox"]:checked').length;
+                    const $badge = $group.find('.selected-count-badge');
+
+                    if (checkedInGroup > 0) {
+                        $badge.text(`${checkedInGroup}/${totalInGroup}`).fadeIn(200);
+                        $group.css('border-color', 'var(--color-primary)'); // ไฮไลท์กรอบที่มีการเลือก
+                    } else {
+                        $badge.hide();
+                        $group.css('border-color', '#ddd');
+                    }
+                });
+
                 updateProgressHeader();
             }
 
+            // ฟังก์ชันล้างทั้งหมด
+            window.clearAllCategories = function () {
+                $('input[type="checkbox"][name="category"]:checked').prop('checked', false).trigger('change');
+            };
             window.uncheckCategory = function (categoryId) {
                 const el = document.getElementById(`cat-${categoryId}`);
                 if (el) {
