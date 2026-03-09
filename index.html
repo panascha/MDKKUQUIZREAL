@@ -2878,6 +2878,7 @@
                         $status.append(`<button class="status-category-button" data-category-id="${categoryId}" onclick="uncheckCategory('${categoryId.replace(/'/g, "\\'")}')">${labelName} <i class="fas fa-times"></i></button>`);
                     });
                 }
+                updateProgressHeader();
             }
 
             window.uncheckCategory = function (categoryId) {
