@@ -2811,15 +2811,23 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                 const $container = $('#dynamic-accordion-area');
                 $container.empty();
 
-                const categoryCounts = {};
+                // 1. เตรียมข้อมูลการนับ (Total vs Split)
+                const categoryStats = {};
                 if (typeof allQuestions !== 'undefined' && allQuestions.length > 0) {
                     allQuestions.forEach(q => {
                         const cats = Array.isArray(q.category) ? q.category : [q.category];
-                        cats.forEach(catId => { if (catId) categoryCounts[catId] = (categoryCounts[catId] || 0) + 1; });
+                        const realCats = cats.filter(c => c && c !== 'Uncategorized');
+                        const isSplit = realCats.length > 1; // แยกแล้วถ้ามีหมวดหมู่ > 1
+
+                        realCats.forEach(catId => {
+                            if (!categoryStats[catId]) categoryStats[catId] = { total: 0, split: 0 };
+                            categoryStats[catId].total++;
+                            if (isSplit) categoryStats[catId].split++;
+                        });
                     });
                 }
 
-                // Helper color logic (เหมือนเดิม)
+                // ฟังก์ชันกำหนดสีปุ่ม
                 function getCategoryColorClass(catId) {
                     const id = catId.toUpperCase();
                     let termToCheck = id;
@@ -2844,25 +2852,51 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                 });
 
                 for (const [groupName, categories] of Object.entries(groups)) {
+                    // --- ตรวจสอบเงื่อนไขยกเว้น ---
+                    const isExcludedGroup = groupName.includes("LEC") ||
+                        groupName.includes("by AI") ||
+                        groupName.includes("(Extracted)");
+
+                    // สร้างปุ่ม Category ภายในกลุ่ม
                     let categoryButtons = categories.map(t => {
-                        const count = categoryCounts[t.categoryId] || 0;
+                        const stats = categoryStats[t.categoryId] || { total: 0, split: 0 };
                         const colorClass = getCategoryColorClass(t.categoryId);
+
+                        let displayCount = "";
+                        if (isExcludedGroup) {
+                            displayCount = `(${stats.total})`;
+                        } else {
+                            const isComplete = stats.split >= stats.total && stats.total > 0;
+                            const badgeStyle = isComplete ? "color: #198754;" : "color: #dc3545; font-weight: 800;";
+                            displayCount = `(<span style="${badgeStyle}">${stats.split}</span>/${stats.total})`;
+                        }
 
                         return `
                 <input type="checkbox" id="cat-${t.categoryId}" 
                        data-category-id="${t.categoryId}" 
                        name="category" value="${t.categoryId}" hidden>
                 <label for="cat-${t.categoryId}" class="toggle-button ${colorClass}" title="${t.categoryName}">
-                    ${t.categoryName} <span style="font-size: 0.8em; opacity: 0.6;">(${count})</span>
+                    ${t.categoryName} <span style="font-size: 0.85em; opacity: 0.8;">${displayCount}</span>
                 </label>
             `;
                     }).join('');
 
+                    // --- เพิ่มคำอธิบายตรงหัวข้อ Accordion ตามสไตล์ที่ระบุ ---
+                    const helperText = !isExcludedGroup
+                        ? `
+                        <span style="margin-left: 10px; background-color: #e0e0e0; color: #333; border-radius: 12px; font-size: 0.9rem;">
+                <span style="font-size: 1.2rem; font-weight: 700; color: #999;"> (</span>
+                <span style="font-size: 1.2rem; font-weight: 900; color: #444;">คำถามที่แยกเลคแล้ว</span>
+                <span style="font-size: 1.2rem; font-weight: 700; color: #999;">/คำถามทั้งหมด)</span>
+                </span>`
+                        : "";
+
                     let html = `
             <details class="accordion-group" data-group-name="${groupName}">
                 <summary class="accordion-header">
-                    <i class="fas fa-folder" style="margin-right: 10px;"></i> 
-                    <span>${groupName}</span>
+                    <i class="fas fa-folder" style="margin-right: 10px; color: black;"></i> 
+                    <span style="white-space: nowrap;">${groupName}</span>
+                    ${helperText}
                     <span class="selected-count-badge">0</span>
                 </summary>
                 <div class="button-grid">
@@ -2878,7 +2912,7 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                     updateQuestionSet();
                     updateSelectedCategoryStatus();
                 });
-            }
+            } 
             function renderCurrentCategory() {
                 const $container = $('#current-category-container');
                 $container.empty();
