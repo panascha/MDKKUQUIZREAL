@@ -4229,7 +4229,8 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
 
                     // Rule 3: ใส่ Category (เตรียมข้อความ Category)
                     const qCategories = Array.isArray(q.category) ? q.category : (q.category ? [q.category] : []);
-                    const categoryNames = qCategories.map(id => getCategoryNameById(id)).filter(name => name !== 'Uncategorized');
+                    const categoryNames = qCategories.map(id => getCategoryNameById(id))
+                        .filter(name => name !== 'Uncategorized' && !name.includes('(Extracted)'));
                     const categorySuffix = categoryNames.length > 0 ? ` [${categoryNames.join(", ")}]` : '';
 
                     // --- Step 1: Calculate Total Required Height for this Question (Rule 4) ---
