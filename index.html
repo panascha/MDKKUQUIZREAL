@@ -18,6 +18,12 @@
     <!-- jsPDF and Thai Font for PDF Exports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+    <!-- KaTeX for Mathematical Equations -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        onload="renderAllMath()"></script>
+
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-CXPE1MX3HS"></script>
     <script>
@@ -2350,6 +2356,17 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
             }
 
             // --- Question Flow ---
+            function renderAllMath() {
+                if (typeof renderMathInElement === 'function') {
+                    renderMathInElement(document.body, {
+                        delimiters: [
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false }
+                        ],
+                        throwOnError: false
+                    });
+                }
+            }
             function showQuestion(shouldFocus = true) {
                 if (!currentQuestions.length) return;
 
@@ -2442,7 +2459,8 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                 
                 if (shouldFocus) {
                     $choices.find('button').first().trigger('focus', { preventScroll: true });
-                }            
+                }
+                setTimeout(renderAllMath, 50); 
             }
 
             const nextQuestion = () => {
@@ -2517,7 +2535,7 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                 highlightAnswers();
                 showSubmission();
                 updateProgressHeader(); 
-
+                setTimeout(renderAllMath, 50);
 
                 setTimeout(() => {
                     // 1. เช็คโควต้า: ถ้าโหวตสำเร็จครบ 2 ครั้งแล้ว ไม่ต้องเด้ง
@@ -3227,6 +3245,7 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                 }
 
                 $tableBody.html(rowsHtml);
+                renderAllMath();
             };
 
             // =========================================
@@ -3591,6 +3610,7 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
 
                 resultsHtml += `</tbody></table></div>`;
                 $searchResultsContainer.html(resultsHtml);
+                renderAllMath();
             };
 
             // =========================================
