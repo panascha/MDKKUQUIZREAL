@@ -2040,6 +2040,18 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
 
     <script>
 
+        function renderAllMath() {
+                if (typeof renderMathInElement === 'function') {
+                    renderMathInElement(document.body, {
+                        delimiters: [
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false }
+                        ],
+                        throwOnError: false
+                    });
+                }
+            }
+            
         $(function () {
 
             // ฟังก์ชันจัดการฐานข้อมูล IndexedDB (รองรับข้อมูลขนาดใหญ่)
@@ -2356,17 +2368,6 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
             }
 
             // --- Question Flow ---
-            function renderAllMath() {
-                if (typeof renderMathInElement === 'function') {
-                    renderMathInElement(document.body, {
-                        delimiters: [
-                            { left: '$$', right: '$$', display: true },
-                            { left: '$', right: '$', display: false }
-                        ],
-                        throwOnError: false
-                    });
-                }
-            }
             function showQuestion(shouldFocus = true) {
                 if (!currentQuestions.length) return;
 
