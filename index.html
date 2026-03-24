@@ -3111,13 +3111,17 @@ table td .svg-choice-container svg {
                     return;
                 }
 
-                $imageContainer.show();
-                // เปลี่ยน src เป็นรูปปัจจุบัน
                 const currentUrl = transformUrl(currentImageArray[currentImageIndex]);
-                $questionImage.attr('src', currentUrl);
 
-                // ตรวจสอบว่ามีมากกว่า 1 รูปหรือไม่
-                if (currentImageArray.length >= 1) {
+                // ถ้า URL เป็นค่าว่าง (จาก transformUrl ที่เราแก้) ให้ซ่อนรูปโจทย์
+                if (!currentUrl) {
+                    $imageContainer.hide();
+                } else {
+                    $imageContainer.show();
+                    $questionImage.attr('src', currentUrl).show();
+                }
+
+                if (currentImageArray.length > 1) {
                     $prevBtn.show();
                     $nextBtn.show();
                     $counter.show().text(`${currentImageIndex + 1} / ${currentImageArray.length}`);
@@ -3130,6 +3134,10 @@ table td .svg-choice-container svg {
 
             const transformUrl = (url) => {
                 if (!url) return "";
+                // ถ้าเจอคำว่า require_img ให้ส่งค่าว่างกลับไป เพื่อไม่ให้ Browser พยายาม Fetch ไฟล์
+                if (url.toLowerCase().includes("require_img")) return "";
+
+                if (url.startsWith('blob:') || url.startsWith('data:')) return url;
                 const match = url.match(/\/d\/(.*?)\//) || url.match(/id=([^&]+)/);
                 return (match && match[1]) ? `https://lh3.googleusercontent.com/d/${match[1]}?authuser=1=w1000-h1000` : url;
             };
@@ -3165,13 +3173,15 @@ table td .svg-choice-container svg {
 
             const displayAnswerContent = (text) => {
                 if (!text) return "";
-                if (text.includes('drive.google.com') || text.startsWith('http')) {
-                    return `<img src="${transformUrl(text)}" style="height:50px; vertical-align:middle;">`;
+                const trimmed = text.trim(); // ประกาศตัวแปร trimmed ให้เรียบร้อย
+                if (trimmed.includes('drive.google.com') || trimmed.startsWith('http')) {
+                    return `<img src="${transformUrl(trimmed)}" style="height:50px; vertical-align:middle;">`;
                 }
-                if (text.trim().startsWith('<svg')) {
+                if (trimmed.startsWith('<svg')) {
+                    // ใช้ตัวแปร trimmed ที่ประกาศไว้ด้านบน
                     return `<div class="svg-choice-container" style="display:inline-block; width:50px; height:50px; vertical-align:middle;">${trimmed}</div>`;
                 }
-                return text;
+                return trimmed;
             };
 
             const showImage = (url) => {
