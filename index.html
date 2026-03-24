@@ -495,6 +495,42 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
         pointer-events: none;
     }
 
+    #choices button svg {
+    max-width: 100%;
+    max-height: 150px;
+    width: auto;
+    height: auto;
+}
+.svg-render-area, .svg-choice-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
+    background-color: #ffffff;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* บังคับขนาด SVG ให้พอดีกรอบ ไม่ให้ล้น */
+.svg-render-area svg, .svg-choice-container svg {
+    max-width: 100% !important;
+    max-height: 150px !important; /* ปรับเพิ่ม/ลดได้ตามความเหมาะสม */
+    width: auto !important;
+    height: auto !important;
+    display: block;
+}
+
+/* สำหรับหน้า Quiz: ให้ SVG ในปุ่มตัวเลือกดูเด่นขึ้น */
+#choices button .svg-choice-container {
+    background-color: transparent; /* ให้กลืนไปกับสีปุ่ม */
+    pointer-events: none; /* ป้องกันการแย่งคลิกปุ่ม */
+}
+table td .svg-choice-container svg {
+    max-height: 40px !important;
+    max-width: 40px !important;
+}
+
     #choices button:hover {
         background-color: var(--color-light-hover);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -1084,13 +1120,13 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
     }
 
     .report-choice-img {
-        max-width: 100%;
-        max-height: 120px;
-        width: auto;
-        display: block;
-        margin-top: 5px;
-        border-radius: 4px;
-    }
+    max-height: 100px;
+    max-width: 100%;
+    display: block;
+    margin-top: 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
 
     #report-choices-list {
         margin-top: 10px;
@@ -1106,6 +1142,23 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
         border-left: 3px solid #ccc;
         transition: background-color 0.1s;
     }
+
+    .report-choice-svg-container {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    margin-top: 8px;
+}
+
+.report-choice-svg-container svg {
+    max-width: 100%;
+    max-height: 100%;
+}
 
     .modal-section:nth-of-type(1) {
         background-color: #f0f4ff;
@@ -2439,7 +2492,14 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                     if (isUrl(choiceText)) {
                         content = `<img src="${transformUrl(choiceText)}" alt="Choice">`;
                     }
-                    $choices.append(`<button data-answer="${choiceText}">${content}</button>`);
+                    else if (choiceText.startsWith('<svg')) {
+                        content = `<div class="svg-choice-container">${choiceText}</div>`;
+                    }
+                    const $btn = $('<button></button>');
+                    $btn.attr('data-answer', choiceText);
+                    $btn.html(content);
+
+                    $choices.append($btn);
                 });
 
                 // Restore Answered State
@@ -2539,35 +2599,46 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                 setTimeout(renderAllMath, 50);
 
                 setTimeout(() => {
-                    // 1. เช็คโควต้า: ถ้าโหวตสำเร็จครบ 2 ครั้งแล้ว ไม่ต้องเด้ง
+                    // 1. เช็คโควต้า: ถ้าโหวตสำเร็จครบจำนวนครั้งที่ตั้งไว้แล้ว ไม่ต้องเด้ง
                     if (sessionAutoVoteCount >= MAX_AUTO_VOTE) return;
 
-                    // 2. เช็ค Exclusion: ถ้าข้อนี้มีมากกว่า 1 หัวข้ออยู่แล้ว ไม่ต้องเด้ง (ถือว่าสมบูรณ์แล้ว)
-                    // หมายเหตุ: category อาจเป็น array หรือ string ให้แปลงเป็น array ก่อนเช็ค length
+                    // 2. เช็คจำนวนหมวดหมู่: ถ้าข้อนี้มีมากกว่า 1 หัวข้ออยู่แล้ว (แปลว่าถูกแยกไปแล้ว) ไม่ต้องเด้ง
                     let cats = Array.isArray(current_question.category) ? current_question.category : [current_question.category];
-                    // กรอง Uncategorized ออกก่อนนับ (เผื่อบางข้อมี Uncategorized ติดมา)
                     cats = cats.filter(c => c && c !== 'Uncategorized');
                     if (cats.length > 1) return;
 
-                    // 3. เช็ค Exclusion: ถ้าเป็นหมวด AI ไม่ต้องเด้ง
-                    // หา Accordion Group ของข้อปัจจุบัน
-                    let isAiQuestion = false;
+                    // 3. [ปรับปรุงใหม่] เช็ค Exclusion: ตรวจสอบกลุ่ม และ ชื่อหมวดหมู่ที่ต้องยกเว้น
+                    let isExcluded = false;
                     if (globalStructure.category) {
-                        // เช็คจาก Category ID ตัวแรกที่มี
-                        const firstCatId = cats.length > 0 ? cats[0] : null;
-                        if (firstCatId) {
-                            const catObj = globalStructure.category.find(c => c.categoryId === firstCatId);
-                            if (catObj && catObj.accordionGroup && catObj.accordionGroup.toLowerCase().includes("by ai")) {
-                                isAiQuestion = true;
+                        cats.forEach(catId => {
+                            const catObj = globalStructure.category.find(c => c.categoryId === catId);
+                            if (catObj) {
+                                const groupName = (catObj.accordionGroup || "").toUpperCase();
+                                const catName = (catObj.categoryName || "").toUpperCase();
+
+                                // เงื่อนไขยกเว้นตามชื่อกลุ่ม
+                                const isExcludedGroupName = groupName.includes("LEC") ||
+                                    groupName.includes("BY AI") ||
+                                    groupName.includes("(EXTRACTED)");
+
+                                // เงื่อนไขยกเว้นตามชื่อหมวดหมู่
+                                const isExcludedCatName = catName.includes("MODULE") ||
+                                    catName.includes("COMMED");
+
+                                if (isExcludedGroupName || isExcludedCatName) {
+                                    isExcluded = true;
+                                }
                             }
-                        }
+                        });
                     }
-                    if (isAiQuestion) return;
+
+                    // ถ้าเข้าเงื่อนไขยกเว้นตัวใดตัวหนึ่ง ให้หยุดการทำงาน (ไม่เด้ง Modal)
+                    if (isExcluded) return;
 
                     // ผ่านเงื่อนไขทั้งหมด -> เปิด Modal แบบ Auto
-                    openVoteModal(true); // true = โหมด Auto
+                    openVoteModal(true);
 
-                }, 80); // หน่วงเวลาเล็กน้อยให้ User เห็นเฉลยก่อน
+                }, 80);
             };
 
             function checkAnswerUI(selectedVal, updateScore = true) {
@@ -2874,7 +2945,9 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                     // --- ตรวจสอบเงื่อนไขยกเว้น ---
                     const isExcludedGroup = groupName.includes("LEC") ||
                         groupName.includes("by AI") ||
-                        groupName.includes("(Extracted)");
+                        groupName.includes("(Extracted)") ||
+                        categories.some(cat => cat.categoryName.includes("MODULE")) ||
+                        categories.some(cat => cat.categoryName.includes("COMMED"));
 
                     // สร้างปุ่ม Category ภายในกลุ่ม
                     let categoryButtons = categories.map(t => {
@@ -3082,6 +3155,9 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                 if (text.includes('drive.google.com') || text.startsWith('http')) {
                     return `<img src="${transformUrl(text)}" style="height:50px; vertical-align:middle;">`;
                 }
+                if (text.trim().startsWith('<svg')) {
+                    return `<div class="svg-choice-container" style="display:inline-block; width:50px; height:50px; vertical-align:middle;">${trimmed}</div>`;
+                }
                 return text;
             };
 
@@ -3197,19 +3273,28 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                     }
 
                     // จัดการตัวเลือก (Choices)
+                    const trimmedSelect = q.select ? q.select.trim() : '';
+                    const trimmedAnswer = q.answer ? q.answer.trim() : '';
                     const choicesFormatted = q.choices ? q.choices.split('///').map(c => {
-                        const trimmedC = c.trim();
                         if (isUrl(trimmedC)) {
                             return `<li><img src="${transformUrl(trimmedC)}" class="table-img-thumb" alt="Choice Image"></li>`;
-                        } else {
+                        }
+                        else if (trimmedC.startsWith('<svg')) {
+                            return `<li><div style="width:40px; height:40px;">${trimmedC}</div></li>`;
+                        }
+                        else {
                             return `<li>${trimmedC}</li>`;
                         }
                     }).join('') : '';
 
                     const explanationText = q.explain ? q.explain.replace(/\n/g, '<br>') : '-';
-                    const selectContent = isUrl(q.select) ? `<img src="${transformUrl(q.select)}" class="table-img-thumb">` : q.select;
-                    const answerContent = isUrl(q.answer) ? `<img src="${transformUrl(q.answer)}" class="table-img-thumb">` : q.answer;
+                    const selectContent = trimmedSelect.startsWith('<svg') ?
+                        `<div class="svg-choice-container" style="width:40px; height:40px;">${trimmedSelect}</div>` :
+                        (isUrl(trimmedSelect) ? `<img src="${transformUrl(trimmedSelect)}" class="table-img-thumb">` : trimmedSelect);
 
+                    const answerContent = trimmedAnswer.startsWith('<svg') ?
+                        `<div class="svg-choice-container" style="width:40px; height:40px;">${trimmedAnswer}</div>` :
+                        (isUrl(trimmedAnswer) ? `<img src="${transformUrl(trimmedAnswer)}" class="table-img-thumb">` : trimmedAnswer);
                     // จัดการรูปโจทย์ (Problem Images)
                     let problemImageHtml = '';
                     if (q.img) {
@@ -3564,7 +3649,11 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                         const trimmedC = c.trim();
                         if (isUrl(trimmedC)) {
                             return `<li><img src="${transformUrl(trimmedC)}" class="search-img-thumb" alt="Choice Image"></li>`;
-                        } else {
+                        }
+                        else if (trimmedC.startsWith('<svg')) {
+                            return `<li><div class="svg-choice-container" style="width:40px; height:40px; justify-content:flex-start;">${trimmedC}</div></li>`;
+                        }
+                         else {
                             return `<li>${highlight(trimmedC)}</li>`;
                         }
                     }).join('') : '';
@@ -4843,6 +4932,10 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                     if (isUrl(choice)) {
                         choiceContent = `<br><img src="${transformUrl(choice)}" class="report-choice-img" alt="Choice Image">`;
                     }
+                    else if (choice.startsWith('<svg')) {
+                        // ถ้าเป็น SVG
+                        choiceContent = `<div class="report-choice-svg-container">${choice}</div>`;
+                    }
                     return `<p style="margin: 5px 0; font-weight: 500; border-bottom: 1px solid #eee; padding-bottom: 5px;">
                                 <b>${String.fromCharCode(65 + index)}.</b> ${choiceContent}
                             </p>`;
@@ -4857,6 +4950,9 @@ input[type="checkbox"]:checked + .toggle-button.cat-non { background-color: #444
                     let displayText = choice;
                     if (isUrl(choice)) {
                         displayText = `[รูปภาพ] ...${choice.substring(choice.length - 15)}`; // ย่อลิงก์ใน dropdown
+                    }
+                    else if (choice.startsWith('<svg')) {
+                        displayText = `[SVG Image]`;
                     }
 
                     selectOptions += `<option value="${choice}" ${isCurrentAnswer ? 'selected' : ''}>
