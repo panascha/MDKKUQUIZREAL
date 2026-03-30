@@ -1396,6 +1396,176 @@ table td .svg-choice-container svg {
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
     }
 
+    /* คอนเทนเนอร์สำหรับการ์ดค้นหา */
+.search-results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.search-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-align: left;
+}
+
+.search-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+}
+
+/* ส่วนหัว: หมวดหมู่ */
+.search-card-header {
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.search-card-category {
+    font-size: 1.2rem;
+    color: #666;
+    font-weight: 800;
+}
+
+.search-card-relevance {
+    font-size: 0.8rem;
+    padding: 2px 8px;
+    background: #e1f5fe;
+    color: #0288d1;
+    border-radius: 10px;
+}
+
+/* ส่วนเนื้อหา: โจทย์และรูป */
+.search-card-body {
+    padding: 15px;
+    flex-grow: 1;
+}
+
+.search-card-problem {
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 12px;
+    color: #212529;
+}
+
+.search-card-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.search-card-img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+/* ส่วนตัวเลือก */
+.search-card-choices {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 15px 0;
+    font-size: 1.4rem;
+}
+
+.search-card-choices li {
+    padding: 4px 0;
+    border-bottom: 1px dashed #f0f0f0;
+    color: #495057;
+}
+
+/* ส่วนคำตอบ */
+.search-card-answer {
+    background: #d1e7dd;
+    padding: 10px 15px;
+    border-left: 5px solid #198754;
+}
+
+.search-card-answer b {
+    color: #155724;
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+}
+
+.search-card-answer-val {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #198754;
+}
+
+/* ส่วนคำอธิบาย */
+.search-card-footer {
+    padding: 12px 15px;
+    background: #fff;
+    border-top: 1px solid #eee;
+    font-size: 1.2rem;
+    color: #666;
+    line-height: 1.5;
+}
+
+.search-card-footer b {
+    color: #333;
+}
+
+.search-card-actions {
+    display: flex;
+    gap: 8px;
+    padding: 12px 15px;
+    background: #f9f9f9;
+    border-top: 1px solid #eee;
+}
+
+.btn-search-action {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font-primary);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.btn-search-report {
+    background-color: #ff4d4f;
+    color: white;
+}
+
+.btn-search-report:hover {
+    background-color: #d9363e;
+}
+
+.btn-search-vote {
+    background: linear-gradient(to right, #1a73e8, #0056b3);
+    color: #fff;
+}
+
+.btn-search-vote:hover {
+    background: linear-gradient(to right, #1765c8, #004494);
+}
+
 /* =========================================
    [NEW] Search Suggestions Styling
    ========================================= */
@@ -3488,249 +3658,218 @@ table td .svg-choice-container svg {
                 for (const member in termColors) delete termColors[member];
                 colorIndex = 0;
 
-                // 2. รับค่าจาก Input
                 let searchTerm = $searchInput.val().trim();
 
-                // กรณีไม่ได้พิมพ์อะไร หรือพิมพ์แค่ ""
                 if (searchTerm === '""' || !searchTerm) {
                     $searchResultsContainer.html('<p class="small-text">กรุณาป้อนคำเพื่อค้นหา</p>');
                     $('#search-suggestions-container').hide();
                     return;
                 }
 
-                // 3. แยกคำค้นหา (Terms) และ Operators
-                // Regex นี้จะแยกคำใน Quote ออกมาเป็นก้อนเดียว, และแยกคำปกติด้วย Space
-                const rawTerms = searchTerm.match(/(?:[^\s"“”]+|"[^"]*"|“[^”]*”)+/g) || [];
-
-                // Clean Terms: ลบ Quote หัวท้ายออกเพื่อใช้ในการค้นหาเนื้อหา
+                // 2. แยกคำค้นหา
+                const rawTerms = searchTerm.match(/(?:[^\s"Standard]+|"[^"]*"|“[^”]*”)+/g) || [];
                 const terms = rawTerms.map(term => term.replace(/^["“”]|["“”]$/g, ''));
                 const operators = ['and', 'or', 'not'];
 
-                // 4. Process Suggestions (หาคำแนะนำสำหรับแต่ละคำ)
-                const allSuggestionsMap = new Map();
-                let foundAnySuggestion = false;
-
+                // 3. จัดการสี Highlight
                 terms.forEach(term => {
                     const lowerTerm = term.toLowerCase();
-
-                    // ข้าม Operator และคำที่สั้นเกินไป
                     if (!operators.includes(lowerTerm) && lowerTerm.length > 1) {
-
-                        // เช็ค Dictionary: ถ้าไม่มีคำนี้ในระบบ ให้หาคำใกล้เคียง
-                        // (ต้องมั่นใจว่าเรียก buildSearchDictionary() ตอนโหลดเว็บแล้ว)
-                        if (typeof searchDictionary !== 'undefined' && !searchDictionary.has(lowerTerm)) {
-                            const similarWords = findSuggestions(lowerTerm); // ฟังก์ชันจากขั้นตอนก่อนหน้า
-                            if (similarWords.length > 0) {
-                                allSuggestionsMap.set(term, similarWords);
-                                foundAnySuggestion = true;
-                            }
-                        }
-
-                        // กำหนดสี Highlight ให้คำนั้น (ใช้ในการแสดงผลตาราง)
                         termColors[lowerTerm] = colors[colorIndex % colors.length];
                         colorIndex++;
                     }
                 });
 
-                // 5. Render UI Suggestions (แสดงปุ่มแนะนำคำ)
-                const $suggestContainer = $('#search-suggestions-container');
-                const $suggestChips = $('#suggestion-chips');
-                $suggestChips.empty();
-
-                if (foundAnySuggestion) {
-                    allSuggestionsMap.forEach((suggs, originalTerm) => {
-                        suggs.forEach(sWord => {
-                            // สร้างปุ่ม Chip
-                            const $chip = $(`
-                    <div class="suggestion-chip" title="แทนที่ '${originalTerm}' ด้วย '${sWord}'">
-                        <span class="original-term">${originalTerm}</span>
-                        <i class="fas fa-arrow-right" style="font-size:0.8em; margin-right:5px;"></i>
-                        <b>${sWord}</b>
-                    </div>
-                `);
-
-                            // Click Event: กดแล้วแทนที่คำเดิมใน Input ด้วยคำใหม่ + ใส่ Quote
-                            $chip.on('click', function () {
-                                let currentVal = $searchInput.val();
-                                const replacement = `"${sWord}"`; // คำใหม่ต้องมี Quote เสมอเพื่อให้ค้นหาแม่นยำ
-
-                                // Escape ตัวอักษรพิเศษในคำเดิม (เช่น ., ?, *) ป้องกัน Regex พัง
-                                const escapedTerm = originalTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-                                // Regex: ค้นหาคำเดิม ที่อาจจะมีหรือไม่มี Quote (" หรือ “ หรือ ”) ครอบอยู่
-                                // ["“”]?  -> หมายถึง อาจมีเครื่องหมายคำพูดนำหน้า
-                                // ${escapedTerm} -> คำค้นหาเดิม
-                                // ["“”]?  -> หมายถึง อาจมีเครื่องหมายคำพูดปิดท้าย
-                                // 'g' -> แทนที่ทั้งหมดถ้าเจอหลายคำ
-                                const regex = new RegExp(`["“”]?${escapedTerm}["“”]?`, 'g');
-
-                                // ทำการแทนที่ (กิน Quote เก่าเข้าไปด้วย แล้วแทนด้วย "คำใหม่")
-                                currentVal = currentVal.replace(regex, replacement);
-
-                                $searchInput.val(currentVal);
-                                performSearch(); // ค้นหาใหม่ทันที
-                            });
-
-                            $suggestChips.append($chip);
-                        });
-                    });
-                    $suggestContainer.show();
-                } else {
-                    $suggestContainer.hide();
-                }
-
-                // 6. Filter Questions (กรองข้อสอบตามเงื่อนไข AND/OR/NOT)
+                // 4. กรองข้อสอบ
                 let searchResults = allQuestions.filter(q => {
                     let includeQuestion = false;
-                    let currentOperator = 'or'; // Default operator
-
+                    let currentOperator = 'or';
                     if (terms.length === 0) return false;
 
                     for (let i = 0; i < terms.length; i++) {
                         const term = terms[i].toLowerCase();
-
-                        if (operators.includes(term)) {
-                            currentOperator = term;
-                        } else {
-                            // เช็คว่ามีคำค้นหาอยู่ในส่วนต่างๆ หรือไม่
-                            const termInQuestion =
-                                (q.problem && q.problem.toLowerCase().includes(term)) ||
-                                (q.choices && q.choices.toLowerCase().includes(term)) ||
-                                (q.explain && q.explain.toLowerCase().includes(term));
-
-                            // Logic การรวมผลลัพธ์
+                        if (operators.includes(term)) { currentOperator = term; }
+                        else {
+                            const termInAny = (q.answer + q.problem + q.choices + (q.explain || "")).toLowerCase().includes(term);
                             if (i === 0 || (i === 1 && operators.includes(terms[0].toLowerCase()))) {
-                                // คำแรก หรือ คำที่สอง(ถ้าคำแรกเป็น operator)
-                                if (currentOperator === 'not') includeQuestion = !termInQuestion;
-                                else includeQuestion = termInQuestion;
+                                includeQuestion = (currentOperator === 'not') ? !termInAny : termInAny;
                             } else {
-                                // คำถัดๆ ไป
-                                if (currentOperator === 'and') {
-                                    includeQuestion = includeQuestion && termInQuestion;
-                                } else if (currentOperator === 'or') {
-                                    includeQuestion = includeQuestion || termInQuestion;
-                                } else if (currentOperator === 'not') {
-                                    includeQuestion = includeQuestion && !termInQuestion;
-                                }
+                                if (currentOperator === 'and') includeQuestion = includeQuestion && termInAny;
+                                else if (currentOperator === 'or') includeQuestion = includeQuestion || termInAny;
+                                else if (currentOperator === 'not') includeQuestion = includeQuestion && !termInAny;
                             }
-                            currentOperator = 'or'; // Reset operator
+                            currentOperator = 'or';
                         }
                     }
                     return includeQuestion;
                 });
 
-                // 7. Deduplication (ลบโจทย์ซ้ำ)
-                const questionTexts = new Set();
-                searchResults = searchResults.filter(q => {
-                    const problemText = q.problem ? q.problem.replace(/^\d+\.\s*/, '') : '';
-                    const choicesText = q.choices ? q.choices : '';
-                    const uniqueKey = problemText + choicesText;
-
-                    if (questionTexts.has(uniqueKey)) {
-                        return false;
-                    } else {
-                        questionTexts.add(uniqueKey);
-                        return true;
-                    }
+                // 5. Sorting (Answer > Problem > Choices > Explain)
+                searchResults.sort((a, b) => {
+                    const getScore = (q) => {
+                        let score = 0;
+                        terms.filter(t => !operators.includes(t.toLowerCase())).forEach(t => {
+                            const term = t.toLowerCase();
+                            if (q.answer && q.answer.toLowerCase().includes(term)) score = Math.max(score, 100);
+                            else if (q.problem && q.problem.toLowerCase().includes(term)) score = Math.max(score, 50);
+                            else if (q.choices && q.choices.toLowerCase().includes(term)) score = Math.max(score, 20);
+                            else if (q.explain && q.explain.toLowerCase().includes(term)) score = Math.max(score, 10);
+                        });
+                        return score;
+                    };
+                    return getScore(b) - getScore(a);
                 });
 
-                // 8. Handle No Results
+                // 6. Deduplication
+                const questionTexts = new Set();
+                searchResults = searchResults.filter(q => {
+                    const key = (q.problem || '') + (q.choices || '');
+                    if (questionTexts.has(key)) return false;
+                    questionTexts.add(key);
+                    return true;
+                });
+
                 if (searchResults.length === 0) {
-                    let msg = '<p class="small-text">ไม่พบผลลัพธ์ที่ตรงกัน</p>';
-                    if (foundAnySuggestion) {
-                        msg += '<p class="small-text" style="color:#1a73e8; font-weight:bold;">ลองกดเลือกคำแนะนำที่ระบบเสนอให้ด้านบนดูไหม?</p>';
-                    }
-                    $searchResultsContainer.html(msg);
+                    $searchResultsContainer.html('<p class="small-text">ไม่พบผลลัพธ์ที่ตรงกัน</p>');
                     return;
                 }
 
-                // 9. Render Results Table (แสดงผลลัพธ์)
-                let resultsHtml = `
-    <p class="small-text" style="color: #28a745; font-weight: bold;">พบ ${searchResults.length} ข้อ</p>
-    <div style="overflow-x: auto;">
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 10%;">Category</th>
-                <th style="width: 40%;">Question & Choices</th>
-                <th style="width: 15%;">Answer</th>
-                <th style="width: 25%;">Explanation</th>
-                <th style="width: 10%;">Image</th>
-            </tr>
-        </thead>
-        <tbody>`;
+                // 7. Render เป็น Cards
+                let cardsHtml = `<p class="small-text" style="color: #28a745; font-weight: bold; width: 100%;">พบ ${searchResults.length} ข้อ</p>
+                     <div class="search-results-grid">`;
 
-                searchResults.forEach(q => {
-                    // 9.1 หาชื่อ Category
+                searchResults.forEach((q, index) => {
                     let categoryLabel = 'Unknown';
-                    if (typeof globalStructure !== 'undefined' && globalStructure.category) {
-                        const foundCategory = globalStructure.category.find(t =>
+                    if (globalStructure.category) {
+                        const found = globalStructure.category.find(t =>
                             Array.isArray(q.category) ? q.category.includes(t.categoryId) : q.category === t.categoryId
                         );
-                        if (foundCategory) categoryLabel = foundCategory.categoryName || foundCategory.categoryId;
-                    } else if (q.category) {
-                        categoryLabel = Array.isArray(q.category) ? q.category.join(', ') : q.category;
+                        if (found) categoryLabel = found.categoryName;
                     }
 
-                    // 9.2 Highlight โจทย์
-                    const problemHighlighted = highlight(q.problem).replace(/\n/g, '<br>');
+                    let problemImgs = '';
+                    if (q.img) {
+                        const imgArray = q.img.split('///').map(url => url.trim()).filter(Boolean);
+                        if (imgArray.length > 0) {
+                            problemImgs = `
+                            <div class="search-card-images" style="margin: 10px 0;">
+                                <div class="search-image-gallery" style="position: relative; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 8px; padding: 10px; min-height: 250px;">
+                                    <img src="${transformUrl(imgArray[0])}" class="search-gallery-main-img" style="max-width: 100%; max-height: 400px; object-fit: contain; cursor: pointer;" data-img-index="0">
+                                    ${imgArray.length > 1 ? `
+                                    <button class="search-gallery-prev" style="position: absolute; left: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <button class="search-gallery-next" style="position: absolute; right: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                    <div class="search-gallery-counter" style="position: absolute; bottom: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;">
+                                        1 / ${imgArray.length}
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>`;
+                            
+                            // Store image array in data attribute for navigation
+                            setTimeout(() => {
+                                const $card = $(`.search-card[data-search-idx="${index}"]`);
+                                $card.data('imgArray', imgArray);
+                                
+                                let currentIdx = 0;
+                                const $mainImg = $card.find('.search-gallery-main-img');
+                                const $counter = $card.find('.search-gallery-counter');
+                                const $prevBtn = $card.find('.search-gallery-prev');
+                                const $nextBtn = $card.find('.search-gallery-next');
+                                
+                                $prevBtn.on('click', function(e) {
+                                    e.preventDefault();
+                                    currentIdx = (currentIdx - 1 + imgArray.length) % imgArray.length;
+                                    $mainImg.attr('src', transformUrl(imgArray[currentIdx]));
+                                    $counter.text(`${currentIdx + 1} / ${imgArray.length}`);
+                                });
+                                
+                                $nextBtn.on('click', function(e) {
+                                    e.preventDefault();
+                                    currentIdx = (currentIdx + 1) % imgArray.length;
+                                    $mainImg.attr('src', transformUrl(imgArray[currentIdx]));
+                                    $counter.text(`${currentIdx + 1} / ${imgArray.length}`);
+                                });
+                                
+                                $mainImg.on('click', function() {
+                                    window.open(transformUrl(imgArray[currentIdx]), '_blank');
+                                });
+                            }, 50);
+                        }
+                    }
 
-                    // 9.3 Format ตัวเลือก (Choices)
-                    const choicesFormatted = q.choices ? q.choices.split('///').map(c => {
-                        const trimmedC = c.trim();
-                        if (isUrl(trimmedC)) {
-                            return `<li><img src="${transformUrl(trimmedC)}" class="search-img-thumb" alt="Choice Image"></li>`;
-                        }
-                        else if (trimmedC.startsWith('<svg')) {
-                            return `<li><div class="svg-choice-container" style="width:40px; height:40px; justify-content:flex-start;">${trimmedC}</div></li>`;
-                        }
-                         else {
-                            return `<li>${highlight(trimmedC)}</li>`;
-                        }
+                    const choicesList = q.choices ? q.choices.split('///').map(c => {
+                        const trimmed = c.trim();
+                        if (isUrl(trimmed)) return `<li><img src="${transformUrl(trimmed)}" style="height:40px;"></li>`;
+                        if (trimmed.startsWith('<svg')) return `<li><div style="height:40px;">${trimmed}</div></li>`;
+                        return `<li>${highlight(trimmed)}</li>`;
                     }).join('') : '';
 
-                    // 9.4 Format เฉลย (Answer)
-                    let answerFormatted = q.answer;
-                    if (isUrl(q.answer)) {
-                        answerFormatted = `<img src="${transformUrl(q.answer)}" class="search-img-thumb" alt="Answer Image">`;
-                    } else {
-                        answerFormatted = highlight(q.answer);
-                    }
+                    let answerDisplay = isUrl(q.answer) ? `<img src="${transformUrl(q.answer)}" style="max-height:60px;">` : highlight(q.answer);
 
-                    // 9.5 Format คำอธิบาย (Explanation)
-                    let explanationText = q.explain ? q.explain : '-';
-                    explanationText = highlight(explanationText);
-                    explanationText = explanationText.replace(/\n/g, '<br>').replace(/\*([^*]+)\*/g, '<b>$1</b>');
-
-                    // 9.6 Format รูปโจทย์ (Problem Images)
-                    let problemImageHtml = 'No image';
-                    if (q.img) {
-                        const imgList = q.img.split('///').map(url => url.trim()).filter(Boolean);
-                        problemImageHtml = imgList.map(url =>
-                            `<a href="${url}" target="_blank"><img src="${transformUrl(url)}" class="search-img-thumb" alt="Q Img"></a>`
-                        ).join(' ');
-                    }
-
-                    // 9.7 Append Row
-                    resultsHtml += `
-        <tr>
-            <td>${categoryLabel}</td>
-            <td style="text-align: left;">
-                <strong>${problemHighlighted}</strong>
-                <ul style="margin-left: 20px; padding-left: 0;">
-                    ${choicesFormatted}
-                </ul>
-            </td>
-            <td style="color: var(--color-correct); font-weight: bold; text-align: center;">
-                ${answerFormatted}
-            </td>
-            <td><div style="white-space: pre-wrap; font-size: 0.9em; font-weight: 600;">${explanationText}</div></td>
-            <td style="text-align: center;">${problemImageHtml}</td>
-        </tr>`;
+                    cardsHtml += `
+            <div class="search-card" data-search-idx="${index}">
+                <div class="search-card-header">
+                    <span class="search-card-category">${categoryLabel}</span>
+                    <span class="search-card-relevance">Match</span>
+                </div>
+                <div class="search-card-body">
+                    <div class="search-card-problem">${highlight(q.problem).replace(/\n/g, '<br>')}</div>
+                    ${problemImgs}
+                    <ul class="search-card-choices">${choicesList}</ul>
+                </div>
+                <div class="search-card-answer">
+                    <b>เฉลย:</b>
+                    <div class="search-card-answer-val">${answerDisplay}</div>
+                </div>
+                ${q.explain ? `
+                <div class="search-card-footer">
+                    <b>คำอธิบาย:</b><br>
+                    ${highlight(q.explain).replace(/\n/g, '<br>')}
+                </div>` : ''}
+                <div class="search-card-actions">
+                    <button class="btn-search-action btn-search-report" data-idx="${index}">
+                        <i class="fas fa-exclamation-triangle"></i> แจ้งปัญหา
+                    </button>
+                    <button class="btn-search-action btn-search-vote" data-idx="${index}">
+                        <i class="fas fa-tags"></i> แยกเลค
+                    </button>
+                </div>
+            </div>`;
                 });
 
-                resultsHtml += `</tbody></table></div>`;
-                $searchResultsContainer.html(resultsHtml);
+                cardsHtml += `</div>`;
+                $searchResultsContainer.html(cardsHtml);
+
+                // --- ส่วนที่เพิ่มเข้ามา: Bind Click Events สำหรับปุ่มใน Search Card ---
+
+                // ปุ่มแจ้งปัญหา (Report)
+                $('.btn-search-report').on('click', function () {
+                    const idx = $(this).data('idx');
+                    const selectedQ = searchResults[idx];
+
+                    // จำลองการตั้งค่า current_question เพื่อให้ Modal ดึงข้อมูลไปใช้ได้
+                    current_question = JSON.parse(JSON.stringify(selectedQ));
+
+                    // เรียกใช้ฟังก์ชันเปิด Report Modal (โค้ดดั้งเดิมที่คุณมี)
+                    $('#report').trigger('click');
+                });
+
+                // ปุ่มแยกเลค (Vote)
+                $('.btn-search-vote').on('click', function () {
+                    const idx = $(this).data('idx');
+                    const selectedQ = searchResults[idx];
+
+                    // จำลองการตั้งค่า current_question
+                    current_question = JSON.parse(JSON.stringify(selectedQ));
+
+                    // เรียกใช้ฟังก์ชันเปิด Vote Modal (โค้ดดั้งเดิมที่คุณมี)
+                    openVoteModal(false);
+                });
+
                 renderAllMath();
             };
 
