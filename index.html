@@ -4691,12 +4691,18 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
     // ส่วนที่ 1: คำถาม (โจทย์และรูปภาพ)
     // ==========================================
     for (const [index, q] of currentQuestions.entries()) {
+        const qCategories = Array.isArray(q.category) ? q.category : (q.category ? [q.category] : []);
+        const categoryNames = qCategories.map(id => getCategoryNameById(id))
+            .filter(name => name !== 'Uncategorized' && !name.includes('(Extracted)'));
+        const firstCategoryDisplay = categoryNames.length > 0 ? `[${categoryNames[0]}]` : "ไม่มี";
+
         const questionText = `${index + 1}. ${q.problem.replace(/\n/g, ' ')}`;
         doc.setFontSize(16);
         const prefixLines = doc.splitTextToSize(questionText, contentWidth);
 
         // คำนวณความสูงที่ต้องใช้ (ข้อความ + รูป + ตัวเลือก)
         let estimatedHeight = prefixLines.length * lineHeight;
+        if (firstCategoryDisplay) estimatedHeight += 5;
         
         let processedImgs = [];
         if (q.img) {
@@ -4731,10 +4737,20 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
 
         // วาดโจทย์
         doc.setTextColor(0);
+        doc.setFontSize(16);
         prefixLines.forEach(line => {
             doc.text(line, pageMargin, y);
             y += lineHeight;
         });
+
+        if (firstCategoryDisplay) {
+            doc.setFontSize(10); // ขนาดเล็กลง
+            doc.setTextColor(150); // สีเทา (0-255)
+            doc.text(firstCategoryDisplay, pageMargin + 2, y - 2); // วาดใต้โจทย์เยื้องขวานิดหน่อย
+            y += 4; // เว้นระยะบรรทัดเพิ่มเล็กน้อย
+            doc.setTextColor(0); // รีเซ็ตกลับเป็นสีดำสำหรับรูปและตัวเลือก
+            doc.setFontSize(16);
+        }
 
         // วาดรูปโจทย์ (Scale ถูกต้อง ไม่บีบ)
         processedImgs.forEach(imgData => {
