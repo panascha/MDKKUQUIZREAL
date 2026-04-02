@@ -2527,6 +2527,90 @@
                 });
             }
 
+            // --- ฟังก์ชันสำหรับจัดการ Session State (Auto-Save) ---
+            async function saveProgressToCache() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const subjectParam = urlParams.get('subject') || 'default';
+                const sessionKey = `session_state_${subjectParam}`;
+
+                // เก็บเฉพาะข้อมูลที่จำเป็นเพื่อประหยัดพื้นที่
+                const state = {
+                    questionIndex: questionIndex,
+                    score: score,
+                    isRandomized: isRandomized,
+                    isReviewMode: isReviewMode,
+                    // เก็บสถานะการตอบของคำถามในชุดปัจจุบัน
+                    currentQuestionsState: currentQuestions.map(q => ({
+                        questionId: q.questionId,
+                        state: q.state,
+                        select: q.select,
+                        attemptCount: q.attemptCount,
+                        failCount: q.failCount
+                    })),
+                    // เก็บ ID ของหมวดหมู่ที่เลือกไว้
+                    selectedCategories: $('input[type="checkbox"][name="category"]:checked').map(function () {
+                        return this.value;
+                    }).get(),
+                    timestamp: Date.now()
+                };
+
+                await setCacheDB(sessionKey, state);
+                console.log("Progress Auto-Saved");
+            }
+
+            async function loadProgressFromCache() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const subjectParam = urlParams.get('subject') || 'default';
+                const sessionKey = `session_state_${subjectParam}`;
+
+                const savedState = await getCacheDB(sessionKey);
+                if (!savedState) return false;
+
+                try {
+                    // 1. คืนค่า Checkbox หมวดหมู่ (สำคัญ: ต้องไม่ trigger change ทันทีเพื่อกันการ rebuild ซ้ำซ้อน)
+                    $('input[type="checkbox"][name="category"]').prop('checked', false);
+                    savedState.selectedCategories.forEach(catId => {
+                        $(`#cat-${catId}`).prop('checked', true);
+                    });
+
+                    // 2. คืนค่าลำดับคำถามและสถานะการตอบ (Reconstruct the exact array)
+                    const reorderedQuestions = [];
+                    savedState.currentQuestionsState.forEach(savedQ => {
+                        const originalQ = allQuestions.find(q => q.questionId === savedQ.questionId);
+                        if (originalQ) {
+                            reorderedQuestions.push({
+                                ...originalQ,
+                                state: savedQ.state,
+                                select: savedQ.select,
+                                attemptCount: savedQ.attemptCount || 0,
+                                failCount: savedQ.failCount || 0
+                            });
+                        }
+                    });
+
+                    if (reorderedQuestions.length === 0) return false;
+
+                    // คืนค่า Global Variables
+                    currentQuestions = reorderedQuestions;
+                    questionIndex = savedState.questionIndex;
+                    score = savedState.score;
+                    isRandomized = savedState.isRandomized;
+                    isReviewMode = savedState.isReviewMode;
+
+                    // 3. อัปเดต UI ให้ตรงกับสถานะที่โหลดมา
+                    updateSelectedCategoryStatus();
+                    // อัปเดตข้อความบนปุ่ม Random และ Review
+                    $toggleRandomBtn.text(isRandomized ? 'โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : 'โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)');
+                    if (isReviewMode) {
+                        $('#toggle-review-mode-btn').text('โหมดทวนข้อผิด: เปิด').css('background-color', '#28a745');
+                    }
+
+                    return true;
+                } catch (e) {
+                    console.error("Load Progress Failed", e);
+                    return false;
+                }
+            }
             async function sendWithRetry(payload, retries = 3) {
                 for (let i = 0; i < retries; i++) {
                     try {
@@ -2658,9 +2742,27 @@
                     globalStructure = localData.structure;
                     allQuestions = localData.questions;
                     renderAccordionUI(globalStructure);
-                    updateQuestionSet(false); // โหลดคำถามขึ้นมา แต่ยังไม่สุ่มใหม่เพื่อรักษาคิวเดิม
+                    //updateQuestionSet(false); // โหลดคำถามขึ้นมา แต่ยังไม่สุ่มใหม่เพื่อรักษาคิวเดิม
                     buildSearchDictionary();
                     updateSubjectUI(subjectParam);
+
+                    const hasLoadedProgress = await loadProgressFromCache();
+
+                    if (hasLoadedProgress) {
+                        // ถ้าโหลดสำเร็จ ให้แสดงข้อที่ค้างไว้เลย
+                        showQuestion();
+                        updateProgressHeader();
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'ทำต่อจากเดิม...',
+                            text: `โหลดวิชา ${subjectParam} หัวข้อ ${current_question.category} ข้อที่ ${questionIndex + 1} สำเร็จ`,
+                            toast: true, position: 'top-end', showConfirmButton: false, timer: 3000
+                        });
+                    } else {
+                        // ถ้าไม่มี Progress เก่า หรือโหลดไม่ได้ ค่อยเริ่มชุดใหม่
+                        updateQuestionSet(true);
+                    }
+                    
                     $('#loading-overlay').hide(); // ปิด overlay ทันทีถ้ามีข้อมูลเก่า
                 } else {
                     // ถ้าไม่มีข้อมูลเลย (เปิดครั้งแรก) ต้องโชว์ Loading ปกติ
@@ -2931,6 +3033,7 @@
                     Swal.fire("นี่คือข้อสุดท้ายแล้ว!");
                 }
                 updateProgressHeader();
+                saveProgressToCache();
             };
 
             const prevQuestion = () => {
@@ -2938,6 +3041,7 @@
                     questionIndex--;
                     showQuestion();
                     updateProgressHeader();
+                    saveProgressToCache();
                 }
             };
 
@@ -2992,6 +3096,7 @@
                 showSubmission();
                 updateProgressHeader();
                 setTimeout(renderAllMath, 50);
+                saveProgressToCache();
 
                 setTimeout(() => {
                     // 1. เช็คโควต้า: ถ้าโหวตสำเร็จครบจำนวนครั้งที่ตั้งไว้แล้ว ไม่ต้องเด้ง
@@ -3157,6 +3262,7 @@
                 }
 
                 updateSelectedCategoryStatus();
+                saveProgressToCache();
             }
 
             // =========================================
@@ -3459,7 +3565,28 @@
 
             // ฟังก์ชันล้างทั้งหมด
             window.clearAllCategories = function () {
-                $('input[type="checkbox"][name="category"]:checked').prop('checked', false).trigger('change');
+                const urlParams = new URLSearchParams(window.location.search);
+                const subjectParam = urlParams.get('subject') || 'default';
+
+                Swal.fire({
+                    title: 'เริ่มใหม่ทั้งหมด?',
+                    text: "คะแนนและความคืบหน้าปัจจุบันจะถูกล้างทิ้ง",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ใช่, เริ่มใหม่',
+                    cancelButtonText: 'ยกเลิก'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        // ล้างใน IndexedDB
+                        const db = await openDB();
+                        const transaction = db.transaction(storeName, "readwrite");
+                        transaction.objectStore(storeName).delete(`session_state_${subjectParam}`);
+
+                        // ล้าง UI
+                        $('input[type="checkbox"][name="category"]:checked').prop('checked', false);
+                        location.reload(); // รีเฟรชเพื่อเริ่มใหม่สะอาดๆ
+                    }
+                });
             };
             window.uncheckCategory = function (categoryId) {
                 const el = document.getElementById(`cat-${categoryId}`);
@@ -5261,6 +5388,7 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
 
                 const currentFilter = $('#submission-filter').val();
                 showSubmission(currentFilter);
+                saveProgressToCache();
             });
             $('#toggle-review-mode-btn').on('click', function () {
                 isReviewMode = !isReviewMode;
