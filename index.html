@@ -2556,8 +2556,10 @@
             let sessionAutoVoteCount = 0; // นับจำนวนครั้งที่ทำสำเร็จใน Session นี้
             const MAX_AUTO_VOTE = 2;      // จำนวนสูงสุดที่จะเด้งอัตโนมัติ
             let votedQuestionIds = new Set(); // เก็บ ID ของข้อที่โหวตไปแล้วเพื่อไม่ให้ console.log ซ้ำ
+            let isFetchingVotes = false; // เพิ่มตัวแปรเช็คสถานะการโหลด
             let searchDictionary = new Set(); // เก็บคำศัพท์ทั้งหมด
             let originalSearchQuery = ""; // เก็บคำค้นหาตั้งต้น
+            let modalTargetQuestion = null; // ตัวแปรเก็บคำถามที่กำลังถูกรายงานปัญหา
 
             // =========================================
             // III. Initialization
@@ -3175,39 +3177,25 @@
                 $bar.html(html);
 
                 // ปรับปรุง Event คลิกให้รองรับ Downvote (-1)
-                $bar.find('#quick-vote-badge').on('click', function () {
+                $bar.find('#quick-vote-badge').off('click').on('click', function () {
                     const categoryIdToVote = $(this).data('category-id');
                     const catName = $(this).find('b').first().text();
+                    const targetQ = current_question;
 
                     Swal.fire({
                         title: 'คุณเห็นด้วยกับหัวข้อนี้หรือไม่?',
                         html: `หัวข้อ: <b>"${catName}"</b>`,
                         icon: 'question',
-                        showDenyButton: true, // เพิ่มปุ่ม "ไม่เห็นด้วย"
+                        showDenyButton: true,
                         showCancelButton: true,
                         confirmButtonText: 'เห็นด้วย (+1)',
                         denyButtonText: 'ไม่เห็นด้วย (-1)',
-                        cancelButtonText: 'ยกเลิก',
-                        confirmButtonColor: '#198754', // สีเขียว
-                        denyButtonColor: '#dc3545',    // สีแดง
-                        // ปรับ z-index ของ Swal ให้สูงที่สุด
-                        customClass: {
-                            container: 'swal-highest-z'
-                        }
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            // กดเห็นด้วย: ส่ง delta = 1
-                            submitSingleVote(categoryIdToVote, true, 1);
+                            // ส่ง targetQ เข้าไปด้วยเพื่อให้มีข้อมูลเข้า Google Sheet
+                            submitSingleVote(categoryIdToVote, targetQ, true, 1);
                         } else if (result.isDenied) {
-                            // กดไม่เห็นด้วย: ส่ง delta = -1
-                            submitSingleVote(categoryIdToVote, true, -1);
-                            Swal.fire({
-                                title: 'บันทึกโหวตลบ',
-                                text: 'หากคะแนนรวมติดลบ หัวข้อนี้จะถูกนำออกทันที',
-                                icon: 'info',
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
+                            submitSingleVote(categoryIdToVote, targetQ, true, -1);
                         }
                     });
                 });
@@ -3982,27 +3970,16 @@
                 // ปุ่มแจ้งปัญหา (Report)
                 $('.btn-search-report').on('click', function () {
                     const idx = $(this).data('idx');
-                    const selectedQ = searchResults[idx];
-
-                    // จำลองการตั้งค่า current_question เพื่อให้ Modal ดึงข้อมูลไปใช้ได้
-                    current_question = JSON.parse(JSON.stringify(selectedQ));
-
-                    // เรียกใช้ฟังก์ชันเปิด Report Modal (โค้ดดั้งเดิมที่คุณมี)
-                    $('#report').trigger('click');
+                    // ดึงตรงๆ จากผลลัพธ์การค้นหา ไม่ยุ่งกับ Quiz State
+                    openReportModal(searchResults[idx]);
                 });
 
                 // ปุ่มแยกเลค (Vote)
                 $('.btn-search-vote').on('click', function () {
                     const idx = $(this).data('idx');
-                    const selectedQ = searchResults[idx];
-
-                    // จำลองการตั้งค่า current_question
-                    current_question = JSON.parse(JSON.stringify(selectedQ));
-
-                    // เรียกใช้ฟังก์ชันเปิด Vote Modal (โค้ดดั้งเดิมที่คุณมี)
-                    openVoteModal(false);
+                    openVoteModal(searchResults[idx], false);
                 });
-
+                
                 renderAllMath();
             };
 
@@ -4011,23 +3988,25 @@
             // =========================================
 
             function fetchPendingVotes(questionId) {
-                // Fetch data from server
+                // 1. ถ้ากำลังโหลดอยู่ หรือ มีข้อมูลใน Cache ที่ยังไม่หมดอายุ (เช่น 5 วินาที) ไม่ต้องเรียกซ้ำ
+                if (isFetchingVotes) return;
+
+                isFetchingVotes = true;
+
                 fetch(`${APPSCRIPT_URL}?action=getPendingVotes&qid=${questionId}`)
                     .then(res => res.json())
                     .then(data => {
-                        // 1. Update Cache
                         pendingVotesCache[questionId] = data;
-
-                        // 2. Render Notification Bar with fresh data
                         renderVoteNotificationUI(questionId, data, false);
-
-                        // 3. Render Modal Content if it's currently open
                         if ($('#vote-category-modal').is(':visible')) {
                             renderModalPendingVotes(data);
                         }
                     })
                     .catch(err => {
-                        console.error("Fetch Pending Votes Error:", err);
+                        console.warn("Fetch Pending Votes Throttled or Failed:", err);
+                    })
+                    .finally(() => {
+                        isFetchingVotes = false; // ปลดล็อคให้เรียกครั้งต่อไปได้
                     });
             }
 
@@ -4037,6 +4016,8 @@
                 const thresholds = data.thresholds || { approve: 20, confirm: 50 };
 
                 $container.empty();
+
+                // กรณีไม่มีคนเสนอหัวข้อไว้เลย
                 if (votes.length === 0) {
                     $container.html('<span class="empty-state-text">- ยังไม่มีข้อเสนอใหม่ -</span>');
                     return;
@@ -4047,9 +4028,9 @@
                     const currentCount = parseInt(item.count) || 0;
                     const status = item.status;
 
+                    // คำนวณว่าขาดอีกกี่โหวตถึงจะเลื่อนระดับ
                     let nextTarget = thresholds.approve;
                     let statusLabel = 'เพื่ออนุมัติ';
-
                     if (status === 'Approved' || currentCount >= thresholds.approve) {
                         nextTarget = thresholds.confirm;
                         statusLabel = 'เพื่อยืนยัน';
@@ -4060,18 +4041,28 @@
                         ? `${votesRemaining} โหวต ${statusLabel}`
                         : `${currentCount} โหวตแล้ว!`;
 
+                    // สร้าง Badge สำหรับแสดงใน Modal
                     const $badge = $(`
-                    <div class="category-badge suggested" title="คลิกเพื่อโหวตเห็นด้วย">
-                        ${categoryName} 
-                        <span class="vote-count-badge">${currentCount} <i class="fas fa-user"></i></span>
-                        <span class="votes-remaining-text" style="font-size: 0.85rem; margin-left: 5px; color: #ffeb3b; font-weight: 700;">(${statusText})</span>
-                    </div>
-                `);
+            <div class="category-badge suggested" title="คลิกเพื่อโหวตเห็นด้วย">
+                ${categoryName} 
+                <span class="vote-count-badge">${currentCount} <i class="fas fa-user"></i></span>
+                <span class="votes-remaining-text" style="font-size: 0.85rem; margin-left: 5px; color: #ffeb3b; font-weight: 700;">(${statusText})</span>
+            </div>
+        `);
 
-                    $badge.on('click', function () {
+                    // ตั้งค่า Event เมื่อคลิกโหวตที่หัวข้อนั้นๆ
+                    $badge.off('click').on('click', function () {
+                        // ใช้ modalTargetQuestion เพื่อความถูกต้อง (ไม่ว่าจะมาจาก Search หรือ Quiz)
+                        const targetQ = modalTargetQuestion;
+
+                        if (!targetQ) {
+                            Swal.fire("Error", "ไม่พบข้อมูลคำถามที่กำลังโหวต", "error");
+                            return;
+                        }
+
                         Swal.fire({
                             title: 'คุณเห็นด้วยกับหัวข้อนี้หรือไม่?',
-                            text: `หัวข้อ: "${categoryName}"`,
+                            html: `หัวข้อ: <b>"${categoryName}"</b>`,
                             icon: 'question',
                             showDenyButton: true,
                             showCancelButton: true,
@@ -4082,10 +4073,10 @@
                             denyButtonColor: '#dc3545',
                         }).then((result) => {
                             if (result.isConfirmed) {
-                                submitSingleVote(item.categoryId, false, 1);
+                                // ส่ง targetQ เข้าไป เพื่อให้ปิด Modal อัตโนมัติใน submitVoteData
+                                submitSingleVote(item.categoryId, targetQ, true, 1);
                             } else if (result.isDenied) {
-                                submitSingleVote(item.categoryId, false, -1);
-                                Swal.fire('บันทึกโหวตลบ', 'หากคะแนนรวมติดลบ หัวข้อนี้จะถูกนำออกจากระบบ', 'info');
+                                submitSingleVote(item.categoryId, targetQ, true, -1);
                             }
                         });
                     });
@@ -4103,77 +4094,73 @@
                 // แต่เพื่อความง่าย ให้เด้งตามปกติถ้ายังไม่ครบโควต้า
 
                 // เตรียมเปิด Modal แบบ Auto
-                openVoteModal(true);
+                openVoteModal(current_question, true);
             }
 
-            function openVoteModal(isAuto = false) {
-                if (!current_question || !current_question.questionId) {
+            function openVoteModal(q, isAuto = false) {
+                // เช็คว่ามีข้อมูลส่งมาไหม ถ้าไม่มีให้ใช้ current_question เป็น fallback
+                const target = q || current_question;
+
+                if (!target || !target.questionId) {
                     Swal.fire("กรุณาเลือกข้อสอบก่อน");
                     return;
                 }
 
-                // A. แสดงโจทย์ Preview
-                $('#vote-question-preview').text(current_question.problem);
+                // ล็อคเป้าหมายไว้ใน modalTargetQuestion เพื่อแยกจากหน้า Quiz
+                modalTargetQuestion = JSON.parse(JSON.stringify(target));
 
-                // B. Render ข้อมูลเดิม
-                renderCurrentCategory();
-                fetchPendingVotes(current_question.questionId);
+                // A. แสดงโจทย์ Preview
+                $('#vote-question-preview').text(modalTargetQuestion.problem);
+
+                // B. Render ข้อมูลเดิม (ใช้ข้อมูลจาก modalTargetQuestion)
+                renderCurrentCategoryForModal(modalTargetQuestion);
+                fetchPendingVotes(modalTargetQuestion.questionId);
 
                 // C. จัดการ Header Text และ Message Container
                 const $msgContainer = $('#vote-message-container');
                 $msgContainer.empty().show();
 
                 if (isAuto) {
-                    // --- Auto Mode (Red Alert) ---
                     const remaining = MAX_AUTO_VOTE - sessionAutoVoteCount;
-                    $msgContainer.css({
-                        'background-color': '#f8d7da',
-                        'color': '#721c24',
-                        'border': '1px solid #f5c6cb'
-                    });
+                    $msgContainer.css({ 'background-color': '#f8d7da', 'color': '#721c24', 'border': '1px solid #f5c6cb' });
                     $msgContainer.html(`
-            <h6 style="margin:0; font-weight:800; font-size:1.2rem;"><i class="fas fa-exclamation-circle"></i> ช่วยกันแยกเลคเชอร์หน่อยนะครับ 1 ครั้งที่ใช้เว็บจะให้ช่วยแยกแค่คนละ 2 ข้อ ถ้าไม่รู้กดข้ามไปแยกข้อต่อไปได้ </h6>
-            <h1 style="margin:5px 0 0 0; font-size:1.5rem; text-align:left; color:#721c24;">
-                เหลืออีก ${remaining} ข้อครับ 🙏 <u>เลื่อนลงด้านล่างเพื่อแยกหัวข้อ ↓</u>
-            </h1>
-            <p class="small-text" style="margin:5px 0 0 0; font-size:1rem; text-align:left; color:#721c24;">
-                เนื่องจากข้อสอบเก่าในฐานข้อมูลยังมีเลคเชอร์ต่างๆ random ปนกันอยู่ การช่วยระบุ "เลคเชอร์" จะช่วยให้เพื่อนๆ เลือกฝึกทำข้อสอบเฉพาะเรื่องที่อยากทบทวนได้แม่นยำขึ้นครับ
-            </p>
+            <h6 style="margin:0; font-weight:800; font-size:1.2rem;"><i class="fas fa-exclamation-circle"></i> ช่วยกันแยกเลคเชอร์หน่อยนะครับ 1 ครั้งที่ใช้เว็บจะให้ช่วยแยกแค่คนละ 2 ข้อ</h6>
+            <h1 style="margin:5px 0 0 0; font-size:1.5rem; text-align:left; color:#721c24;">เหลืออีก ${remaining} ข้อครับ 🙏</h1>
         `);
                 } else {
-                    // --- Manual Mode (Blue Info) ---
-                    $msgContainer.css({
-                        'background-color': '#d1e7dd',
-                        'color': '#0f5132',
-                        'border': '1px solid #badbcc'
-                    });
-                    $msgContainer.html(`
-            <h6 style="margin:0; font-weight:800; font-size:1.2rem;"><i class="fas fa-info-circle"></i> ทำไมต้องแยกหมวดหมู่?</h6>
-            <p class="small-text" style="margin:5px 0 0 0; font-size:1rem; text-align:left; color:#0f5132;">
-                เนื่องจากฐานข้อมูลเดิมมีข้อสอบเก่าหลายๆชุดซึ่งมีเลคเชอร์กระจายปนกันอยู่แบบ random 
-                การระบุเลคเชอร์ จะช่วยให้เพื่อนๆ เลือกฝึกทำเฉพาะบทเรียนที่เพิ่งเรียนจบได้แม่นยำขึ้น
-            </p>
-        `);
+                    $msgContainer.css({ 'background-color': '#d1e7dd', 'color': '#0f5132', 'border': '1px solid #badbcc' });
+                    $msgContainer.html(`<h6 style="margin:0; font-weight:800; font-size:1.2rem;"><i class="fas fa-info-circle"></i> ช่วยระบุเลคเชอร์ เพื่อให้เพื่อนๆ เลือกฝึกทำเฉพาะบทเรียนได้แม่นยำขึ้น</h6>`);
                 }
 
-                // D. รีเซ็ตและสร้าง Vote Row พร้อม Auto-Select Logic
                 $('#vote-rows-container').empty();
 
-                // หา Subject ปัจจุบันเพื่อ Auto-fill
+                // หา Subject ID เพื่อ Auto-fill (อิงตามข้อสอบเป้าหมาย)
                 const urlParams = new URLSearchParams(window.location.search);
                 let currentSubjectId = urlParams.get('subject');
-
-                // ถ้าไม่มีใน URL ให้ลองหาจาก category ของข้อปัจจุบัน
-                if (!currentSubjectId && current_question.category) {
-                    const firstCatId = Array.isArray(current_question.category) ? current_question.category[0] : current_question.category;
+                if (!currentSubjectId && modalTargetQuestion.category) {
+                    const firstCatId = Array.isArray(modalTargetQuestion.category) ? modalTargetQuestion.category[0] : modalTargetQuestion.category;
                     const matchedCat = globalStructure.category.find(c => c.categoryId === firstCatId);
                     if (matchedCat) currentSubjectId = matchedCat.subjectRef;
                 }
 
-                addVoteRow(currentSubjectId); // ส่ง Subject ID ไปเพื่อเริ่มกระบวนการ Auto-fill
-
+                addVoteRow(currentSubjectId);
                 $('#vote-category-modal').fadeIn();
             }
+            function renderCurrentCategoryForModal(q) {
+                const $container = $('#current-category-container');
+                $container.empty();
+                let cats = Array.isArray(q.category) ? q.category : [q.category];
+                cats = cats.filter(c => c && c !== 'Uncategorized');
+
+                if (cats.length === 0) {
+                    $container.html('<span class="empty-state-text">- ยังไม่มีหัวข้อ -</span>');
+                    return;
+                }
+                cats.forEach(catId => {
+                    $container.append(`<span class="category-badge approved">${getCategoryNameById(catId)} <i class="fas fa-check"></i></span>`);
+                });
+            }
+
             async function saveReportToGoogleSheet(from, category, questionId, question, questionImages, allChoices, suggestedChoice, report, time) {
                 const data = {
                     action: 'submitReport',
@@ -4339,45 +4326,44 @@
                     populateGroups($row, preSelectedSubjectId);
                 }
             }
-            function submitSingleVote(categoryId, shouldRefreshUI = false, delta = 1) {
-                submitVoteData([categoryId], shouldRefreshUI, delta);
-            }
+            // ฟังก์ชันหลักในการส่งข้อมูล Vote (ปรับให้รับ parameter q)
+            async function submitVoteData(categoryArray, q, shouldRefreshUI = false, delta = 1) {
+                if (!q || !q.questionId) return;
 
-            async function submitVoteData(categoryArray, shouldRefreshUI = false, delta = 1) {
                 $('#btn-submit-vote').prop('disabled', true).text('กำลังส่ง...');
 
                 const payload = {
                     action: 'submitVote',
-                    questionId: current_question.questionId,
-                    questionText: current_question.problem,
+                    questionId: q.questionId,    // อ้างอิง ID จาก q ที่ส่งมา
+                    questionText: q.problem,     // อ้างอิง โจทย์จาก q ที่ส่งมา
                     suggestedCategory: categoryArray,
                     delta: delta
                 };
 
                 try {
-                    const res = await sendWithRetry(payload);
+                    await sendWithRetry(payload);
 
                     Swal.fire({
                         title: 'สำเร็จ!',
-                        text: 'ขอบคุณสำหรับการโหวต!',
+                        text: 'ขอบคุณสำหรับการช่วยแยกเลคเชอร์!',
                         icon: 'success',
                         timer: 1500,
                         showConfirmButton: false
                     });
 
-                    // --- NEW: Update Auto Vote Status ---
-                    // นับเฉพาะเมื่อ User กดยืนยันสำเร็จ
-                    if (!votedQuestionIds.has(current_question.questionId)) {
+                    // อัปเดตสถิติการโหวตใน Session (ถ้ามาจาก Quiz)
+                    if (!votedQuestionIds.has(q.questionId)) {
                         sessionAutoVoteCount++;
-                        votedQuestionIds.add(current_question.questionId);
+                        votedQuestionIds.add(q.questionId);
                     }
 
                     $('#vote-category-modal').fadeOut();
                     $('#btn-submit-vote').prop('disabled', false).text('ยืนยัน');
 
-                    if (shouldRefreshUI && current_question.questionId) {
-                        delete pendingVotesCache[current_question.questionId];
-                        fetchPendingVotes(current_question.questionId);
+                    // หากเป็นการโหวตจากหน้า Quiz (ไม่ใช่ Search) อาจต้องการ Refresh UI แจ้งเตือน
+                    if (shouldRefreshUI && q.questionId === current_question.questionId) {
+                        delete pendingVotesCache[q.questionId];
+                        fetchPendingVotes(q.questionId);
                     }
                 } catch (err) {
                     Swal.fire("Error", "เซิร์ฟเวอร์ไม่ว่าง กรุณาลองใหม่อีกครั้ง", "error");
@@ -4385,6 +4371,10 @@
                 }
             }
 
+            // ปรับปรุงฟังก์ชันโหวตด่วน (Single Vote) ให้รับ q ด้วย
+            function submitSingleVote(categoryId, q, shouldRefreshUI = false, delta = 1) {
+                submitVoteData([categoryId], q, shouldRefreshUI, delta);
+            }
             // =========================================
             // IX. PDF Generation
             // =========================================
@@ -4990,15 +4980,32 @@
             });
             $('#next-question').on('click', nextQuestion);
             $('#prev-question').on('click', prevQuestion);
-            $('#submit-btn').on('click', () => {
+            $('#submit-btn').off('click').on('click', () => {
+                // 1. หาว่าปุ่มไหนถูกเลือกอยู่
+                const $selectedBtn = $choices.find("button.selected");
+                const selectedValue = $selectedBtn.attr('data-answer');
+
+                // 2. ถ้ายังไม่ได้เลือกข้อไหนเลย ให้เตือนและหยุดทำงาน
+                if (!selectedValue) {
+                    Swal.fire("กรุณาเลือกคำตอบก่อนส่ง");
+                    return;
+                }
+
+                // 3. ส่งคำตอบเข้ากระบวนการคำนวณคะแนน
                 submitQuestion();
-                const resultStatus = (selected === current_question.answer) ? 'CORRECT' : 'INCORRECT';
-                //sendActivityLog('ANSWER', current_question.questionId, resultStatus, "Choice: " + selected);
-                checkAnswerUI(selected);
+
+                // 4. จัดการ UI และ Log (ใช้ selectedValue แทน selected ที่หายไป)
+                const resultStatus = (selectedValue === current_question.answer) ? 'CORRECT' : 'INCORRECT';
+
+                // หากต้องการส่ง Activity Log ให้เอาคอมเมนต์ออก
+                // sendActivityLog('ANSWER', current_question.questionId, resultStatus, "Choice: " + selectedValue);
+
+                // อัปเดตสีของปุ่ม (ถูก/ผิด)
+                checkAnswerUI(selectedValue);
+
+                // อัปเดตตารางผลลัพธ์ด้านล่าง
                 showSubmission($('#submission-filter').val());
-
             });
-
             $choices.on("click", "button", function () {
                 if (currentQuestions[questionIndex]?.state) return;
                 $(this).addClass("selected").siblings().removeClass("selected");
@@ -5199,26 +5206,32 @@
 
 
             // --- Report Modal Controls ---
-            $('#report').on('click', () => {
-                sendActivityLog('REPORT_CLICK', current_question.questionId);
-
-                if (!current_question || !current_question.problem) {
-                    Swal.fire("กรุณาเลือกหัวข้อและไปที่คำถามก่อนทำการ Report");
+            
+            $('#report').off('click').on('click', () => {
+                openReportModal(currentQuestions[questionIndex]);
+            });
+            // ฟังก์ชันหลักสำหรับเปิด Report Modal (รับ Object ข้อสอบจากไหนก็ได้)
+            function openReportModal(q) {
+                if (!q || !q.problem) {
+                    Swal.fire("ไม่พบข้อมูลคำถาม");
                     return;
                 }
 
+                // เก็บข้อสอบนี้ไว้ในตัวแปรสำหรับ Modal โดยเฉพาะ (ไม่ทับ Quiz)
+                modalTargetQuestion = JSON.parse(JSON.stringify(q));
+                sendActivityLog('REPORT_OPEN', modalTargetQuestion.questionId);
+
+                // ล้างค่าใน Modal
                 $reportText.val('');
                 $reportNewChoiceInput.val('');
-                $reportCorrectChoiceSelect.empty(); // Clear previous options
-                $('#report-question-images').empty(); // Clear previous question images
+                $reportCorrectChoiceSelect.empty();
+                $('#report-question-images').empty();
 
-                // 1. Populate Question Text
-                const problemText = $question.text();
-                $reportQuestionText.html(problemText.replace(/\n/g, '<br>'));
+                // Populate ข้อมูล
+                $reportQuestionText.html(modalTargetQuestion.problem.replace(/\n/g, '<br>'));
 
-                // 2. Populate Question Images (NEW)
-                if (current_question.img) {
-                    const imgUrls = current_question.img.split('///').map(s => s.trim()).filter(Boolean);
+                if (modalTargetQuestion.img) {
+                    const imgUrls = modalTargetQuestion.img.split('///').map(s => s.trim()).filter(Boolean);
                     let imgHtml = '';
                     imgUrls.forEach(url => {
                         imgHtml += `<img src="${transformUrl(url)}" class="report-img-preview" alt="Question Image">`;
@@ -5226,71 +5239,43 @@
                     $('#report-question-images').html(imgHtml);
                 }
 
-                // 3. Populate Choices List and Select/Dropdown (UPDATED with Images)
-                const choicesArray = (current_question.choices || "").split("///").map(s => s.trim()).filter(Boolean);
-
-                // สร้าง HTML สำหรับแสดงรายการตัวเลือกใน Modal
+                const choicesArray = (modalTargetQuestion.choices || "").split("///").map(s => s.trim()).filter(Boolean);
                 let choicesHtml = choicesArray.map((choice, index) => {
-                    let choiceContent = choice;
-                    // ตรวจสอบว่าเป็น Link รูปภาพหรือไม่
-                    if (isUrl(choice)) {
-                        choiceContent = `<br><img src="${transformUrl(choice)}" class="report-choice-img" alt="Choice Image">`;
-                    }
-                    else if (choice.startsWith('<svg')) {
-                        // ถ้าเป็น SVG
-                        choiceContent = `<div class="report-choice-svg-container">${choice}</div>`;
-                    }
-                    return `<p style="margin: 5px 0; font-weight: 500; border-bottom: 1px solid #eee; padding-bottom: 5px;">
-                                <b>${String.fromCharCode(65 + index)}.</b> ${choiceContent}
-                            </p>`;
+                    let content = isUrl(choice) ? `<br><img src="${transformUrl(choice)}" class="report-choice-img">` :
+                        (choice.startsWith('<svg') ? `<div class="report-choice-svg-container">${choice}</div>` : choice);
+                    return `<p style="margin: 5px 0; border-bottom: 1px solid #eee; padding-bottom: 5px;"><b>${String.fromCharCode(65 + index)}.</b> ${content}</p>`;
                 }).join('');
+                $reportChoicesList.html(choicesHtml || 'ไม่มีตัวเลือก');
 
-                $reportChoicesList.html(choicesHtml || '<p style="margin: 3px 0; font-weight: 500;">ไม่มีตัวเลือก</p>');
-
-                // สร้าง Dropdown สำหรับเลือกคำตอบที่ถูก (Dropdown แสดงรูปไม่ได้ ให้แสดงเป็น text ว่า [Image Link])
                 let selectOptions = '<option value="newanswer">-- คำตอบใหม่ (ถ้าไม่มีในตัวเลือกเดิม) --</option>';
                 choicesArray.forEach((choice, index) => {
-                    const isCurrentAnswer = choice === current_question.answer;
-                    let displayText = choice;
-                    if (isUrl(choice)) {
-                        displayText = `[รูปภาพ] ...${choice.substring(choice.length - 15)}`; // ย่อลิงก์ใน dropdown
-                    }
-                    else if (choice.startsWith('<svg')) {
-                        displayText = `[SVG Image]`;
-                    }
-
-                    const $option = $('<option></option>');
-                    $option.val(choice); // <--- ฟังก์ชันนี้จะจัดการเครื่องหมาย " ใน SVG ให้เองอัตโนมัติ
-                    $option.text(`${String.fromCharCode(65 + index)}. ${displayText}${isCurrentAnswer ? ' (เฉลยปัจจุบัน)' : ''}`);
-
-                    if (isCurrentAnswer) {
-                        $option.prop('selected', true);
-                    }
-
-                    $reportCorrectChoiceSelect.append($option);
+                    const isCurrentAnswer = choice === modalTargetQuestion.answer;
+                    let display = isUrl(choice) ? `[รูปภาพ] ...${choice.slice(-10)}` : (choice.startsWith('<svg') ? `[SVG]` : choice);
+                    selectOptions += `<option value="${choice.replace(/"/g, '&quot;')}" ${isCurrentAnswer ? 'selected' : ''}>
+            ${String.fromCharCode(65 + index)}. ${display}${isCurrentAnswer ? ' (เฉลยปัจจุบัน)' : ''}
+        </option>`;
                 });
+                $reportCorrectChoiceSelect.append(selectOptions);
 
                 $reportCard.fadeIn();
-            });
+            }
 
-            $('#submit-report').on('click', () => {
-                // 1. ดึง Category และแปลงให้เป็น Array เสมอ (เพื่อป้องกัน Error กรณีเป็น String)
-                let rawCat = current_question.category;
-                let catsArray = [];
+            $('#submit-report').off('click').on('click', () => {
+                // ดึงข้อมูลคำถามจาก Modal State (ไม่ใช่ Quiz State)
+                const q = modalTargetQuestion;
 
-                if (Array.isArray(rawCat)) {
-                    catsArray = rawCat;
-                } else if (rawCat) {
-                    catsArray = [rawCat]; // แปลง String เป็น Array
+                if (!q) {
+                    Swal.fire("Error", "ไม่พบข้อมูลคำถามที่กำลังแจ้งปัญหา", "error");
+                    return;
                 }
 
-                // สร้าง String สำหรับส่งเข้า Report
+                // 1. ดึง Category และจัดการเรื่องวิชา (Subject)
+                let rawCat = q.category;
+                let catsArray = Array.isArray(rawCat) ? rawCat : (rawCat ? [rawCat] : []);
                 let categoryString = catsArray.join(", ");
 
-                // 2. หา "Subject" (วิชา)
                 let subjectFrom = "Unknown Subject";
-
-                // วิธีที่ 2.1: หาจาก Category ID ของข้อนั้น (แม่นยำที่สุด)
+                // หา Subject จาก Category แรกของคำถามนั้นๆ
                 if (globalStructure.category && catsArray.length > 0) {
                     const matchedCategoryInfo = globalStructure.category.find(t => t.categoryId === catsArray[0]);
                     if (matchedCategoryInfo && matchedCategoryInfo.subjectRef) {
@@ -5298,59 +5283,47 @@
                     }
                 }
 
-                // วิธีที่ 2.2: (FIX) ถ้าหาไม่เจอ ให้เอาจาก URL Filter ที่ user เลือกเข้ามา
-                // แก้ปัญหา: เลือกคำถามทุกข้อจากวิชาที่ filter อยู่แล้ว report ส่งไม่ไป/ไม่มีชื่อวิชา
-                if (subjectFrom === "Unknown Subject") {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const subjectParam = urlParams.get('subject');
-                    if (subjectParam) {
-                        subjectFrom = subjectParam;
-                    }
-                }
-
-                // 3. ส่วนตรวจสอบ Input (Validation)
+                // 2. ตรวจสอบความถูกต้องของ Input (Validation)
                 if ($reportCorrectChoiceSelect.val() === 'newanswer' && !$reportNewChoiceInput.val().trim()) {
                     Swal.fire("กรุณาพิมพ์คำตอบที่ถูกต้องใหม่ในช่องด้านล่าง");
                     $reportNewChoiceInput.focus();
                     return;
                 }
-                const reportTextValue = $reportText.val();
+                const reportTextValue = $reportText.val().trim();
                 if (reportTextValue === '') {
                     Swal.fire("กรุณาใส่เหตุผลของปัญหา");
                     $reportText.focus();
                     return;
                 }
 
-                // --- ส่วนจัดการข้อมูลก่อนส่ง ---
+                // 3. จัดการข้อมูลสื่อ (Images/Choices) ก่อนส่ง
+                let suggestedChoice = $reportCorrectChoiceSelect.val() === 'newanswer' ?
+                    $reportNewChoiceInput.val().trim() :
+                    $reportCorrectChoiceSelect.val();
 
-                // จัดการคำตอบที่เสนอ
-                let suggestedChoice = $reportCorrectChoiceSelect.val() === 'newanswer' ? $reportNewChoiceInput.val().trim() : $reportCorrectChoiceSelect.val();
                 if (suggestedChoice && (suggestedChoice.includes('drive.google') || suggestedChoice.startsWith('http'))) {
                     suggestedChoice = transformUrl(suggestedChoice);
                 }
 
-                // จัดการรูปโจทย์
                 let questionImagesString = "";
-                if (current_question.img) {
-                    const rawImgs = current_question.img.split("///");
-                    const processedImgs = rawImgs.map(url => transformUrl(url.trim()));
-                    questionImagesString = processedImgs.join("///");
+                if (q.img) {
+                    const rawImgs = q.img.split("///");
+                    questionImagesString = rawImgs.map(url => transformUrl(url.trim())).join("///");
                 }
 
-                // จัดการตัวเลือกทั้งหมด
-                const allChoices = (current_question.choices || "").split("///").map((s, i) => {
+                const allChoices = (q.choices || "").split("///").map((s, i) => {
                     const letter = String.fromCharCode(65 + i);
                     let choiceText = s.trim();
-                    const isCurrentAnswer = s.trim() === (current_question.answer || "").trim();
-                    return `${letter}. ${isCurrentAnswer ? ' (answer)' : ''} ${choiceText}`;
+                    const isCurrentAnswer = choiceText === (q.answer || "").trim();
+                    return `${letter}. ${isCurrentAnswer ? '(answer)' : ''} ${choiceText}`;
                 }).join("\n");
 
-                // ส่งข้อมูล
+                // 4. ส่งข้อมูลไปที่ Apps Script
                 saveReportToGoogleSheet(
-                    subjectFrom,        // data.from (Subject)
-                    categoryString,     // data.category
-                    current_question.questionId,
-                    $question.text(),   // data.question
+                    subjectFrom,
+                    categoryString,
+                    q.questionId,
+                    q.problem,
                     questionImagesString,
                     allChoices,
                     suggestedChoice,
@@ -5359,29 +5332,33 @@
                 );
 
                 $reportCard.fadeOut();
-                $feedbackSave.text("ขอบคุณสำหรับรายงานครับ!").show().fadeOut(2000);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ส่งรายงานสำเร็จ',
+                    text: 'ขอบคุณสำหรับข้อมูลครับ',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
             });
+
             $('#cancel-report').on('click', () => $reportCard.fadeOut());
 
 
             // --- Vote Modal Controls ---
             // Open Modal
             $('#btn-open-vote').off('click').on('click', () => {
-                if (!current_question || !current_question.questionId) {
-                    Swal.fire("กรุณาเลือกข้อสอบก่อน");
-                    return;
-                }
-                openVoteModal(false); // false = manual
+                openVoteModal(currentQuestions[questionIndex], false);
             });
             $('#btn-close-vote-modal').on('click', () => $('#vote-category-modal').fadeOut());
             $('#btn-add-vote-row').on('click', addVoteRow);
+            // ปุ่ม "ยืนยัน" ใน Vote Modal
             $('#btn-submit-vote').off('click').on('click', () => {
                 const votes = [];
                 $('.vote-row').each(function () {
                     const categoryId = $(this).find('.category-select').val();
                     if (categoryId) {
-                        // เช็คว่าไม่ใช่ Category เดิมที่มีอยู่แล้ว
-                        if (!current_question.category.includes(categoryId)) {
+                        // ตรวจสอบว่าไม่ซ้ำกับ Category เดิมที่มีอยู่ใน Object q
+                        if (!modalTargetQuestion.category.includes(categoryId)) {
                             votes.push(categoryId);
                         }
                     }
@@ -5390,18 +5367,12 @@
                 const uniqueVotes = [...new Set(votes)];
 
                 if (uniqueVotes.length === 0) {
-                    // ใช้ feedback เดิมที่มีอยู่ หรือแจ้งเตือน
-                    Swal.fire("กรุณาเลือกหัวข้ออย่างน้อย 1 หัวข้อ");
+                    Swal.fire("กรุณาเลือกหัวข้ออย่างน้อย 1 หัวข้อ (และต้องไม่ซ้ำกับหัวข้อเดิม)");
                     return;
                 }
 
-                // --- NEW: Logging ---
-                uniqueVotes.forEach(vId => {
-                    console.log(`[VOTE] User voted QuestionID: ${current_question.questionId} -> CategoryID: ${vId}`);
-                });
-
-                // Call Submit API
-                submitVoteData(uniqueVotes);
+                // ส่ง uniqueVotes พร้อมกับ modalTargetQuestion ไปบันทึก
+                submitVoteData(uniqueVotes, modalTargetQuestion);
             });
 
 
