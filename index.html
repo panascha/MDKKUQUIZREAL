@@ -5350,7 +5350,7 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
                 // sendActivityLog('ANSWER', current_question.questionId, resultStatus, "Choice: " + selectedValue);
 
                 // อัปเดตสีของปุ่ม (ถูก/ผิด)
-                checkAnswerUI(selectedValue);
+                checkAnswerUI(selectedValue,false);
 
                 // อัปเดตตารางผลลัพธ์ด้านล่าง
                 showSubmission($('#submission-filter').val());
