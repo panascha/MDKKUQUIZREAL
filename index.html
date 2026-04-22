@@ -3304,8 +3304,7 @@
                 if (isInitialLoad) $bar.empty();
 
                 const votes = data.votes || [];
-                const thresholds = data.thresholds || { approve: 20, confirm: 50 };
-
+                const thresholds = data.thresholds || { confirm: 2 };
                 if (votes.length === 0) {
                     if (isInitialLoad) $bar.empty();
                     return;
@@ -3326,17 +3325,10 @@
                 const currentCount = parseInt(topVote.count) || 0;
                 const status = topVote.status;
 
-                let nextTarget = thresholds.approve;
+                let nextTarget = thresholds.confirm;
                 let statusLabel = 'เพื่ออนุมัติ';
                 let bgColor = '#fff3cd';
                 let textColor = '#856404';
-
-                if (status === 'Approved' || currentCount >= thresholds.approve) {
-                    nextTarget = thresholds.confirm;
-                    statusLabel = 'เพื่อยืนยัน';
-                    bgColor = '#d1e7dd';
-                    textColor = '#0f5132';
-                }
 
                 const votesRemaining = nextTarget - currentCount;
                 const statusText = votesRemaining > 0
@@ -4233,12 +4225,8 @@
                     const status = item.status;
 
                     // คำนวณว่าขาดอีกกี่โหวตถึงจะเลื่อนระดับ
-                    let nextTarget = thresholds.approve;
+                    let nextTarget = thresholds.confirm;
                     let statusLabel = 'เพื่ออนุมัติ';
-                    if (status === 'Approved' || currentCount >= thresholds.approve) {
-                        nextTarget = thresholds.confirm;
-                        statusLabel = 'เพื่อยืนยัน';
-                    }
 
                     const votesRemaining = nextTarget - currentCount;
                     const statusText = votesRemaining > 0
@@ -4534,12 +4522,25 @@
             async function submitVoteData(categoryArray, q, shouldRefreshUI = false, delta = 1) {
                 if (!q || !q.questionId) return;
 
-                $('#btn-submit-vote').prop('disabled', true).text('กำลังส่ง...');
+                // 1. สั่งปิด Modal ทันทีที่กดปุ่ม
+                $('#vote-category-modal').fadeOut(200);
+
+                // 2. แสดง Toast บอกผู้ใช้ว่ากำลังประมวลผล (แทนการค้างหน้า Modal ไว้)
+                Swal.fire({
+                    title: 'กำลังส่งข้อมูล...',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1000,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
 
                 const payload = {
                     action: 'submitVote',
-                    questionId: q.questionId,    // อ้างอิง ID จาก q ที่ส่งมา
-                    questionText: q.problem,     // อ้างอิง โจทย์จาก q ที่ส่งมา
+                    questionId: q.questionId,
+                    questionText: q.problem,
                     suggestedCategory: categoryArray,
                     delta: delta
                 };
@@ -4547,34 +4548,32 @@
                 try {
                     await sendWithRetry(payload);
 
+                    // 3. เมื่อส่งสำเร็จ แสดงการแจ้งเตือนแบบ Toast (ไม่รบกวนหน้าจอหลัก)
                     Swal.fire({
-                        title: 'สำเร็จ!',
-                        text: 'ขอบคุณสำหรับการช่วยแยกเลคเชอร์!',
                         icon: 'success',
-                        timer: 1500,
-                        showConfirmButton: false
+                        title: 'บันทึกการแยกเลคเชอร์สำเร็จ!',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 2000
                     });
 
-                    // อัปเดตสถิติการโหวตใน Session (ถ้ามาจาก Quiz)
+                    // อัปเดตสถิติใน Session
                     if (!votedQuestionIds.has(q.questionId)) {
                         sessionAutoVoteCount++;
                         votedQuestionIds.add(q.questionId);
                     }
 
-                    $('#vote-category-modal').fadeOut();
-                    $('#btn-submit-vote').prop('disabled', false).text('ยืนยัน');
-
-                    // หากเป็นการโหวตจากหน้า Quiz (ไม่ใช่ Search) อาจต้องการ Refresh UI แจ้งเตือน
+                    // หากเป็นการโหวตจากหน้า Quiz ให้ Refresh แถบแจ้งเตือน
                     if (shouldRefreshUI && q.questionId === current_question.questionId) {
                         delete pendingVotesCache[q.questionId];
                         fetchPendingVotes(q.questionId);
                     }
                 } catch (err) {
-                    Swal.fire("Error", "เซิร์ฟเวอร์ไม่ว่าง กรุณาลองใหม่อีกครั้ง", "error");
-                    $('#btn-submit-vote').prop('disabled', false).text('ยืนยัน');
+                    // กรณี Error ค่อยแจ้งเตือนแบบ Modal ใหญ่
+                    Swal.fire("Error", "ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง", "error");
                 }
             }
-
             // ปรับปรุงฟังก์ชันโหวตด่วน (Single Vote) ให้รับ q ด้วย
             function submitSingleVote(categoryId, q, shouldRefreshUI = false, delta = 1) {
                 submitVoteData([categoryId], q, shouldRefreshUI, delta);
