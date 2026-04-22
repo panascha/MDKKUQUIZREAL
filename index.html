@@ -908,6 +908,75 @@
         transform: scale(1.01);
     }
 
+    /* Quick Categorization Panel Styles */
+#quick-cat-container {
+    width: 100%;
+    max-width: 900px;
+    margin-top: 1rem;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: var(--border-radius);
+    background-color: #fafafa;
+    display: none; /* ซ่อนไว้ก่อน เปิดด้วยปุ่ม */
+}
+
+.quick-cat-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.quick-cat-group-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #555;
+    margin-bottom: 8px;
+    border-left: 4px solid var(--color-primary);
+    padding-left: 8px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.quick-cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.btn-quick-cat {
+    padding: 6px 10px;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+.btn-quick-cat:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* สีแบ่งตามกลุ่มเนื้อหา */
+.q-ana { border-left: 5px solid #ff8a80; }
+.q-physio { border-left: 5px solid #80d8ff; }
+.q-micro { border-left: 5px solid #b388ff; }
+.q-patho { border-left: 5px solid #827717; }
+.q-pharm { border-left: 5px solid #ffd180; }
+.q-radio { border-left: 5px solid #a7ffeb; }
+
+#toggle-quick-cat {
+    background: #455a64;
+    color: white;
+}
+
     /* =========================================
    Custom Confirm Modal Styles
    ========================================= */
@@ -2381,6 +2450,15 @@
                 <button id="prev-question" class="quiz-button btn-dark">Previous Question</button>
                 <button id="next-question" class="quiz-button btn-dark">Next Question</button>
             </div>
+            <div id="quick-cat-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4 style="margin:0;"><i class="fas fa-tags"></i> Quick Categorization</h4>
+                    <small style="color: #666;">*กดแล้วระบบจะ Approve ทันที</small>
+                </div>
+                <div id="quick-cat-content">
+                    <!-- ปุ่มกลุ่มต่างๆ จะถูกสร้างด้วย JS -->
+                </div>
+            </div>
             <div
                 style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px;margin-bottom: 10px;">
                 <button id="report" class="quiz-button">Report Problem</button>
@@ -2388,6 +2466,11 @@
                     style="background: linear-gradient(to right, #f16744, #d32f2f); color: #fff;">
                     <i class="fas fa-tags"></i> แยกเลคข้อสอบ
                 </button>
+                <div style="margin-top: 10px; width: 100%;">
+                    <button id="toggle-quick-cat" class="quiz-button" style="width: 100%; font-size: 1.1rem;">
+                        <i class="fas fa-bolt"></i> เปิดแผงแยกหัวข้อด่วน (Quick Mode)
+                    </button>
+                </div>
             </div>
             <span style="font-size: 1.3rem; color: #555;">(ใครสนใจพรูฟ Report/จะแก้ข้อมูลข้อสอบเองเลย ไป Register ใน
                 หน้า Database
@@ -2611,6 +2694,20 @@
                     return false;
                 }
             }
+            async function syncQuestionsToCache() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const subjectParam = urlParams.get('subject') || '';
+                const cacheKey = `data_${subjectParam}`;
+
+                const dataToSave = {
+                    structure: globalStructure,
+                    questions: allQuestions // ใช้ตัวแปรล่าสุดที่มีการแก้ไขแล้ว
+                };
+
+                await setCacheDB(cacheKey, dataToSave);
+                console.log("Local cache updated with new categories.");
+            }
+
             async function sendWithRetry(payload, retries = 3) {
                 for (let i = 0; i < retries; i++) {
                     try {
@@ -3019,6 +3116,8 @@
                     $choices.find('button').first().trigger('focus', { preventScroll: true });
                 }
                 setTimeout(renderAllMath, 50);
+
+                if ($('#quick-cat-container').is(':visible')) { renderQuickCatPanel(); }
             }
 
             const nextQuestion = () => {
@@ -3553,6 +3652,17 @@
                 });
 
                 updateProgressHeader();
+            }
+
+            function updateQuestionCategoryUI(q) {
+                var categoryDisplayHtml = "";
+                q.category.forEach((catId, index) => {
+                    const catObj = globalStructure.category.find(c => c.categoryId === catId);
+                    if (catObj) {
+                        categoryDisplayHtml += (categoryDisplayHtml ? "<br>" : "") + (index + 1) + ". " + catObj.categoryName;
+                    }
+                });
+                $('#categoryquestion').html(categoryDisplayHtml ? `หัวข้อ: <b>${categoryDisplayHtml}</b>` : "หัวข้อ: <b>ไม่ระบุหัวข้อ</b>");
             }
 
             // ฟังก์ชันล้างทั้งหมด
@@ -4353,6 +4463,101 @@
                 });
             }
 
+            
+            function renderQuickCatPanel() {
+                const $content = $('#quick-cat-content');
+                $content.empty();
+
+                // กรองเฉพาะหมวดหมู่ที่เป็น "LEC" ของวิชาปัจจุบัน
+                const currentSubject = new URLSearchParams(window.location.search).get('subject') || '';
+                const relevantCats = globalStructure.category.filter(c =>
+                    c.subjectRef === currentSubject &&
+                    c.accordionGroup.toUpperCase().includes("LEC")
+                );
+
+                // จัดกลุ่มตามเนื้อหา
+                const groups = {
+                    "ANATOMY": relevantCats.filter(c => c.categoryId.includes("_ANA_")),
+                    "PHYSIO/BIOCHEM": relevantCats.filter(c => c.categoryId.includes("_PHYSIO_")),
+                    "MICRO/PARASITO": relevantCats.filter(c => c.categoryId.includes("_MICRO_") || c.categoryId.includes("_PARASITO_")),
+                    "PATHO": relevantCats.filter(c => c.categoryId.includes("_PATHO_")),
+                    "PHARM": relevantCats.filter(c => c.categoryId.includes("_PHARM_")),
+                    "CLINICAL/RADIO": relevantCats.filter(c => c.categoryId.includes("_RADIO_") || c.categoryId.includes("_CLINICAL_"))
+                };
+
+                const colorMap = {
+                    "ANATOMY": "q-ana", "PHYSIO/BIOCHEM": "q-physio", "MICRO/PARASITO": "q-micro",
+                    "PATHO": "q-patho", "PHARM": "q-pharm", "CLINICAL/RADIO": "q-radio"
+                };
+
+                for (const [groupName, cats] of Object.entries(groups)) {
+                    if (cats.length === 0) continue;
+
+                    let html = `<div class="quick-cat-group">
+                        <div class="quick-cat-group-title">${groupName} <span>${cats.length} เลค</span></div>
+                        <div class="quick-cat-grid">`;
+
+                    cats.forEach(c => {
+                        // ตรวจสอบว่าใน q.category ของข้อปัจจุบัน มี ID นี้หรือยัง
+                        const isAlreadySelected = current_question.category.includes(c.categoryId);
+
+                        // ถ้าเลือกแล้ว ให้กดไม่ได้ และเปลี่ยนสี/ความจาง
+                        const btnStyle = isAlreadySelected
+                            ? "opacity: 0.4; cursor: default; background: #e0e0e0; color: #888;"
+                            : "cursor: pointer;";
+                        const checkMark = isAlreadySelected ? " <i class='fas fa-check-circle'></i>" : "";
+                        const clickEvent = isAlreadySelected ? "" : `onclick="handleQuickVote('${c.categoryId}', '${c.categoryName.replace(/'/g, "\\'")}')"`;
+
+                        html += `<button class="btn-quick-cat ${colorMap[groupName]}" 
+                    style="${btnStyle}"
+                    ${clickEvent}
+                    title="${c.categoryName}">
+                    ${c.categoryName}${checkMark}
+                 </button>`;
+                    });
+
+                    html += `</div></div>`;
+                    $content.append(html);
+                }
+            }
+
+            // 2. ฟังก์ชันเมื่อกดปุ่ม (Global Function เพื่อให้เรียกจาก HTML ได้)
+            window.handleQuickVote = function (catId, catName) {
+                // ใช้ SweetAlert ยืนยันเล็กน้อยกันพลาด
+                Swal.fire({
+                    title: 'ยืนยันแยกหัวข้อ',
+                    text: `แยกข้อนี้ไปที่: ${catName}?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'ใช่ (Approve)',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#1a73e8'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // ส่งโหวต 1 คะแนน (ซึ่งเราเซ็ตให้ Approve ทันทีใน Logic ก่อนหน้า)
+                        submitVoteData([catId], current_question, true, 1);
+
+                        // รอสักพักแล้วอัปเดต UI แผงปุ่ม
+                        setTimeout(renderQuickCatPanel, 500);
+                    }
+                });
+            };
+
+            // 3. ผูก Event กับปุ่มเปิด/ปิด
+            $('#toggle-quick-cat').on('click', function () {
+                const $panel = $('#quick-cat-container');
+                if ($panel.is(':visible')) {
+                    $panel.slideUp();
+                    $(this).html('<i class="fas fa-bolt"></i> เปิดแผงแยกหัวข้อด่วน (Quick Mode)');
+                } else {
+                    renderQuickCatPanel();
+                    $panel.slideDown();
+                    $(this).html('<i class="fas fa-times"></i> ปิดแผงแยกหัวข้อ');
+                    // เลื่อนหน้าจอลงมาให้เห็นแผง
+                    $('html, body').animate({ scrollTop: $(this).offset().top - 100 }, 500);
+                }
+            });
+
             async function saveReportToGoogleSheet(from, category, questionId, question, questionImages, allChoices, suggestedChoice, report, time) {
                 const data = {
                     action: 'submitReport',
@@ -4547,6 +4752,20 @@
 
                 try {
                     await sendWithRetry(payload);
+
+                    categoryArray.forEach(newCatId => {
+                        if (!q.category.includes(newCatId)) {
+                            q.category.push(newCatId); // เพิ่มเข้าใน Object คำถามปัจจุบัน
+                        }
+                    });
+
+                    await syncQuestionsToCache();
+
+                    updateQuestionCategoryUI(q);
+
+                    if ($('#quick-cat-container').is(':visible')) {
+                        renderQuickCatPanel();
+                    }
 
                     // 3. เมื่อส่งสำเร็จ แสดงการแจ้งเตือนแบบ Toast (ไม่รบกวนหน้าจอหลัก)
                     Swal.fire({
