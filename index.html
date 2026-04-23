@@ -3235,7 +3235,7 @@
                     if (isExcluded) return;
 
                     // ผ่านเงื่อนไขทั้งหมด -> เปิด Modal แบบ Auto
-                    openVoteModal(true);
+                    openVoteModal(current_question, true);
 
                 }, 80);
             };
@@ -4401,7 +4401,8 @@
 
             function openVoteModal(q, isAuto = false) {
                 // เช็คว่ามีข้อมูลส่งมาไหม ถ้าไม่มีให้ใช้ current_question เป็น fallback
-                const target = q || current_question;
+                
+                const target = q || current_question
 
                 if (!target || !target.questionId) {
                     Swal.fire("กรุณาเลือกข้อสอบก่อน");
