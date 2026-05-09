@@ -3739,7 +3739,7 @@
                 return (match && match[1]) ? `https://lh3.googleusercontent.com/d/${match[1]}?authuser=1=w1000-h1000` : url;
             };
 
-            const isUrl = (s) => s && (typeof s === 'string') && (s.includes('drive.google.com') || s.startsWith('http'));
+            const isUrl = (s) => s && (typeof s === 'string') && (s.includes('drive.google.com'));
 
             const convertImgToBase64 = (url) => {
                 return new Promise((resolve, reject) => {
@@ -3771,7 +3771,7 @@
             const displayAnswerContent = (text) => {
                 if (!text) return "";
                 const trimmed = text.trim(); // ประกาศตัวแปร trimmed ให้เรียบร้อย
-                if (trimmed.includes('drive.google.com') || trimmed.startsWith('http')) {
+                if (trimmed.includes('drive.google.com')) {
                     return `<img src="${transformUrl(trimmed)}" style="height:50px; vertical-align:middle;">`;
                 }
                 if (trimmed.startsWith('<svg')) {
@@ -5887,7 +5887,7 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
                     $reportNewChoiceInput.val().trim() :
                     $reportCorrectChoiceSelect.val();
 
-                if (suggestedChoice && (suggestedChoice.includes('drive.google') || suggestedChoice.startsWith('http'))) {
+                if (suggestedChoice && (suggestedChoice.includes('drive.google'))) {
                     suggestedChoice = transformUrl(suggestedChoice);
                 }
 
