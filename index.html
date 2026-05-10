@@ -1565,7 +1565,62 @@
         cursor: pointer;
          transition: transform 0.2s, box-shadow 0.2s;
     }
+    .result-card .search-card-header {
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
+.result-card .search-card-category {
+    font-size: 1.1rem;
+    color: #666;
+    font-weight: 800;
+}
+
+.result-card .search-card-choices {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+    font-size: 1.1rem;
+    text-align: left;
+}
+
+.result-card .search-card-choices li {
+    padding: 4px 8px;
+    border-bottom: 1px dashed #f0f0f0;
+    color: #495057;
+}
+
+.result-card .search-card-footer {
+    padding: 12px 15px;
+    background: #fff;
+    border-top: 1px solid #eee;
+    font-size: 1.1rem;
+    color: #666;
+    line-height: 1.5;
+}
+
+.result-card .search-card-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 15px;
+    background: #f9f9f9;
+    border-top: 1px solid #eee;
+}
+
+/* รองรับ SVG ใน Card */
+.result-card .svg-render-area {
+    max-width: 100%;
+    height: auto;
+    display: flex;
+    justify-content: center;
+    background: #fdfdfd;
+    padding: 10px;
+    border-radius: 5px;
+}
     .result-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 16px rgba(0,0,0,0.15);
@@ -2903,7 +2958,7 @@
             // --- State Variables ---
             let globalStructure = { subjects: [], category: [] };
             let allQuestions = [];
-            let currentQuestions = [];
+            window.currentQuestions = [];
             let current_question = {};
             let score = 0;
             let questionIndex = 0;
@@ -4009,14 +4064,11 @@
             };
 
             // --- Results Table ---
-            // --- แก้ไขฟังก์ชัน showSubmission ---
             const showSubmission = (filter = 'all') => {
                 const $container = $('#submission-cards-container');
                 let cardsHtml = '';
 
-                // กรองเฉพาะข้อที่ "ทำไปแล้ว" (state: true)
                 let answeredQuestions = currentQuestions.filter(q => q.state);
-
                 if (filter === 'correct') answeredQuestions = answeredQuestions.filter(q => q.select === q.answer);
                 if (filter === 'incorrect') answeredQuestions = answeredQuestions.filter(q => q.select !== q.answer);
 
@@ -4025,12 +4077,8 @@
                     return;
                 }
 
-                // แยกข้อปัจจุบัน (Current) ออกจากข้ออื่นๆ (Others)
-                // เรียง Others จากใหม่ไปเก่า (Reverse)
                 const currentActiveQ = answeredQuestions.find(q => q.questionId === current_question.questionId);
                 const otherQs = answeredQuestions.filter(q => q.questionId !== current_question.questionId).reverse();
-
-                // รวม List: เอา Current ไว้หน้าสุด
                 const finalDisplayList = currentActiveQ ? [currentActiveQ, ...otherQs] : otherQs;
 
                 finalDisplayList.forEach(q => {
@@ -4038,50 +4086,83 @@
                     const isThisCurrent = q.questionId === current_question.questionId;
                     const realIdx = currentQuestions.findIndex(orig => orig.questionId === q.questionId);
 
-                    // จัดการรูปภาพ
-                    let imgHtml = '';
-                    if (q.img) {
-                        const imgList = q.img.split('///').map(url => url.trim()).filter(Boolean);
-                        imgHtml = `<div class="search-card-images">` +
-                            imgList.map(url => `<img src="${transformUrl(url)}" class="search-card-img" onclick="viewFullImage('${transformUrl(url)}', event)">`).join('') +
-                            `</div>`;
+                    // 1. หา Category แรก (เหมือน Search Card)
+                    let categoryLabel = 'ไม่ระบุหัวข้อ';
+                    if (q.category && globalStructure.category) {
+                        const firstCatId = Array.isArray(q.category) ? q.category[0] : q.category;
+                        const foundCat = globalStructure.category.find(t => t.categoryId == firstCatId);
+                        if (foundCat) categoryLabel = foundCat.categoryName;
                     }
 
-                    const formatAns = (val) => {
-                        if (!val) return '-';
-                        if (isUrl(val)) return `<img src="${transformUrl(val)}" class="answer-img" onclick="viewFullImage('${transformUrl(val)}', event)">`;
-                        if (val.startsWith('<svg')) return `<div class="svg-choice-container" onclick="viewFullImageSVG(this, event)">${val}</div>`;
-                        return val;
+                    // 2. ฟังก์ชัน Helper สำหรับ Render เนื้อหา (Text/IMG/SVG)
+                    const renderContent = (val) => {
+                        if (!val) return '';
+                        const trimmed = val.trim();
+                        if (trimmed.startsWith('<svg')) return `<div class="svg-render-area" onclick="viewFullImageSVG(this, event)">${trimmed}</div>`;
+                        if (isUrl(trimmed)) return `<img src="${transformUrl(trimmed)}" class="search-card-img" onclick="viewFullImage('${transformUrl(trimmed)}', event)">`;
+                        return trimmed;
                     };
+
+                    // 3. เตรียมรูปภาพโจทย์ (รองรับ SVG)
+                    let problemMedia = '';
+                    if (q.img) {
+                        const imgList = q.img.split('///').map(url => url.trim()).filter(Boolean);
+                        problemMedia = `<div class="search-card-images">` +
+                            imgList.map(item => renderContent(item)).join('') + `</div>`;
+                    } else if (q.problem && q.problem.trim().startsWith('<svg')) {
+                        problemMedia = renderContent(q.problem);
+                    }
+
+                    // 4. เตรียม Choice (เหมือน Search Card)
+                    const choicesList = q.choices ? q.choices.split('///').map(c => `<li>${renderContent(c)}</li>`).join('') : '';
 
                     cardsHtml += `
             <div class="result-card ${isCorrect ? 'is-correct' : 'is-incorrect'} ${isThisCurrent ? 'current-active' : ''}" 
                  onclick="jumpToQuestion(${realIdx})">
-                <div class="result-card-header">
-                    <span>${isThisCurrent ? '<i class="fas fa-thumbtack"></i> ข้อที่กำลังทำ: ' : '<i class="fas fa-history"></i> '} ข้อที่ ${realIdx + 1}</span>
-                    <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">${isCorrect ? 'Correct' : 'Incorrect'}</span>
+                
+                <div class="search-card-header">
+                    <span class="search-card-category"><i class="fas fa-folder"></i> ${categoryLabel}</span>
+                    <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">ข้อที่ ${realIdx + 1}</span>
                 </div>
+
                 <div class="result-card-body">
-                    <div class="result-q-text">${q.problem.replace(/\n/g, '<br>')}</div>
-                    ${imgHtml}
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <div class="result-ans-box user-ans" style="flex: 1; min-width: 150px;">
-                            <small>คุณตอบ:</small><br><b>${formatAns(q.select)}</b>
-                        </div>
-                        ${!isCorrect ? `
-                        <div class="result-ans-box correct-ans" style="flex: 1; min-width: 150px;">
-                            <small>เฉลย:</small><br><b>${formatAns(q.answer)}</b>
-                        </div>` : ''}
+                    <div class="search-card-problem">${!q.problem.startsWith('<svg') ? q.problem.replace(/\n/g, '<br>') : '[SVG โจทย์]'}</div>
+                    ${problemMedia}
+                    
+                    <ul class="search-card-choices">
+                        <b>ตัวเลือก:</b>
+                        ${choicesList}
+                    </ul>
+
+                    <div class="result-ans-box user-ans">
+                        <small>คุณตอบ:</small><br><b>${renderContent(q.select)}</b>
                     </div>
-                    ${q.explain ? `<div class="result-explain"><b>คำอธิบาย:</b><br>${q.explain.replace(/\n/g, '<br>')}</div>` : ''}
+                    ${!isCorrect ? `
+                    <div class="result-ans-box correct-ans">
+                        <small>เฉลยที่ถูก:</small><br><b>${renderContent(q.answer)}</b>
+                    </div>` : ''}
+                </div>
+
+                ${q.explain ? `
+                <div class="search-card-footer">
+                    <b><i class="fas fa-info-circle"></i> คำอธิบาย:</b><br>
+                    ${q.explain.replace(/\n/g, '<br>')}
+                </div>` : ''}
+
+                <div class="search-card-actions">
+                    <button class="btn-search-action btn-search-report" onclick="event.stopPropagation(); openReportModal(currentQuestions[${realIdx}])">
+                        <i class="fas fa-exclamation-triangle"></i> แจ้งปัญหา
+                    </button>
+                    <button class="btn-search-action btn-search-vote" onclick="event.stopPropagation(); openVoteModal(currentQuestions[${realIdx}], false)">
+                        <i class="fas fa-tags"></i> แยกเลค
+                    </button>
                 </div>
             </div>`;
                 });
 
                 $container.html(cardsHtml);
-                renderAllMath();
+                setTimeout(renderAllMath, 50);
             };
-            
             // --- เพิ่มใหม่: ฟังก์ชันกระโดดไปคำถามที่เลือก ---
             window.jumpToQuestion = function (index) {
                 if (index < 0 || index >= currentQuestions.length) return;
@@ -4564,7 +4645,7 @@
                 openVoteModal(current_question, true);
             }
 
-            function openVoteModal(q, isAuto = false) {
+            window.openVoteModal = function(q, isAuto = false) {
                 // เช็คว่ามีข้อมูลส่งมาไหม ถ้าไม่มีให้ใช้ current_question เป็น fallback
                 
                 const target = q || current_question
@@ -5962,7 +6043,7 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
                 openReportModal(currentQuestions[questionIndex]);
             });
             // ฟังก์ชันหลักสำหรับเปิด Report Modal (รับ Object ข้อสอบจากไหนก็ได้)
-            function openReportModal(q) {
+            window.openReportModal = function(q) {
                 if (!q || !q.problem) {
                     Swal.fire("ไม่พบข้อมูลคำถาม");
                     return;
