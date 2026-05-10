@@ -1529,6 +1529,101 @@
         color: white;
     }
 
+    /* Style สำหรับการ์ดสรุปผลการทำข้อสอบ */
+
+    #submission-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    width: 100%;
+}
+
+    .result-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+        width: 100%;
+        margin-top: 20px;
+    }
+
+    .result-card.current-active {
+    grid-column: 1 / -1; /* บังคับให้ข้อปัจจุบันยาวเต็มบรรทัดแรก */
+    border: 3px solid var(--color-primary);
+    background-color: #f0f7ff;
+    box-shadow: 0 4px 15px rgba(26, 115, 232, 0.2);
+}
+
+    .result-card {
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid #e0e0e0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+        transition: transform 0.2s;
+        cursor: pointer;
+         transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .result-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
+
+.result-card .search-card-img, 
+.result-card .answer-img,
+.result-card .svg-choice-container {
+    max-height: 200px; /* ปรับให้ใหญ่ขึ้น */
+    width: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    cursor: zoom-in; /* เปลี่ยน cursor ให้รู้ว่ากดขยายได้ */
+    transition: opacity 0.2s;
+}
+
+.result-card .search-card-img:hover {
+    opacity: 0.8;
+}
+
+    /* แถบสีข้างการ์ด: เขียวเมื่อถูก แดงเมื่อผิด */
+    .result-card.is-correct { border-left: 8px solid var(--color-correct); }
+    .result-card.is-incorrect { border-left: 8px solid var(--color-wrong); }
+
+    .result-card-header {
+        padding: 10px 15px;
+        background: #f8f9fa;
+        font-weight: 800;
+        font-size: 1.1rem;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .result-card-body { padding: 15px; flex-grow: 1; }
+    
+    .result-q-text { font-size: 1.3rem; font-weight: 700; margin-bottom: 10px; }
+
+    .result-ans-box {
+        padding: 10px;
+        border-radius: 8px;
+        margin-top: 10px;
+        font-size: 1.2rem;
+    }
+    .result-ans-box.user-ans { background: #f0f0f0; border: 1px solid #ddd; }
+    .result-ans-box.correct-ans { background: #d1e7dd; border: 1px solid #badbcc; color: #0f5132; margin-top: 5px; }
+    
+    .result-explain {
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px dashed #ccc;
+        font-size: 1.2rem;
+        color: #373535;
+    }
+
+    @media (max-width: 768px) {
+        .result-cards-grid { grid-template-columns: 1fr; }
+    }
+
     /* Search Section Styles */
     #search-section {
         width: 95%;
@@ -2490,21 +2585,9 @@
             <option value="correct">Correct Answers</option>
             <option value="incorrect">Incorrect Answers</option>
         </select>
-        <table>
-            <thead>
-                <tr>
-                    <th>Category</th>
-                    <th>Question</th>
-                    <th>Correct Answer</th>
-                    <th>Your Answer</th>
-                    <th>Explanation</th>
-                    <th>Image [Click for zoom]</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                <!-- Submission results will be populated here -->
-            </tbody>
-        </table>
+        <div id="submission-cards-container" class="result-cards-grid">
+            <!-- Cards จะถูกเติมที่นี่โดย JS -->
+        </div>
 
         <!-- =========================================
          V. Search Section (ส่วนค้นหา)
@@ -2568,6 +2651,18 @@
         }
 
         $(function () {
+
+            const bgToast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
 
             // ฟังก์ชันจัดการฐานข้อมูล IndexedDB (รองรับข้อมูลขนาดใหญ่)
             const dbName = "MDKKU_Quiz_DB";
@@ -2872,6 +2967,7 @@
                             if (success) {
                                 showQuestion();
                                 updateProgressHeader();
+                                showSubmission($('#submission-filter').val()); 
                                 bgToast.fire({ icon: 'success', title: 'โหลดข้อมูลเดิมสำเร็จ' });
                             }
                         } else {
@@ -3130,6 +3226,7 @@
                 }
                 updateProgressHeader();
                 saveProgressToCache();
+                showSubmission($('#submission-filter').val());
             };
 
             const prevQuestion = () => {
@@ -3138,6 +3235,7 @@
                     showQuestion();
                     updateProgressHeader();
                     saveProgressToCache();
+                    showSubmission($('#submission-filter').val());
                 }
             };
 
@@ -3189,7 +3287,7 @@
                 $('#score').text(`${score}/${currentQuestions.length}`);
                 $('#questionIndex').text(`${questionIndex + 1}/${currentQuestions.length}`);
                 highlightAnswers();
-                showSubmission();
+                showSubmission($('#submission-filter').val());
                 updateProgressHeader();
                 setTimeout(renderAllMath, 50);
                 saveProgressToCache();
@@ -3911,94 +4009,123 @@
             };
 
             // --- Results Table ---
+            // --- แก้ไขฟังก์ชัน showSubmission ---
             const showSubmission = (filter = 'all') => {
-                let rowsHtml = '';
-                // กรองเฉพาะข้อที่ทำแล้ว และเรียงจากใหม่ไปเก่า
-                const filteredQuestions = currentQuestions.slice().reverse().filter(q => {
-                    if (!q.state) return false;
-                    if (filter === 'correct') return q.select === q.answer;
-                    if (filter === 'incorrect') return q.select !== q.answer;
-                    return true;
-                });
+                const $container = $('#submission-cards-container');
+                let cardsHtml = '';
 
-                filteredQuestions.forEach(q => {
-                    // 1. หาชื่อหมวดหมู่
-                    let categoryLabel = 'ไม่ระบุ';
-                    if (q.category && globalStructure.category) {
-                        const firstCatId = Array.isArray(q.category) ? q.category[0] : q.category;
-                        const foundCat = globalStructure.category.find(t => t.categoryId == firstCatId);
-                        if (foundCat) categoryLabel = foundCat.categoryName;
-                    }
+                // กรองเฉพาะข้อที่ "ทำไปแล้ว" (state: true)
+                let answeredQuestions = currentQuestions.filter(q => q.state);
 
-                    // 2. จัดการตัวเลือก (Choices) - แยกด้วย /// และ Render ตามประเภทสื่อ
-                    const choicesFormatted = q.choices ? q.choices.split('///').map(c => {
-                        const trimmedC = c.trim();
-                        if (!trimmedC) return '';
+                if (filter === 'correct') answeredQuestions = answeredQuestions.filter(q => q.select === q.answer);
+                if (filter === 'incorrect') answeredQuestions = answeredQuestions.filter(q => q.select !== q.answer);
 
-                        if (isUrl(trimmedC)) {
-                            // ถ้าเป็นรูปภาพ
-                            return `<li><img src="${transformUrl(trimmedC)}" class="table-img-thumb" style="max-height:40px;"></li>`;
-                        } else if (trimmedC.startsWith('<svg')) {
-                            // ถ้าเป็น SVG (หุ้มด้วย Container เพื่อคุมขนาด)
-                            return `<li><div class="svg-choice-container" style="width:40px; height:40px; justify-content:flex-start;">${trimmedC}</div></li>`;
-                        } else {
-                            // ถ้าเป็นข้อความปกติ (เช่น 150/600)
-                            return `<li>${trimmedC}</li>`;
-                        }
-                    }).join('') : '';
-
-                    // 3. ฟังก์ชันช่วยสำหรับ Your Answer และ Correct Answer ในตาราง
-                    const formatTableAns = (val) => {
-                        if (!val) return '-';
-                        const trimmed = val.trim();
-                        if (isUrl(trimmed)) return `<img src="${transformUrl(trimmed)}" class="table-img-thumb" style="max-height:40px;">`;
-                        if (trimmed.startsWith('<svg')) return `<div class="svg-choice-container" style="width:40px; height:40px;">${trimmed}</div>`;
-                        return trimmed;
-                    };
-
-                    const selectContent = formatTableAns(q.select);
-                    const answerContent = formatTableAns(q.answer);
-
-                    // 4. จัดการรูปโจทย์ (Problem Images)
-                    let problemImageHtml = '';
-                    if (q.img) {
-                        const imgList = q.img.split('///').map(url => url.trim()).filter(Boolean);
-                        problemImageHtml = `<div class="table-img-grid">` +
-                            imgList.map(url => `<a href="${url}" target="_blank"><img src="${transformUrl(url)}" class="table-img-thumb" alt="Q Img"></a>`).join('') +
-                            `</div>`;
-                    } else {
-                        problemImageHtml = '<span style="color:#ccc">No image</span>';
-                    }
-
-                    // 5. ประกอบแถวตาราง
-                    rowsHtml += `
-        <tr>
-            <td style="font-size: 1.3rem;">${categoryLabel}</td>
-            <td>
-                <div style="font-weight: bold; margin-bottom: 5px;">${q.problem.replace(/\n/g, '<br>')}</div>
-                <ul style="margin: 0; padding-left: 15px; font-size: 1.3rem; color: #555; list-style-type: disc;">
-                    ${choicesFormatted}
-                </ul>
-            </td>
-            <td style="text-align: center;">${answerContent}</td>
-            <td style="text-align: center;">
-                ${q.select === q.answer ?
-                            `<div style="color:green; font-weight:bold;">${selectContent}</div>` :
-                            `<div style="color:red; font-weight:bold;">${selectContent}</div>`}
-            </td>
-            <td style="font-size: 1.2rem; line-height: 1.4;">${q.explain ? q.explain.replace(/\n/g, '<br>') : '-'}</td>
-            <td style="text-align: center;">${problemImageHtml}</td>
-        </tr>`;
-                });
-
-                if (rowsHtml === '') {
-                    rowsHtml = '<tr><td colspan="6" style="text-align:center; padding: 20px;">ยังไม่มีข้อมูลการตอบในชุดคำถามนี้</td></tr>';
+                if (answeredQuestions.length === 0) {
+                    $container.html('<p class="small-text" style="grid-column: 1/-1; padding: 40px;">ยังไม่มีข้อมูลการตอบ</p>');
+                    return;
                 }
 
-                $tableBody.html(rowsHtml);
+                // แยกข้อปัจจุบัน (Current) ออกจากข้ออื่นๆ (Others)
+                // เรียง Others จากใหม่ไปเก่า (Reverse)
+                const currentActiveQ = answeredQuestions.find(q => q.questionId === current_question.questionId);
+                const otherQs = answeredQuestions.filter(q => q.questionId !== current_question.questionId).reverse();
 
-                // เรียก Math Rendering อีกครั้งเผื่อในตารางมีสูตรคำนวณ
-                if (typeof renderAllMath === 'function') renderAllMath();
+                // รวม List: เอา Current ไว้หน้าสุด
+                const finalDisplayList = currentActiveQ ? [currentActiveQ, ...otherQs] : otherQs;
+
+                finalDisplayList.forEach(q => {
+                    const isCorrect = q.select === q.answer;
+                    const isThisCurrent = q.questionId === current_question.questionId;
+                    const realIdx = currentQuestions.findIndex(orig => orig.questionId === q.questionId);
+
+                    // จัดการรูปภาพ
+                    let imgHtml = '';
+                    if (q.img) {
+                        const imgList = q.img.split('///').map(url => url.trim()).filter(Boolean);
+                        imgHtml = `<div class="search-card-images">` +
+                            imgList.map(url => `<img src="${transformUrl(url)}" class="search-card-img" onclick="viewFullImage('${transformUrl(url)}', event)">`).join('') +
+                            `</div>`;
+                    }
+
+                    const formatAns = (val) => {
+                        if (!val) return '-';
+                        if (isUrl(val)) return `<img src="${transformUrl(val)}" class="answer-img" onclick="viewFullImage('${transformUrl(val)}', event)">`;
+                        if (val.startsWith('<svg')) return `<div class="svg-choice-container" onclick="viewFullImageSVG(this, event)">${val}</div>`;
+                        return val;
+                    };
+
+                    cardsHtml += `
+            <div class="result-card ${isCorrect ? 'is-correct' : 'is-incorrect'} ${isThisCurrent ? 'current-active' : ''}" 
+                 onclick="jumpToQuestion(${realIdx})">
+                <div class="result-card-header">
+                    <span>${isThisCurrent ? '<i class="fas fa-thumbtack"></i> ข้อที่กำลังทำ: ' : '<i class="fas fa-history"></i> '} ข้อที่ ${realIdx + 1}</span>
+                    <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">${isCorrect ? 'Correct' : 'Incorrect'}</span>
+                </div>
+                <div class="result-card-body">
+                    <div class="result-q-text">${q.problem.replace(/\n/g, '<br>')}</div>
+                    ${imgHtml}
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <div class="result-ans-box user-ans" style="flex: 1; min-width: 150px;">
+                            <small>คุณตอบ:</small><br><b>${formatAns(q.select)}</b>
+                        </div>
+                        ${!isCorrect ? `
+                        <div class="result-ans-box correct-ans" style="flex: 1; min-width: 150px;">
+                            <small>เฉลย:</small><br><b>${formatAns(q.answer)}</b>
+                        </div>` : ''}
+                    </div>
+                    ${q.explain ? `<div class="result-explain"><b>คำอธิบาย:</b><br>${q.explain.replace(/\n/g, '<br>')}</div>` : ''}
+                </div>
+            </div>`;
+                });
+
+                $container.html(cardsHtml);
+                renderAllMath();
+            };
+            
+            // --- เพิ่มใหม่: ฟังก์ชันกระโดดไปคำถามที่เลือก ---
+            window.jumpToQuestion = function (index) {
+                if (index < 0 || index >= currentQuestions.length) return;
+                questionIndex = index;
+                showQuestion();
+                updateProgressHeader();
+
+                // เลื่อนหน้าจอกลับไปที่ Quiz Container
+                $('html, body').animate({
+                    scrollTop: $("#quiz-container").offset().top - 20
+                }, 500);
+
+                // อัปเดต Highlight ในรายการ submission
+                showSubmission($('#submission-filter').val());
+            };
+
+            // --- เพิ่มใหม่: ฟังก์ชันดูรูปภาพขนาดเต็ม (ใช้ SweetAlert2 ที่มีอยู่ในโปรเจกต์) ---
+            window.viewFullImage = function (url, event) {
+                if (event) event.stopPropagation(); // กันไม่ให้ไปเรียก jumpToQuestion
+
+                Swal.fire({
+                    imageUrl: url,
+                    imageAlt: 'Full size image',
+                    width: '90%',
+                    showCloseButton: true,
+                    showConfirmButton: false,
+                    background: 'rgba(0,0,0,0.8)',
+                    customClass: {
+                        image: 'img-fluid animate__animated animate__zoomIn'
+                    }
+                });
+            };
+
+            // --- เพิ่มใหม่: ฟังก์ชันดู SVG ขนาดเต็ม ---
+            window.viewFullImageSVG = function (el, event) {
+                if (event) event.stopPropagation();
+                const svgHtml = $(el).html();
+
+                Swal.fire({
+                    html: `<div style="padding:20px; background:white; border-radius:10px;">${svgHtml}</div>`,
+                    width: '80%',
+                    showConfirmButton: false,
+                    showCloseButton: true
+                });
             };
             // =========================================
             // VII. Search Functionality
