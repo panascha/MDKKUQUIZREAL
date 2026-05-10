@@ -2040,6 +2040,10 @@
         transition: background-color 0.3s, transform 0.2s, width 0.2s, height 0.2s;
     }
 
+    .fab i {
+    pointer-events: none; /* ป้องกันการคลิกโดนไอคอนแล้ว event ไม่ทำงาน */
+}
+
     .fab:hover {
         background-color: var(--color-primary-hover);
         transform: scale(1.05);
@@ -2052,6 +2056,10 @@
     #scroll-to-quiz-btn:hover {
         background-color: var(--color-dark-hover);
     }
+
+    #zoom-in-btn:active, #zoom-out-btn:active {
+    transform: scale(0.9);
+}
 
     /* =========================================
        13. Responsive Adjustments (การปรับให้เข้ากับหน้าจอขนาดเล็ก)
@@ -2683,6 +2691,14 @@
      VI. Floating Action Buttons (FABs)
      ========================================= -->
     <div class="fab-container">
+        <!-- ปุ่ม Zoom In -->
+        <button id="zoom-in-btn" class="fab" title="ขยายหน้าจอ" style="background-color: #28a745;">
+            <i class="fas fa-search-plus"></i>
+        </button>
+        <!-- ปุ่ม Zoom Out -->
+        <button id="zoom-out-btn" class="fab" title="ลดขนาดหน้าจอ" style="background-color: #dc3545;">
+            <i class="fas fa-search-minus"></i>
+        </button>
         <button id="scroll-to-search-btn" class="fab" title="เลื่อนไปส่วนค้นหา">
             <i class="fas fa-search"></i>
         </button>
@@ -2976,6 +2992,40 @@
             let searchDictionary = new Set(); // เก็บคำศัพท์ทั้งหมด
             let originalSearchQuery = ""; // เก็บคำค้นหาตั้งต้น
             let modalTargetQuestion = null; // ตัวแปรเก็บคำถามที่กำลังถูกรายงานปัญหา
+
+            // =========================================
+            // ZOOM CONTROL SETUP
+            // =========================================
+            let currentZoom = 100; // เริ่มต้นที่ 100%
+            const zoomStep = 10;   // เพิ่ม/ลดทีละ 10%
+            const maxZoom = 200;   // สูงสุด 200%
+            const minZoom = 70;    // ต่ำสุด 70%
+
+            function applyZoom() {
+                // ปรับที่ root element (html)
+                $('html').css('font-size', currentZoom + '%');
+
+                // แจ้งเตือนสถานะการซูมแบบ Toast (ใช้ bgToast ที่เราสร้างไว้ก่อนหน้า)
+                bgToast.fire({
+                    icon: 'info',
+                    title: `ระดับการซูม: ${currentZoom}%`,
+                    timer: 1000
+                });
+            }
+
+            $('#zoom-in-btn').on('click', function () {
+                if (currentZoom < maxZoom) {
+                    currentZoom += zoomStep;
+                    applyZoom();
+                }
+            });
+
+            $('#zoom-out-btn').on('click', function () {
+                if (currentZoom > minZoom) {
+                    currentZoom -= zoomStep;
+                    applyZoom();
+                }
+            });
 
             // =========================================
             // III. Initialization
