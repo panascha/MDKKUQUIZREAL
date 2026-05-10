@@ -2649,13 +2649,19 @@
                 if (!savedState) return false;
 
                 try {
-                    // 1. คืนค่า Checkbox หมวดหมู่ (สำคัญ: ต้องไม่ trigger change ทันทีเพื่อกันการ rebuild ซ้ำซ้อน)
+                    // 1. คืนค่า Checkbox หมวดหมู่
                     $('input[type="checkbox"][name="category"]').prop('checked', false);
-                    savedState.selectedCategories.forEach(catId => {
-                        $(`#cat-${catId}`).prop('checked', true);
-                    });
+                    if (savedState.selectedCategories) {
+                        savedState.selectedCategories.forEach(catId => {
+                            // ใช้ ID selector โดยตรง
+                            const targetInput = document.getElementById(`cat-${catId}`);
+                            if (targetInput) {
+                                $(targetInput).prop('checked', true);
+                            }
+                        });
+                    }
 
-                    // 2. คืนค่าลำดับคำถามและสถานะการตอบ (Reconstruct the exact array)
+                    // 2. คืนค่าลำดับคำถามและสถานะ
                     const reorderedQuestions = [];
                     savedState.currentQuestionsState.forEach(savedQ => {
                         const originalQ = allQuestions.find(q => q.questionId === savedQ.questionId);
@@ -2677,14 +2683,17 @@
                     questionIndex = savedState.questionIndex;
                     score = savedState.score;
                     isRandomized = savedState.isRandomized;
-                    isReviewMode = savedState.isReviewMode;
+                    isReviewMode = savedState.isReviewMode || false;
 
-                    // 3. อัปเดต UI ให้ตรงกับสถานะที่โหลดมา
+                    // 3. อัปเดต UI สำคัญ: แสดงปุ่มหมวดหมู่ที่เลือกและตัวเลขใน Accordion
                     updateSelectedCategoryStatus();
-                    // อัปเดตข้อความบนปุ่ม Random และ Review
+
+                    // อัปเดตข้อความปุ่ม
                     $toggleRandomBtn.text(isRandomized ? 'โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : 'โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)');
                     if (isReviewMode) {
                         $('#toggle-review-mode-btn').text('โหมดทวนข้อผิด: เปิด').css('background-color', '#28a745');
+                    } else {
+                        $('#toggle-review-mode-btn').text('โหมดทวนข้อผิด: ปิด').css('background-color', '#d32f2f');
                     }
 
                     return true;
@@ -2829,8 +2838,9 @@
                 const subjectParam = urlParams.get('subject') || '';
                 const cacheKey = `data_${subjectParam}`;
                 const verKey = `ver_${subjectParam}`;
+                const sessionKey = `session_state_${subjectParam || 'default'}`;
 
-                // 1. ดึงข้อมูลจาก Cache มาแสดงก่อนเพื่อความเร็ว (Optimistic Load)
+                // 1. ดึงข้อมูลพื้นฐานจาก Cache
                 const localVer = await getCacheDB(verKey);
                 const localData = await getCacheDB(cacheKey);
 
@@ -2838,88 +2848,76 @@
                     globalStructure = localData.structure;
                     allQuestions = localData.questions;
                     renderAccordionUI(globalStructure);
-                    //updateQuestionSet(false); // โหลดคำถามขึ้นมา แต่ยังไม่สุ่มใหม่เพื่อรักษาคิวเดิม
                     buildSearchDictionary();
                     updateSubjectUI(subjectParam);
 
-                    const hasLoadedProgress = await loadProgressFromCache();
-
-                    if (hasLoadedProgress) {
-                        // ถ้าโหลดสำเร็จ ให้แสดงข้อที่ค้างไว้เลย
-                        showQuestion();
-                        updateProgressHeader();
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'ทำต่อจากเดิม...',
-                            text: `โหลดวิชา ${subjectParam} หัวข้อ ${current_question.category} ข้อที่ ${questionIndex + 1} สำเร็จ`,
-                            toast: true, position: 'top-end', showConfirmButton: false, timer: 3000
+                    // --- ส่วนที่เพิ่ม: ตรวจสอบ Progress เก่าและถามผู้ใช้ ---
+                    const savedState = await getCacheDB(sessionKey);
+                    if (savedState && savedState.currentQuestionsState && savedState.currentQuestionsState.length > 0) {
+                        $('#loading-overlay').hide();
+                        const result = await Swal.fire({
+                            title: 'พบข้อมูลการทำค้างไว้',
+                            text: `คุณต้องการทำต่อจากข้อที่ ${savedState.questionIndex + 1} หรือไม่?`,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'ทำต่อจากเดิม',
+                            cancelButtonText: 'เริ่มใหม่ทั้งหมด',
+                            confirmButtonColor: '#1a73e8',
+                            cancelButtonColor: '#d33',
+                            allowOutsideClick: false
                         });
+
+                        if (result.isConfirmed) {
+                            const success = await loadProgressFromCache();
+                            if (success) {
+                                showQuestion();
+                                updateProgressHeader();
+                                bgToast.fire({ icon: 'success', title: 'โหลดข้อมูลเดิมสำเร็จ' });
+                            }
+                        } else {
+                            // เริ่มใหม่: ล้างเฉพาะ session cache ของวิชานี้
+                            const db = await openDB();
+                            const transaction = db.transaction(storeName, "readwrite");
+                            transaction.objectStore(storeName).delete(sessionKey);
+                            updateQuestionSet(true);
+                        }
                     } else {
-                        // ถ้าไม่มี Progress เก่า หรือโหลดไม่ได้ ค่อยเริ่มชุดใหม่
                         updateQuestionSet(true);
                     }
-                    
-                    $('#loading-overlay').hide(); // ปิด overlay ทันทีถ้ามีข้อมูลเก่า
+                    // -------------------------------------------
+
+                    $('#loading-overlay').hide();
                 } else {
-                    // ถ้าไม่มีข้อมูลเลย (เปิดครั้งแรก) ต้องโชว์ Loading ปกติ
                     $('#loading-overlay').css('display', 'flex');
                 }
 
                 try {
-                    // 2. เช็คเวอร์ชันจาก Server
+                    // 2. เช็คเวอร์ชันจาก Server ตามปกติ
                     const resVer = await fetch(`${APPSCRIPT_URL}?action=checkVersion`).then(r => r.json());
                     const serverVersion = resVer.v;
 
-                    if (localVer === serverVersion && localData) {
-                        console.log("🚀 เวอร์ชันตรงกัน ข้ามการดึงข้อมูลใหม่");
-                        isFetching = false;
-                        return;
+                    if (localVer !== serverVersion || !localData) {
+                        const [resStruct, resQues] = await Promise.all([
+                            fetch(`${APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}`).then(r => r.json()),
+                            fetch(`${APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}`).then(r => r.json())
+                        ]);
+
+                        const newData = {
+                            structure: resStruct,
+                            questions: resQues.map((q, index) => ({ ...q, _originalIndex: index }))
+                        };
+
+                        await setCacheDB(cacheKey, newData);
+                        await setCacheDB(verKey, serverVersion);
+
+                        if (!localData) {
+                            globalStructure = newData.structure;
+                            allQuestions = newData.questions;
+                            renderAccordionUI(globalStructure);
+                            updateQuestionSet();
+                            buildSearchDictionary();
+                        }
                     }
-
-                    // 3. ถ้าเวอร์ชันไม่ตรง หรือไม่มีข้อมูล -> ดึงข้อมูลใหม่
-                    if (localData) {
-                        // แจ้งเตือนเบาๆ ว่ากำลังอัปเดตข้อมูลข้อสอบใหม่
-                        Swal.fire({
-                            icon: 'info', title: 'กำลังอัปเดตคลังข้อสอบล่าสุด...',
-                            toast: true, position: 'top-end', showConfirmButton: false, timer: 3000
-                        });
-                    }
-
-                    const [resStruct, resQues] = await Promise.all([
-                        fetch(`${APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}`).then(r => r.json()),
-                        fetch(`${APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}`).then(r => r.json())
-                    ]);
-
-                    const newData = {
-                        structure: resStruct,
-                        questions: resQues.map((q, index) => ({ ...q, _originalIndex: index }))
-                    };
-
-                    // 4. บันทึกลง Cache
-                    await setCacheDB(cacheKey, newData);
-                    await setCacheDB(verKey, serverVersion);
-
-                    // 5. อัปเดตข้อมูลเข้าตัวแปร Global
-                    globalStructure = newData.structure;
-                    allQuestions = newData.questions;
-
-                    // --- เงื่อนไขการอัปเดต UI ---
-                    // ถ้าผู้เรียนยังไม่ได้เริ่มทำ (Index = 0 และยังไม่มีคะแนน) หรือไม่มีข้อมูลเก่าเลย ให้ Apply ทันที
-                    if (questionIndex === 0 && score === 0) {
-                        renderAccordionUI(globalStructure);
-                        updateQuestionSet();
-                        buildSearchDictionary();
-                    } else {
-                        // ถ้ากำลังทำค้างอยู่ ห้าม Refresh ข้อมูลในหน้าจอเด็ดขาด (เดี๋ยวข้อสอบเปลี่ยนกลางคัน)
-                        // แต่ข้อมูลใหม่ถูกบันทึกใน Cache เรียบร้อยแล้วสำหรับการเปิดครั้งหน้า
-                        console.log("New data cached. UI will update on next refresh/load.");
-                        Swal.fire({
-                            icon: 'success', title: 'อัปเดตข้อมูลใหม่แล้ว',
-                            text: 'ข้อสอบเวอร์ชันใหม่จะแสดงผลเมื่อคุณเริ่มชุดใหม่ หรือรีเฟรชหน้าเว็บ',
-                            toast: true, position: 'bottom-end', showConfirmButton: false, timer: 5000
-                        });
-                    }
-
                 } catch (err) {
                     console.error("Init Error:", err);
                 } finally {
