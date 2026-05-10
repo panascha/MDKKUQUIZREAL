@@ -2648,6 +2648,12 @@
             <option value="correct">Correct Answers</option>
             <option value="incorrect">Incorrect Answers</option>
         </select>
+
+        <button id="jump-to-current-btn" class="quiz-button"
+            style="background-color: var(--color-primary); width: 100%; max-width: 300px; margin-top: 10px; margin-bottom: 1rem;">
+            <i class="fas fa-bullseye"></i> ไปที่ข้อปัจจุบัน (ข้อที่ <span id="btn-current-idx">1</span>)
+        </button>
+
         <div id="submission-cards-container" class="result-cards-grid">
             <!-- Cards จะถูกเติมที่นี่โดย JS -->
         </div>
@@ -4118,25 +4124,46 @@
                 const $container = $('#submission-cards-container');
                 let cardsHtml = '';
 
-                let answeredQuestions = currentQuestions.filter(q => q.state);
+                // 1. ดึงข้อคำถามปัจจุบันมาเช็คสถานะ
+                const currentQ = window.currentQuestions[questionIndex];
+                let topRowQ = null;
+
+                // Logic: ถ้าข้อปัจจุบันตอบแล้ว -> แสดงข้อปัจจุบันที่แถวแรก
+                // ถ้ายังไม่ตอบ และไม่ใช่ข้อแรกสุด -> แสดงข้อก่อนหน้า (ที่เพิ่งทำเสร็จ) ที่แถวแรกแทน
+                if (currentQ && currentQ.state) {
+                    topRowQ = currentQ;
+                } else if (questionIndex > 0) {
+                    topRowQ = window.currentQuestions[questionIndex - 1];
+                }
+
+                // 2. กรองรายการข้อที่ตอบแล้วทั้งหมดเพื่อแสดงในแถวต่อๆ มา
+                let answeredQuestions = window.currentQuestions.filter(q => q.state);
                 if (filter === 'correct') answeredQuestions = answeredQuestions.filter(q => q.select === q.answer);
                 if (filter === 'incorrect') answeredQuestions = answeredQuestions.filter(q => q.select !== q.answer);
 
-                if (answeredQuestions.length === 0) {
+                if (answeredQuestions.length === 0 && !topRowQ) {
                     $container.html('<p class="small-text" style="grid-column: 1/-1; padding: 40px;">ยังไม่มีข้อมูลการตอบ</p>');
                     return;
                 }
 
-                const currentActiveQ = answeredQuestions.find(q => q.questionId === current_question.questionId);
-                const otherQs = answeredQuestions.filter(q => q.questionId !== current_question.questionId).reverse();
-                const finalDisplayList = currentActiveQ ? [currentActiveQ, ...otherQs] : otherQs;
+                // 3. กรองเอาข้อที่จะแสดงใน Row แรก ออกจากลิสต์ที่จะแสดงด้านล่าง (เพื่อไม่ให้ซ้ำ)
+                const otherQs = answeredQuestions
+                    .filter(q => !topRowQ || q.questionId !== topRowQ.questionId)
+                    .reverse();
 
+                // 4. รวมลิสต์เพื่อ Render (เอา TopRowQ ไว้หน้าสุด)
+                const finalDisplayList = topRowQ ? [topRowQ, ...otherQs] : otherQs;
+
+                // 5. อัปเดตเลขข้อบนปุ่ม Jump
+                $('#btn-current-idx').text(questionIndex + 1);
+
+                // 6. วนลูปสร้าง Card (ใช้ Logic เดิมที่เคยปรับให้เหมือน Search Card)
                 finalDisplayList.forEach(q => {
                     const isCorrect = q.select === q.answer;
                     const isThisCurrent = q.questionId === current_question.questionId;
-                    const realIdx = currentQuestions.findIndex(orig => orig.questionId === q.questionId);
+                    const realIdx = window.currentQuestions.findIndex(orig => orig.questionId === q.questionId);
 
-                    // 1. หา Category แรก (เหมือน Search Card)
+                    // --- ส่วนการสร้าง HTML Card (ยกของเดิมมาได้เลย) ---
                     let categoryLabel = 'ไม่ระบุหัวข้อ';
                     if (q.category && globalStructure.category) {
                         const firstCatId = Array.isArray(q.category) ? q.category[0] : q.category;
@@ -4144,7 +4171,6 @@
                         if (foundCat) categoryLabel = foundCat.categoryName;
                     }
 
-                    // 2. ฟังก์ชัน Helper สำหรับ Render เนื้อหา (Text/IMG/SVG)
                     const renderContent = (val) => {
                         if (!val) return '';
                         const trimmed = val.trim();
@@ -4153,57 +4179,37 @@
                         return trimmed;
                     };
 
-                    // 3. เตรียมรูปภาพโจทย์ (รองรับ SVG)
                     let problemMedia = '';
                     if (q.img) {
                         const imgList = q.img.split('///').map(url => url.trim()).filter(Boolean);
-                        problemMedia = `<div class="search-card-images">` +
-                            imgList.map(item => renderContent(item)).join('') + `</div>`;
-                    } else if (q.problem && q.problem.trim().startsWith('<svg')) {
-                        problemMedia = renderContent(q.problem);
+                        problemMedia = `<div class="search-card-images">` + imgList.map(item => renderContent(item)).join('') + `</div>`;
                     }
 
-                    // 4. เตรียม Choice (เหมือน Search Card)
                     const choicesList = q.choices ? q.choices.split('///').map(c => `<li>${renderContent(c)}</li>`).join('') : '';
 
+                    // เพิ่ม Class 'current-active' เฉพาะใบที่ต้องการให้ยาวเต็ม Row แรก (ใบแรกสุดของ List)
+                    const isFirstInList = topRowQ && q.questionId === topRowQ.questionId;
+
                     cardsHtml += `
-            <div class="result-card ${isCorrect ? 'is-correct' : 'is-incorrect'} ${isThisCurrent ? 'current-active' : ''}" 
+            <div class="result-card ${isCorrect ? 'is-correct' : 'is-incorrect'} ${isFirstInList ? 'current-active' : ''}" 
                  onclick="jumpToQuestion(${realIdx})">
-                
                 <div class="search-card-header">
                     <span class="search-card-category"><i class="fas fa-folder"></i> ${categoryLabel}</span>
-                    <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">ข้อที่ ${realIdx + 1}</span>
+                    <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">ข้อที่ ${realIdx + 1} ${isThisCurrent ? '(ปัจจุบัน)' : ''}</span>
                 </div>
-
                 <div class="result-card-body">
-                    <div class="search-card-problem">${!q.problem.startsWith('<svg') ? q.problem.replace(/\n/g, '<br>') : '[SVG โจทย์]'}</div>
+                    <div class="search-card-problem">${q.problem.startsWith('<svg') ? '[SVG โจทย์]' : q.problem.replace(/\n/g, '<br>')}</div>
                     ${problemMedia}
-                    
-                    <ul class="search-card-choices">
-                        <b>ตัวเลือก:</b>
-                        ${choicesList}
-                    </ul>
-
-                    <div class="result-ans-box user-ans">
-                        <small>คุณตอบ:</small><br><b>${renderContent(q.select)}</b>
-                    </div>
-                    ${!isCorrect ? `
-                    <div class="result-ans-box correct-ans">
-                        <small>เฉลยที่ถูก:</small><br><b>${renderContent(q.answer)}</b>
-                    </div>` : ''}
+                    <ul class="search-card-choices"><b>ตัวเลือก:</b> ${choicesList}</ul>
+                    <div class="result-ans-box user-ans"><small>คุณตอบ:</small><br><b>${renderContent(q.select)}</b></div>
+                    ${!isCorrect ? `<div class="result-ans-box correct-ans"><small>เฉลยที่ถูก:</small><br><b>${renderContent(q.answer)}</b></div>` : ''}
                 </div>
-
-                ${q.explain ? `
-                <div class="search-card-footer">
-                    <b><i class="fas fa-info-circle"></i> คำอธิบาย:</b><br>
-                    ${q.explain.replace(/\n/g, '<br>')}
-                </div>` : ''}
-
+                ${q.explain ? `<div class="search-card-footer"><b>อธิบาย:</b><br>${q.explain}</div>` : ''}
                 <div class="search-card-actions">
-                    <button class="btn-search-action btn-search-report" onclick="event.stopPropagation(); openReportModal(currentQuestions[${realIdx}])">
+                    <button class="btn-search-action btn-search-report" onclick="event.stopPropagation(); openReportModal(window.currentQuestions[${realIdx}])">
                         <i class="fas fa-exclamation-triangle"></i> แจ้งปัญหา
                     </button>
-                    <button class="btn-search-action btn-search-vote" onclick="event.stopPropagation(); openVoteModal(currentQuestions[${realIdx}], false)">
+                    <button class="btn-search-action btn-search-vote" onclick="event.stopPropagation(); openVoteModal(window.currentQuestions[${realIdx}], false)">
                         <i class="fas fa-tags"></i> แยกเลค
                     </button>
                 </div>
@@ -4228,6 +4234,11 @@
                 // อัปเดต Highlight ในรายการ submission
                 showSubmission($('#submission-filter').val());
             };
+            
+            $('#jump-to-current-btn').on('click', function () {
+                // ใช้ฟังก์ชัน jumpToQuestion ที่เรามีอยู่แล้ว โดยส่งเลขข้อปัจจุบัน (index) เข้าไป
+                jumpToQuestion(questionIndex);
+            });
 
             // --- เพิ่มใหม่: ฟังก์ชันดูรูปภาพขนาดเต็ม (ใช้ SweetAlert2 ที่มีอยู่ในโปรเจกต์) ---
             window.viewFullImage = function (url, event) {
