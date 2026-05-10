@@ -3268,20 +3268,61 @@
 
             // --- Sorting/Filtering ---
             function sortCurrentQuestions() {
+                // แยกข้อที่ทำแล้วและยังไม่ได้ทำ
                 const answered = currentQuestions.filter(q => q.state);
                 const unanswered = currentQuestions.filter(q => !q.state);
 
-                if (isRandomized) {
-                    answered.sort(() => Math.random() - 0.5);
-                    unanswered.sort(() => Math.random() - 0.5);
-                } else {
-                    answered.sort((a, b) => a._originalIndex - b._originalIndex);
-                    unanswered.sort((a, b) => a._originalIndex - b._originalIndex);
-                }
+                // ฟังก์ชันภายในสำหรับจัดกลุ่มและสุ่ม
+                const groupAndShuffle = (list) => {
+                    if (!isRandomized) {
+                        // ถ้าไม่สุ่ม ให้เรียงตามลำดับเดิมในฐานข้อมูล
+                        return list.sort((a, b) => a._originalIndex - b._originalIndex);
+                    }
 
-                currentQuestions = [...answered, ...unanswered];
+                    // --- ลอจิกการมัดกลุ่มคำถาม (เช่น 4.1, 4.2) ---
+                    const groups = [];
+                    const groupMap = new Map();
+
+                    list.forEach(q => {
+                        // ตรวจสอบรูปแบบข้อความที่ขึ้นต้นด้วย "ตัวเลข." เช่น "4.1", "6.2"
+                        const match = q.problem.trim().match(/^(\d+)\./);
+                        if (match) {
+                            const baseNumber = match[1]; // จะได้เลขหลัก เช่น "4" หรือ "6"
+                            if (!groupMap.has(baseNumber)) {
+                                const newGroup = [];
+                                groups.push(newGroup);
+                                groupMap.set(baseNumber, newGroup);
+                            }
+                            groupMap.get(baseNumber).push(q);
+                        } else {
+                            // ถ้าไม่มีเลขข้อแบบกลุ่ม ให้แยกเป็นกลุ่มอิสระกลุ่มละ 1 ข้อ
+                            groups.push([q]);
+                        }
+                    });
+
+                    // เรียงลำดับภายในกลุ่ม (เช่น ให้ 4.1 มาก่อน 4.2 เสมอ)
+                    groups.forEach(group => {
+                        if (group.length > 1) {
+                            group.sort((a, b) => {
+                                return a.problem.localeCompare(b.problem, undefined, { numeric: true, sensitivity: 'base' });
+                            });
+                        }
+                    });
+
+                    // สุ่มลำดับของ "กลุ่ม"
+                    for (let i = groups.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [groups[i], groups[j]] = [groups[j], groups[i]];
+                    }
+
+                    // รวมกลุ่มกลับเป็น Array แผ่นเดียว
+                    return groups.flat();
+                };
+
+                // นำข้อที่ตอบแล้วไว้ข้างหน้า (หรือหลังตามต้องการ) และข้อที่ยังไม่ตอบไว้ถัดไป
+                // โดยทั้งสองส่วนจะใช้ลอจิกการมัดกลุ่มเหมือนกัน
+                currentQuestions = [...groupAndShuffle(answered), ...groupAndShuffle(unanswered)];
             }
-
             function updateQuestionSet(shouldSort = true) {
                 // 1. เก็บ state ข้อที่ทำไปแล้วใน Session นี้ (เพื่อไม่ให้คะแนนหายเวลาติ๊กเลือกหมวดหมู่เพิ่ม)
                 const previouslyAnswered = {};
