@@ -4304,7 +4304,7 @@
             // --- เพิ่มใหม่: ฟังก์ชันกระโดดไปคำถามที่เลือก ---
             window.jumpToQuestion = function (index) {
                 if (index < 0 || index >= currentQuestions.length) return;
-                questionIndex = currentQuestions.findIndex(q => q.state === false);
+                questionIndex = index;
                 showQuestion();
                 updateProgressHeader();
 
