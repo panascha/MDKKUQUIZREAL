@@ -2052,6 +2052,63 @@
     transform: scale(0.9);
 }
 
+/* =========================================
+    12. PDF Progress Widget (กล่องแสดงความคืบหน้าการสร้าง PDF)
+       ========================================= */
+
+/* กล่องแจ้งเตือนความคืบหน้า PDF แบบลอย */
+#pdf-progress-widget {
+    position: fixed;
+    bottom: 80px; /* หลบปุ่ม FAB ขึ้นมานิดนึง */
+    right: 20px;
+    width: 280px;
+    background: white;
+    border: 2px solid var(--color-primary);
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    z-index: 2000; /* ให้อยู่เหนือเกือบทุกอย่างแต่ไม่บล็อก Modal */
+    display: none; /* ซ่อนไว้ก่อน */
+    font-family: var(--font-primary);
+    animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+#pdf-progress-widget .progress-title {
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+}
+
+#pdf-progress-widget .progress-bar-bg {
+    width: 100%;
+    background: #e9ecef;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+#pdf-progress-widget .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #1a73e8, #00c6ff);
+    width: 0%;
+    transition: width 0.4s ease;
+}
+
+#pdf-progress-widget .progress-status {
+    font-size: 1rem;
+    color: #666;
+    margin-top: 8px;
+    line-height: 1.2;
+}
+
     /* =========================================
        13. Responsive Adjustments (การปรับให้เข้ากับหน้าจอขนาดเล็ก)
        ========================================= */
@@ -2702,6 +2759,19 @@
         <button id="scroll-to-quiz-btn" class="fab" title="เลื่อนไปส่วนคำถาม">
             <i class="fas fa-arrow-up"></i>
         </button>
+    </div>
+
+    <div id="pdf-progress-widget">
+        <div class="progress-title">
+            <span><i class="fas fa-file-pdf"></i> สร้างไฟล์ PDF...</span>
+            <span id="pdf-pc-text">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+            <div id="pdf-bar-fill" class="progress-bar-fill"></div>
+        </div>
+        <div id="pdf-status-text" class="progress-status">
+            กำลังเตรียมข้อมูล...
+        </div>
     </div>
 
     <script>
@@ -3947,24 +4017,34 @@
             window.clearAllCategories = function () {
                 const urlParams = new URLSearchParams(window.location.search);
                 const subjectParam = urlParams.get('subject') || 'default';
+                const sessionKey = `session_state_${subjectParam}`;
 
                 Swal.fire({
                     title: 'เริ่มใหม่ทั้งหมด?',
-                    text: "คะแนนและความคืบหน้าปัจจุบันจะถูกล้างทิ้ง",
+                    text: "คะแนนและความคืบหน้าปัจจุบันจะถูกล้างทิ้งถาวร",
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonText: 'ใช่, เริ่มใหม่',
-                    cancelButtonText: 'ยกเลิก'
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#d33'
                 }).then(async (result) => {
                     if (result.isConfirmed) {
-                        // ล้างใน IndexedDB
-                        const db = await openDB();
-                        const transaction = db.transaction(storeName, "readwrite");
-                        transaction.objectStore(storeName).delete(`session_state_${subjectParam}`);
+                        try {
+                            // 1. ลบข้อมูลใน IndexedDB
+                            const db = await openDB();
+                            const transaction = db.transaction(storeName, "readwrite");
+                            const store = transaction.objectStore(storeName);
+                            await store.delete(sessionKey);
 
-                        // ล้าง UI
-                        $('input[type="checkbox"][name="category"]:checked').prop('checked', false);
-                        location.reload(); // รีเฟรชเพื่อเริ่มใหม่สะอาดๆ
+                            // 2. ล้างการเลือก Checkbox ใน UI
+                            $('input[type="checkbox"][name="category"]').prop('checked', false);
+
+                            // 3. รีโหลดหน้าเว็บเพื่อล้างตัวแปร Global ทั้งหมด
+                            location.reload();
+                        } catch (e) {
+                            console.error("Clear cache failed", e);
+                            location.reload();
+                        }
                     }
                 });
             };
@@ -5216,6 +5296,33 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
     });
 }
 
+            // ฟังก์ชันช่วยแสดงผล Progress
+            function updatePdfProgress(current, total, startTime) {
+                const $widget = $('#pdf-progress-widget');
+                if (!$widget.is(':visible')) $widget.fadeIn();
+
+                const progress = Math.round((current / total) * 100);
+                const elapsedTime = (Date.now() - startTime) / 1000;
+                const avgTimePerItem = elapsedTime / current;
+                const remainingItems = total - current;
+                const remainingTime = Math.round(avgTimePerItem * remainingItems);
+                let timeText = remainingTime > 0 ? `เหลือประมาณ ${remainingTime} วินาที` : "อีกอึดใจเดียว...";
+
+                $('#pdf-pc-text').text(`${progress}%`);
+                $('#pdf-bar-fill').css('width', `${progress}%`);
+                $('#pdf-status-text').html(`กำลังประมวลผลข้อที่ <b>${current}/${total}</b><br><small>${timeText}</small>`);
+
+                if (current === total) {
+                    $('#pdf-status-text').text('เสร็จสิ้น! กำลังดาวน์โหลด...');
+                    setTimeout(() => {
+                        $widget.fadeOut(500, function () {
+                            $('#pdf-pc-text').text('0%');
+                            $('#pdf-bar-fill').css('width', '0%');
+                            $('#pdf-status-text').text('กำลังเตรียมข้อมูล...');
+                        });
+                    }, 3000);
+                }
+            }
             // Function 1: Save the results of the quiz (only answered questions)
             async function saveResultsToPdf() {
                 // --- 1. DATA PREPARATION ---
@@ -5231,6 +5338,12 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
                         save.category.push(category.categoryName);
                     }
                 });
+
+                const totalQuestions = currentQuestions.length;
+                const startTime = Date.now();
+                $('#pdf-pc-text').text('0%');
+                $('#pdf-bar-fill').css('width', '0%');
+                $('#pdf-progress-widget').fadeIn();
 
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
@@ -5266,6 +5379,9 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
 
                 // BODY LOOP
                 for (const [index, q] of save.questions.entries()) {
+                    updatePdfProgress(index + 1, totalQuestions, startTime);
+                    if (index % 2 === 0) await new Promise(r => setTimeout(r, 100)); // ให้โอกาสอัปเดต Progress ทุก 2 ข้อ 
+
                     const questionText = `${index + 1}. ${q.problem.replace(/\n/g, ' ')}`;
 
                     // คำนวณความสูงโจทย์
@@ -5394,6 +5510,12 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
     const dlPngOverlay = $('#dl-png-overlay').is(':checked');
 
     answerKeyMap = [];
+
+    const totalQuestions = currentQuestions.length;
+                const startTime = Date.now();
+                $('#pdf-pc-text').text('0%');
+                $('#pdf-bar-fill').css('width', '0%');
+                $('#pdf-progress-widget').show();
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
@@ -5541,6 +5663,8 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
 
         for (let i = 0; i < currentQuestions.length; i++) {
             const q = currentQuestions[i];
+            updatePdfProgress(i + 1, totalQuestions, startTime);
+            if (i % 2 === 0) await new Promise(r => setTimeout(r, 100)); // ให้โอกาสอัปเดต Progress ทุก 2 ข้อ
             const col = Math.floor(currentQCount / maxRowsPerCol);
             
             if (col >= OMR_CONFIG.maxCols) {
