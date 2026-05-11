@@ -2843,6 +2843,7 @@
 
                     // คืนค่า Global Variables
                     currentQuestions = reorderedQuestions;
+                    if (currentQuestions.length > 0) preloadQuizImages(currentQuestions);
                     questionIndex = savedState.questionIndex;
                     score = savedState.score;
                     isRandomized = savedState.isRandomized;
@@ -2977,6 +2978,7 @@
             let questionIndex = 0;
             let currentImageArray = [];
             let currentImageIndex = 0;
+            let preloadedImages = {}; // แคชสำหรับเก็บภาพที่โหลดแล้ว
             let isRandomized = true;
             let isShowingAllAnswers = false;
             let isCompactAnswerMode = false;
@@ -3598,6 +3600,10 @@
                     $questionIndex.text("0/0");
                 }
 
+                if (currentQuestions.length > 0) {
+                    preloadQuizImages(currentQuestions);
+                }
+
                 updateSelectedCategoryStatus();
                 saveProgressToCache();
             }
@@ -3605,6 +3611,40 @@
             // =========================================
             // V. UI & Utility Helpers
             // =========================================
+            // ฟังก์ชันสำหรับโหลดรูปภาพล่วงหน้าทั้งหมดในชุดคำถามปัจจุบัน
+            function preloadQuizImages(questions) {
+                if (!questions || questions.length === 0) return;
+
+                questions.forEach(q => {
+                    // 1. โหลดรูปภาพโจทย์ (รองรับหลายรูปที่แยกด้วย ///)
+                    if (q.img) {
+                        const urls = q.img.split('///').map(u => transformUrl(u.trim())).filter(Boolean);
+                        urls.forEach(url => {
+                            if (!preloadedImages[url]) {
+                                const img = new Image();
+                                img.src = url;
+                                preloadedImages[url] = img; // เก็บไว้ใน Memory
+                            }
+                        });
+                    }
+
+                    // 2. โหลดรูปภาพในตัวเลือก (ถ้ามี)
+                    if (q.choices) {
+                        const choicesArray = q.choices.split("///").map(s => s.trim()).filter(Boolean);
+                        choicesArray.forEach(choice => {
+                            if (isUrl(choice)) {
+                                const url = transformUrl(choice);
+                                if (!preloadedImages[url]) {
+                                    const img = new Image();
+                                    img.src = url;
+                                    preloadedImages[url] = img;
+                                }
+                            }
+                        });
+                    }
+                });
+                console.log("Preloading started for " + questions.length + " questions...");
+            }
 
             const getSelectedCategoryNames = () => {
                 return globalStructure.category
