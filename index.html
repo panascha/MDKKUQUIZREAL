@@ -1533,14 +1533,14 @@
 
     #submission-cards-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
     width: 100%;
 }
 
     .result-cards-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 20px;
         width: 100%;
         margin-top: 20px;
@@ -1584,7 +1584,7 @@
     list-style: none;
     padding: 0;
     margin: 10px 0;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     text-align: left;
 }
 
@@ -1598,7 +1598,7 @@
     padding: 12px 15px;
     background: #fff;
     border-top: 1px solid #eee;
-    font-size: 1.1rem;
+    font-size: 1.4rem;
     color: #666;
     line-height: 1.5;
 }
@@ -1656,7 +1656,6 @@
 
     .result-card-body { padding: 15px; flex-grow: 1; }
     
-    .result-q-text { font-size: 1.3rem; font-weight: 700; margin-bottom: 10px; }
 
     .result-ans-box {
         padding: 10px;
@@ -1666,14 +1665,6 @@
     }
     .result-ans-box.user-ans { background: #f0f0f0; border: 1px solid #ddd; }
     .result-ans-box.correct-ans { background: #d1e7dd; border: 1px solid #badbcc; color: #0f5132; margin-top: 5px; }
-    
-    .result-explain {
-        margin-top: 15px;
-        padding-top: 10px;
-        border-top: 1px dashed #ccc;
-        font-size: 1.2rem;
-        color: #373535;
-    }
 
     @media (max-width: 768px) {
         .result-cards-grid { grid-template-columns: 1fr; }
@@ -3005,7 +2996,7 @@
             let currentZoom = 100; // เริ่มต้นที่ 100%
             const zoomStep = 10;   // เพิ่ม/ลดทีละ 10%
             const maxZoom = 200;   // สูงสุด 200%
-            const minZoom = 70;    // ต่ำสุด 70%
+            const minZoom = 30;    // ต่ำสุด 30%
 
             function applyZoom() {
                 // ปรับที่ root element (html)
@@ -4181,8 +4172,59 @@
 
                     let problemMedia = '';
                     if (q.img) {
-                        const imgList = q.img.split('///').map(url => url.trim()).filter(Boolean);
-                        problemMedia = `<div class="search-card-images">` + imgList.map(item => renderContent(item)).join('') + `</div>`;
+                        const imgArray = q.img.split('///').map(url => url.trim()).filter(Boolean);
+                        if (imgArray.length > 0) {
+                            problemMedia = `
+                            <div class="search-card-images" style="margin: 10px 0;">
+                                <div class="search-image-gallery" style="position: relative; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 8px; padding: 10px; min-height: 250px;">
+                                    <img src="${transformUrl(imgArray[0])}" class="search-gallery-main-img" style="max-width: 100%; max-height: 400px; object-fit: contain; cursor: pointer;" data-img-index="0">
+                                    ${imgArray.length > 1 ? `
+                                    <button class="search-gallery-prev" style="position: absolute; left: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <button class="search-gallery-next" style="position: absolute; right: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                    <div class="search-gallery-counter" style="position: absolute; bottom: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;">
+                                        1 / ${imgArray.length}
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>`;
+
+                            setTimeout(() => {
+                                const $card = $(`.result-card[data-search-idx="${realIdx}"]`);
+                                $card.data('imgArray', imgArray);
+
+                                let currentIdx = 0;
+                                const $mainImg = $card.find('.search-gallery-main-img');
+                                const $counter = $card.find('.search-gallery-counter');
+                                const $prevBtn = $card.find('.search-gallery-prev');
+                                const $nextBtn = $card.find('.search-gallery-next');
+
+                                $prevBtn.on('click', function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    currentIdx = (currentIdx - 1 + imgArray.length) % imgArray.length;
+                                    $mainImg.attr('src', transformUrl(imgArray[currentIdx]));
+                                    $counter.text(`${currentIdx + 1} / ${imgArray.length}`);
+                                });
+
+                                $nextBtn.on('click', function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    currentIdx = (currentIdx + 1) % imgArray.length;
+                                    $mainImg.attr('src', transformUrl(imgArray[currentIdx]));
+                                    $counter.text(`${currentIdx + 1} / ${imgArray.length}`);
+                                });
+
+                                $mainImg.on('click', function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    window.open(transformUrl(imgArray[currentIdx]), '_blank');
+                                });
+                            }, 50);
+                        }
                     }
 
                     const choicesList = q.choices ? q.choices.split('///').map(c => `<li>${renderContent(c)}</li>`).join('') : '';
@@ -4191,7 +4233,7 @@
                     const isFirstInList = topRowQ && q.questionId === topRowQ.questionId;
 
                     cardsHtml += `
-            <div class="result-card ${isCorrect ? 'is-correct' : 'is-incorrect'} ${isFirstInList ? 'current-active' : ''}" 
+              <div class="result-card ${isCorrect ? 'is-correct' : 'is-incorrect'} ${isFirstInList ? 'current-active' : ''}" data-search-idx="${realIdx}"
                  onclick="jumpToQuestion(${realIdx})">
                 <div class="search-card-header">
                     <span class="search-card-category"><i class="fas fa-folder"></i> ${categoryLabel}</span>
@@ -4222,22 +4264,21 @@
             // --- เพิ่มใหม่: ฟังก์ชันกระโดดไปคำถามที่เลือก ---
             window.jumpToQuestion = function (index) {
                 if (index < 0 || index >= currentQuestions.length) return;
-                questionIndex = index;
+                questionIndex = currentQuestions.findIndex(q => q.state === false);
                 showQuestion();
                 updateProgressHeader();
 
                 // เลื่อนหน้าจอกลับไปที่ Quiz Container
-                $('html, body').animate({
-                    scrollTop: $("#quiz-container").offset().top - 20
-                }, 500);
+                //$('html, body').animate({
+                //    scrollTop: $("#quiz-container").offset().top - 20
+                //}, 500);
 
                 // อัปเดต Highlight ในรายการ submission
                 showSubmission($('#submission-filter').val());
             };
             
             $('#jump-to-current-btn').on('click', function () {
-                // ใช้ฟังก์ชัน jumpToQuestion ที่เรามีอยู่แล้ว โดยส่งเลขข้อปัจจุบัน (index) เข้าไป
-                jumpToQuestion(questionIndex);
+                jumpToQuestion(currentQuestions.findIndex(q => q.state === false));
             });
 
             // --- เพิ่มใหม่: ฟังก์ชันดูรูปภาพขนาดเต็ม (ใช้ SweetAlert2 ที่มีอยู่ในโปรเจกต์) ---
