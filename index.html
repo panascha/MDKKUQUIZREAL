@@ -908,73 +908,91 @@
     }
 
     /* Quick Categorization Panel Styles */
-#quick-cat-container {
-    width: 100%;
-    max-width: 900px;
-    margin-top: 1rem;
-    padding: 15px;
-    border: 2px solid #e0e0e0;
-    border-radius: var(--border-radius);
-    background-color: #fafafa;
-    display: none; /* ซ่อนไว้ก่อน เปิดด้วยปุ่ม */
-}
+    #quick-cat-container {
+        width: 100%;
+        max-width: 900px;
+        margin-top: 1rem;
+        padding: 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: var(--border-radius);
+        background-color: #fafafa;
+        display: none;
+        /* ซ่อนไว้ก่อน เปิดด้วยปุ่ม */
+    }
 
-.quick-cat-group {
-    margin-bottom: 15px;
-    text-align: left;
-}
+    .quick-cat-group {
+        margin-bottom: 15px;
+        text-align: left;
+    }
 
-.quick-cat-group-title {
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: #555;
-    margin-bottom: 8px;
-    border-left: 4px solid var(--color-primary);
-    padding-left: 8px;
-    display: flex;
-    justify-content: space-between;
-}
+    .quick-cat-group-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #555;
+        margin-bottom: 8px;
+        border-left: 4px solid var(--color-primary);
+        padding-left: 8px;
+        display: flex;
+        justify-content: space-between;
+    }
 
-.quick-cat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 8px;
-}
+    .quick-cat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 8px;
+    }
 
-.btn-quick-cat {
-    padding: 6px 10px;
-    font-size: 1rem;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    background: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-weight: 600;
-}
+    .btn-quick-cat {
+        padding: 6px 10px;
+        font-size: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 600;
+    }
 
-.btn-quick-cat:hover {
-    background: var(--color-primary);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
+    .btn-quick-cat:hover {
+        background: var(--color-primary);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
 
-/* สีแบ่งตามกลุ่มเนื้อหา */
-.q-ana { border-left: 5px solid #ff8a80; }
-.q-physio { border-left: 5px solid #80d8ff; }
-.q-micro { border-left: 5px solid #b388ff; }
-.q-patho { border-left: 5px solid #827717; }
-.q-pharm { border-left: 5px solid #ffd180; }
-.q-radio { border-left: 5px solid #a7ffeb; }
+    /* สีแบ่งตามกลุ่มเนื้อหา */
+    .q-ana {
+        border-left: 5px solid #ff8a80;
+    }
 
-#toggle-quick-cat {
-    background: #455a64;
-    color: white;
-}
+    .q-physio {
+        border-left: 5px solid #80d8ff;
+    }
+
+    .q-micro {
+        border-left: 5px solid #b388ff;
+    }
+
+    .q-patho {
+        border-left: 5px solid #827717;
+    }
+
+    .q-pharm {
+        border-left: 5px solid #ffd180;
+    }
+
+    .q-radio {
+        border-left: 5px solid #a7ffeb;
+    }
+
+    #toggle-quick-cat {
+        background: #455a64;
+        color: white;
+    }
 
     /* =========================================
    Custom Confirm Modal Styles
@@ -1532,11 +1550,11 @@
     /* Style สำหรับการ์ดสรุปผลการทำข้อสอบ */
 
     #submission-cards-container {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
-    width: 100%;
-}
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+        width: 100%;
+    }
 
     .result-cards-grid {
         display: grid;
@@ -1547,11 +1565,12 @@
     }
 
     .result-card.current-active {
-    grid-column: 1 / -1; /* บังคับให้ข้อปัจจุบันยาวเต็มบรรทัดแรก */
-    border: 3px solid var(--color-primary);
-    background-color: #f0f7ff;
-    box-shadow: 0 4px 15px rgba(26, 115, 232, 0.2);
-}
+        grid-column: 1 / -1;
+        /* บังคับให้ข้อปัจจุบันยาวเต็มบรรทัดแรก */
+        border: 3px solid var(--color-primary);
+        background-color: #f0f7ff;
+        box-shadow: 0 4px 15px rgba(26, 115, 232, 0.2);
+    }
 
     .result-card {
         background: #fff;
@@ -1563,87 +1582,96 @@
         text-align: left;
         transition: transform 0.2s;
         cursor: pointer;
-         transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
+
     .result-card .search-card-header {
-    padding: 10px 15px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+        padding: 10px 15px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-.result-card .search-card-category {
-    font-size: 1.1rem;
-    color: #666;
-    font-weight: 800;
-}
+    .result-card .search-card-category {
+        font-size: 1.1rem;
+        color: #666;
+        font-weight: 800;
+    }
 
-.result-card .search-card-choices {
-    list-style: none;
-    padding: 0;
-    margin: 10px 0;
-    font-size: 1.2rem;
-    text-align: left;
-}
+    .result-card .search-card-choices {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0;
+        font-size: 1.2rem;
+        text-align: left;
+    }
 
-.result-card .search-card-choices li {
-    padding: 4px 8px;
-    border-bottom: 1px dashed #f0f0f0;
-    color: #495057;
-}
+    .result-card .search-card-choices li {
+        padding: 4px 8px;
+        border-bottom: 1px dashed #f0f0f0;
+        color: #495057;
+    }
 
-.result-card .search-card-footer {
-    padding: 12px 15px;
-    background: #fff;
-    border-top: 1px solid #eee;
-    font-size: 1.4rem;
-    color: #666;
-    line-height: 1.5;
-}
+    .result-card .search-card-footer {
+        padding: 12px 15px;
+        background: #fff;
+        border-top: 1px solid #eee;
+        font-size: 1.4rem;
+        color: #666;
+        line-height: 1.5;
+    }
 
-.result-card .search-card-actions {
-    display: flex;
-    gap: 8px;
-    padding: 10px 15px;
-    background: #f9f9f9;
-    border-top: 1px solid #eee;
-}
+    .result-card .search-card-actions {
+        display: flex;
+        gap: 8px;
+        padding: 10px 15px;
+        background: #f9f9f9;
+        border-top: 1px solid #eee;
+    }
 
-/* รองรับ SVG ใน Card */
-.result-card .svg-render-area {
-    max-width: 100%;
-    height: auto;
-    display: flex;
-    justify-content: center;
-    background: #fdfdfd;
-    padding: 10px;
-    border-radius: 5px;
-}
+    /* รองรับ SVG ใน Card */
+    .result-card .svg-render-area {
+        max-width: 100%;
+        height: auto;
+        display: flex;
+        justify-content: center;
+        background: #fdfdfd;
+        padding: 10px;
+        border-radius: 5px;
+    }
+
     .result-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-}
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
 
-.result-card .search-card-img, 
-.result-card .answer-img,
-.result-card .svg-choice-container {
-    max-height: 200px; /* ปรับให้ใหญ่ขึ้น */
-    width: auto;
-    object-fit: contain;
-    border-radius: 8px;
-    cursor: zoom-in; /* เปลี่ยน cursor ให้รู้ว่ากดขยายได้ */
-    transition: opacity 0.2s;
-}
+    .result-card .search-card-img,
+    .result-card .answer-img,
+    .result-card .svg-choice-container {
+        max-height: 200px;
+        /* ปรับให้ใหญ่ขึ้น */
+        width: auto;
+        object-fit: contain;
+        border-radius: 8px;
+        cursor: zoom-in;
+        /* เปลี่ยน cursor ให้รู้ว่ากดขยายได้ */
+        transition: opacity 0.2s;
+    }
 
-.result-card .search-card-img:hover {
-    opacity: 0.8;
-}
+    .result-card .search-card-img:hover {
+        opacity: 0.8;
+    }
 
     /* แถบสีข้างการ์ด: เขียวเมื่อถูก แดงเมื่อผิด */
-    .result-card.is-correct { border-left: 8px solid var(--color-correct); }
-    .result-card.is-incorrect { border-left: 8px solid var(--color-wrong); }
+    .result-card.is-correct {
+        border-left: 8px solid var(--color-correct);
+    }
+
+    .result-card.is-incorrect {
+        border-left: 8px solid var(--color-wrong);
+    }
 
     .result-card-header {
         padding: 10px 15px;
@@ -1654,8 +1682,11 @@
         justify-content: space-between;
     }
 
-    .result-card-body { padding: 15px; flex-grow: 1; }
-    
+    .result-card-body {
+        padding: 15px;
+        flex-grow: 1;
+    }
+
 
     .result-ans-box {
         padding: 10px;
@@ -1663,11 +1694,23 @@
         margin-top: 10px;
         font-size: 1.2rem;
     }
-    .result-ans-box.user-ans { background: #f0f0f0; border: 1px solid #ddd; }
-    .result-ans-box.correct-ans { background: #d1e7dd; border: 1px solid #badbcc; color: #0f5132; margin-top: 5px; }
+
+    .result-ans-box.user-ans {
+        background: #f0f0f0;
+        border: 1px solid #ddd;
+    }
+
+    .result-ans-box.correct-ans {
+        background: #d1e7dd;
+        border: 1px solid #badbcc;
+        color: #0f5132;
+        margin-top: 5px;
+    }
 
     @media (max-width: 768px) {
-        .result-cards-grid { grid-template-columns: 1fr; }
+        .result-cards-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     /* Search Section Styles */
@@ -2032,8 +2075,9 @@
     }
 
     .fab i {
-    pointer-events: none; /* ป้องกันการคลิกโดนไอคอนแล้ว event ไม่ทำงาน */
-}
+        pointer-events: none;
+        /* ป้องกันการคลิกโดนไอคอนแล้ว event ไม่ทำงาน */
+    }
 
     .fab:hover {
         background-color: var(--color-primary-hover);
@@ -2048,66 +2092,77 @@
         background-color: var(--color-dark-hover);
     }
 
-    #zoom-in-btn:active, #zoom-out-btn:active {
-    transform: scale(0.9);
-}
+    #zoom-in-btn:active,
+    #zoom-out-btn:active {
+        transform: scale(0.9);
+    }
 
-/* =========================================
+    /* =========================================
     12. PDF Progress Widget (กล่องแสดงความคืบหน้าการสร้าง PDF)
        ========================================= */
 
-/* กล่องแจ้งเตือนความคืบหน้า PDF แบบลอย */
-#pdf-progress-widget {
-    position: fixed;
-    bottom: 80px; /* หลบปุ่ม FAB ขึ้นมานิดนึง */
-    right: 20px;
-    width: 280px;
-    background: white;
-    border: 2px solid var(--color-primary);
-    border-radius: 15px;
-    padding: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    z-index: 2000; /* ให้อยู่เหนือเกือบทุกอย่างแต่ไม่บล็อก Modal */
-    display: none; /* ซ่อนไว้ก่อน */
-    font-family: var(--font-primary);
-    animation: slideInRight 0.5s ease-out;
-}
+    /* กล่องแจ้งเตือนความคืบหน้า PDF แบบลอย */
+    #pdf-progress-widget {
+        position: fixed;
+        bottom: 80px;
+        /* หลบปุ่ม FAB ขึ้นมานิดนึง */
+        right: 20px;
+        width: 280px;
+        background: white;
+        border: 2px solid var(--color-primary);
+        border-radius: 15px;
+        padding: 15px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        z-index: 2000;
+        /* ให้อยู่เหนือเกือบทุกอย่างแต่ไม่บล็อก Modal */
+        display: none;
+        /* ซ่อนไว้ก่อน */
+        font-family: var(--font-primary);
+        animation: slideInRight 0.5s ease-out;
+    }
 
-@keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
 
-#pdf-progress-widget .progress-title {
-    font-weight: 800;
-    font-size: 1.2rem;
-    color: var(--color-primary);
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-}
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
 
-#pdf-progress-widget .progress-bar-bg {
-    width: 100%;
-    background: #e9ecef;
-    height: 12px;
-    border-radius: 6px;
-    overflow: hidden;
-}
+    #pdf-progress-widget .progress-title {
+        font-weight: 800;
+        font-size: 1.2rem;
+        color: var(--color-primary);
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+    }
 
-#pdf-progress-widget .progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #1a73e8, #00c6ff);
-    width: 0%;
-    transition: width 0.4s ease;
-}
+    #pdf-progress-widget .progress-bar-bg {
+        width: 100%;
+        background: #e9ecef;
+        height: 12px;
+        border-radius: 6px;
+        overflow: hidden;
+    }
 
-#pdf-progress-widget .progress-status {
-    font-size: 1rem;
-    color: #666;
-    margin-top: 8px;
-    line-height: 1.2;
-}
+    #pdf-progress-widget .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #1a73e8, #00c6ff);
+        width: 0%;
+        transition: width 0.4s ease;
+    }
+
+    #pdf-progress-widget .progress-status {
+        font-size: 1rem;
+        color: #666;
+        margin-top: 8px;
+        line-height: 1.2;
+    }
 
     /* =========================================
        13. Responsive Adjustments (การปรับให้เข้ากับหน้าจอขนาดเล็ก)
@@ -2362,18 +2417,19 @@
             <div class="modal-body">
                 <h5 class="modal-title">เลือกรูปแบบการบันทึก PDF</h5>
                 <p class="small-text">กรุณาเลือกรูปแบบ PDF ที่ต้องการดาวน์โหลด</p>
-        
+
                 <!-- Option 1: Download Results -->
-                <div class="modal-section" style="background-color: #f0f4ff; border: 1px solid var(--color-primary-hover);">
+                <div class="modal-section"
+                    style="background-color: #f0f4ff; border: 1px solid var(--color-primary-hover);">
                     <h6 style="color: var(--color-primary-hover);">โหลดผลการทำข้อสอบ (สำหรับทบทวน)</h6>
                     <p class="small-text">ประกอบด้วยคำถาม, คำตอบของคุณ, เฉลย, และคำอธิบายเฉพาะข้อที่คุณได้ทำไปแล้ว</p>
                     <button id="save-results-pdf-btn" class="quiz-button btn-dark">ดาวน์โหลดผลลัพธ์</button>
                 </div>
-        
+
                 <!-- Option 2: Download Practice Sheet (OMR/Classic) -->
                 <div class="modal-section" style="background-color: #f0fff0; border: 1px solid var(--color-correct);">
                     <h6 style="color: var(--color-correct);">โหลดชุดข้อสอบ (สำหรับทำในกระดาษ / แอป)</h6>
-        
+
                     <div style="text-align: left; width: 100%; margin-bottom: 15px;">
                         <label class="small-text" style="font-weight: 700; color: #333; text-align: left;">1.
                             รูปแบบกระดาษคำตอบ:</label>
@@ -2383,11 +2439,12 @@
                             <option value="omr">แบบ OMR (แนบกระดาษคำตอบวงกลมไว้หน้าท้ายๆ) TESTING***</option>
                         </select>
                     </div>
-        
+
                     <!-- OMR Extras (จะโชว์เมื่อเลือก OMR) -->
                     <div id="omr-extras"
                         style="display:none; text-align: left; background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-                        <input type="checkbox" id="dl-png-overlay" style="transform: scale(1.3); margin-right: 10px;" checked>
+                        <input type="checkbox" id="dl-png-overlay" style="transform: scale(1.3); margin-right: 10px;"
+                            checked>
                         <label for="dl-png-overlay" style="font-size: 1.2rem; font-weight: 700; color: #856404;">
                             ดาวน์โหลดแผ่นใสเฉลย (PNG)
                         </label>
@@ -2395,25 +2452,26 @@
                             (ภาพโปร่งใสที่มีจุดสีแดง ใช้ลากไปวางทาบกระดาษคำตอบ OMR ในแอป GoodNotes)
                         </p>
                     </div>
-        
+
                     <div
                         style="text-align: left; width: 100%; margin-bottom: 15px; border-top: 1px dashed #ccc; padding-top: 10px;">
                         <label class="small-text" style="font-weight: 700; color: #333; text-align: left;">2.
                             รูปแบบเฉลยอ่านแนบท้ายสุด (เลือกได้):</label><br>
-                        <input type="checkbox" id="key-compact" style="transform: scale(1.3); margin-right: 10px;" checked>
+                        <input type="checkbox" id="key-compact" style="transform: scale(1.3); margin-right: 10px;"
+                            checked>
                         <label for="key-compact" style="font-size: 1.2rem; font-weight: 700;">เฉลยแบบย่อ (1.A, 2.B,
                             3.C...)</label><br>
-        
+
                         <input type="checkbox" id="key-detailed"
                             style="transform: scale(1.3); margin-right: 10px; margin-top: 10px;" checked>
                         <label for="key-detailed" style="font-size: 1.2rem; font-weight: 700;">เฉลยแบบละเอียด
                             (มีคำอธิบาย)</label>
                     </div>
-        
+
                     <button id="save-practice-pdf-btn" class="quiz-button btn-dark"
                         style="width: 100%;">ดาวน์โหลดชุดข้อสอบ</button>
                 </div>
-        
+
                 <div class="controls-container" style="margin-top: 1rem;">
                     <button id="close-pdf-modal-btn" class="quiz-button btn-light">ยกเลิก</button>
                 </div>
@@ -2515,24 +2573,26 @@
         <!-- 6. Modal: Auto-Grader (ตรวจข้อสอบอัตโนมัติ) -->
         <div id="auto-grader-modal" class="modal-card">
             <div class="modal-body" style="text-align: center;">
-                <h4 class="modal-title" style="color: #6f42c1;"><i class="fas fa-scanner"></i> ระบบตรวจข้อสอบอัตโนมัติ</h4>
-        
+                <h4 class="modal-title" style="color: #6f42c1;"><i class="fas fa-scanner"></i> ระบบตรวจข้อสอบอัตโนมัติ
+                </h4>
+
                 <div id="grader-dropzone" class="modal-section"
                     style="background-color: #f8f9fa; border: 2px dashed #6f42c1; cursor: pointer; padding: 2rem;">
                     <i class="fas fa-cloud-upload-alt fa-3x" style="color: #6f42c1; margin-bottom: 10px;"></i>
                     <h5 style="margin: 0;">คลิกเพื่ออัปโหลด PDF กระดาษคำตอบ</h5>
-                    <p class="small-text" style="margin: 5px 0 0 0;">(รับเฉพาะไฟล์ PDF ที่ Export จาก GoodNotes หรือแอปที่คล้ายกัน)</p>
+                    <p class="small-text" style="margin: 5px 0 0 0;">(รับเฉพาะไฟล์ PDF ที่ Export จาก GoodNotes
+                        หรือแอปที่คล้ายกัน)</p>
                 </div>
-                
+
                 <input type="file" id="grader-file-input" accept="application/pdf" style="display: none;">
-        
+
                 <!-- กล่องแสดงสถานะการตรวจ -->
                 <div id="grader-status" style="display: none; width: 100%; margin-top: 15px;">
                     <div class="loading-spinner" style="border-top-color: #6f42c1; width: 40px; height: 40px;"></div>
                     <p style="color: #6f42c1; font-weight: bold; margin-top: 10px;" id="grader-status-text">
                         กำลังสแกนและประมวลผลพิกเซล...</p>
                 </div>
-        
+
                 <!-- กล่องแสดงผลลัพธ์ -->
                 <div id="grader-results" style="display: none; width: 100%; text-align: left; margin-top: 15px;">
                     <div
@@ -2553,9 +2613,10 @@
                         </table>
                     </div>
                 </div>
-        
+
                 <div class="controls-container" style="margin-top: 1rem; justify-content: center; width: 100%;">
-                    <button id="close-grader-modal" class="quiz-button btn-dark" style="width: 100%;">ปิดหน้าต่าง</button>
+                    <button id="close-grader-modal" class="quiz-button btn-dark"
+                        style="width: 100%;">ปิดหน้าต่าง</button>
                 </div>
             </div>
         </div>
@@ -2606,7 +2667,8 @@
             <!-- Controls -->
             <div class="controls-container">
                 <button id="save" class="quiz-button">Save to PDF</button>
-                <button id="btn-open-grader" class="quiz-button" style="background-color: #6f42c1; color: white; width: 100%;">
+                <button id="btn-open-grader" class="quiz-button"
+                    style="background-color: #6f42c1; color: white; width: 100%;">
                     <i class="fas fa-magic"></i> ระบบตรวจข้อสอบอัตโนมัติ จาก practice pdf OMR (Auto-Grader) TESTING***
                 </button>
                 <button id="toggle-random-btn" class="quiz-button">สลับโหมดสุ่ม/เรียงลำดับ</button>
@@ -3141,7 +3203,7 @@
                             if (success) {
                                 showQuestion();
                                 updateProgressHeader();
-                                showSubmission($('#submission-filter').val()); 
+                                showSubmission($('#submission-filter').val());
                                 bgToast.fire({ icon: 'success', title: 'โหลดข้อมูลเดิมสำเร็จ' });
                             }
                         } else {
@@ -4099,6 +4161,41 @@
 
             const isUrl = (s) => s && (typeof s === 'string') && (s.includes('drive.google.com'));
 
+            // ฟังก์ชันแปลง SVG String เป็น Base64 PNG เพื่อใช้ใน jsPDF
+            function svgToPngBase64(svgString, width = 500, height = 500) {
+                return new Promise((resolve, reject) => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+
+                        // ล้างพื้นหลังเป็นสีขาว (ป้องกันภาพโปร่งแสงจนมองไม่เห็นใน PDF)
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, width, height);
+
+                        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                        const url = URL.createObjectURL(svgBlob);
+                        const img = new Image();
+
+                        img.onload = function () {
+                            // คำนวณอัตราส่วนเพื่อไม่ให้ภาพเบี้ยว
+                            const ratio = Math.min(width / img.width, height / img.height);
+                            const newWidth = img.width * ratio;
+                            const newHeight = img.height * ratio;
+                            const offX = (width - newWidth) / 2;
+                            const offY = (height - newHeight) / 2;
+
+                            ctx.drawImage(img, offX, offY, newWidth, newHeight);
+                            URL.revokeObjectURL(url);
+                            resolve(canvas.toDataURL('image/png'));
+                        };
+                        img.onerror = reject;
+                        img.src = url;
+                    } catch (e) { reject(e); }
+                });
+            }
+
             const convertImgToBase64 = (url) => {
                 return new Promise((resolve, reject) => {
                     const img = new Image();
@@ -4396,7 +4493,7 @@
                 // อัปเดต Highlight ในรายการ submission
                 showSubmission($('#submission-filter').val());
             };
-            
+
             $('#jump-to-current-btn').on('click', function () {
                 jumpToQuestion(currentQuestions.findIndex(q => q.state === false));
             });
@@ -4753,7 +4850,7 @@
                     const idx = $(this).data('idx');
                     openVoteModal(searchResults[idx], false);
                 });
-                
+
                 renderAllMath();
             };
 
@@ -4867,9 +4964,9 @@
                 openVoteModal(current_question, true);
             }
 
-            window.openVoteModal = function(q, isAuto = false) {
+            window.openVoteModal = function (q, isAuto = false) {
                 // เช็คว่ามีข้อมูลส่งมาไหม ถ้าไม่มีให้ใช้ current_question เป็น fallback
-                
+
                 const target = q || current_question
 
                 if (!target || !target.questionId) {
@@ -4932,7 +5029,7 @@
                 });
             }
 
-            
+
             function renderQuickCatPanel() {
                 const $content = $('#quick-cat-content');
                 $content.empty();
@@ -5271,30 +5368,30 @@
             // =========================================
 
             // ฟังก์ชันช่วยคำนวณขนาดรูปภาพให้คงอัตราส่วนเดิม (Aspect Ratio)
-function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.src = imgBase64;
-        img.onload = function() {
-            let width = img.width;
-            let height = img.height;
-            const ratio = width / height;
+            function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.src = imgBase64;
+                    img.onload = function () {
+                        let width = img.width;
+                        let height = img.height;
+                        const ratio = width / height;
 
-            // ปรับขนาดตามความกว้างสูงสุดก่อน
-            if (width > maxWidth) {
-                width = maxWidth;
-                height = width / ratio;
+                        // ปรับขนาดตามความกว้างสูงสุดก่อน
+                        if (width > maxWidth) {
+                            width = maxWidth;
+                            height = width / ratio;
+                        }
+                        // ถ้าความสูงยังเกินค่าสูงสุดที่กำหนด ให้ปรับตามความสูง
+                        if (height > maxHeight) {
+                            height = maxHeight;
+                            width = height * ratio;
+                        }
+                        resolve({ width, height });
+                    };
+                    img.onerror = () => resolve({ width: 0, height: 0 });
+                });
             }
-            // ถ้าความสูงยังเกินค่าสูงสุดที่กำหนด ให้ปรับตามความสูง
-            if (height > maxHeight) {
-                height = maxHeight;
-                width = height * ratio;
-            }
-            resolve({ width, height });
-        };
-        img.onerror = () => resolve({ width: 0, height: 0 });
-    });
-}
 
             // ฟังก์ชันช่วยแสดงผล Progress
             function updatePdfProgress(current, total, startTime) {
@@ -5309,7 +5406,7 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
                 let timeText = remainingTime > 0 ? `เหลือประมาณ ${remainingTime} วินาที` : "อีกอึดใจเดียว...";
 
                 $('#pdf-pc-text').text(`${progress}%`);
-                $('#pdf-bar-fill').css('width', `${progress}%`);
+                $('#pdf-bar-fill').css('width', progress + '%');
                 $('#pdf-status-text').html(`กำลังประมวลผลข้อที่ <b>${current}/${total}</b><br><small>${timeText}</small>`);
 
                 if (current === total) {
@@ -5323,43 +5420,262 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
                     }, 3000);
                 }
             }
+            
             // Function 1: Save the results of the quiz (only answered questions)
-            async function saveResultsToPdf() {
-                // --- 1. DATA PREPARATION ---
-                const save = {
-                    category: [],
-                    questions: currentQuestions,
-                    score: score,
-                };
-                globalStructure.category.forEach(category => {
-                    // แก้ไข: ใช้ document.getElementById แทน $(...) เพื่อรองรับ ID ที่มีช่องว่าง/วงเล็บ
-                    const catEl = document.getElementById(`cat-${category.categoryId}`);
-                    if (catEl && catEl.checked) {
-                        save.category.push(category.categoryName);
+
+                async function saveResultsToPdf() {
+                    // --- 1. DATA PREPARATION ---
+                    const save = {
+                        category: [],
+                        questions: currentQuestions,
+                        score: score,
+                    };
+                    globalStructure.category.forEach(category => {
+                        // แก้ไข: ใช้ document.getElementById แทน $(...) เพื่อรองรับ ID ที่มีช่องว่าง/วงเล็บ
+                        const catEl = document.getElementById(`cat-${category.categoryId}`);
+                        if (catEl && catEl.checked) {
+                            save.category.push(category.categoryName);
+                        }
+                    });
+
+                    const totalQuestions = currentQuestions.length;
+                    const startTime = Date.now();
+                    $('#pdf-pc-text').text('0%');
+                    $('#pdf-bar-fill').css('width', '0%');
+                    $('#pdf-progress-widget').fadeIn();
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+                    doc.addFileToVFS('THSarabunNew.ttf', thSarabunBase64);
+                    doc.addFont('THSarabunNew.ttf', 'THSarabunNew', 'normal');
+                    doc.setFont('THSarabunNew');
+
+                    let y = 15;
+                    const pageMargin = 15;
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const contentWidth = pageWidth - (pageMargin * 2);
+                    const lineHeight = 8;
+                    const itemSpacing = 4;
+                    const blockSpacing = 12;
+
+                    const checkPageBreak = (requiredHeight) => {
+                        if (y + requiredHeight > pageHeight - pageMargin) {
+                            doc.addPage();
+                            y = pageMargin;
+                        }
+                    };
+
+                    // HEADER
+                    doc.setFontSize(18);
+                    doc.text("สรุปผลการทำแบบทดสอบ (Quiz Result)", pageWidth / 2, y, { align: 'center' });
+                    y += lineHeight + itemSpacing;
+
+                    doc.setFontSize(16);
+                    doc.text(`คะแนน: ${score}/${save.questions.length}`, pageMargin, y);
+                    y += blockSpacing;
+
+                    // BODY LOOP
+                    for (const [index, q] of save.questions.entries()) {
+                        updatePdfProgress(index + 1, totalQuestions, startTime);
+                        if (index % 2 === 0) await new Promise(r => setTimeout(r, 100)); // ให้โอกาสอัปเดต Progress ทุก 2 ข้อ 
+
+                        const questionText = `${index + 1}. ${q.problem.replace(/\n/g, ' ')}`;
+
+                        // 1. เตรียมข้อความ Category (ดึงเฉพาะชื่อแรกที่สั้นและไม่ใช่ Uncategorized/Extracted)
+                        const qCategories = Array.isArray(q.category) ? q.category : (q.category ? [q.category] : []);
+                        const categoryNames = qCategories.map(id => getCategoryNameById(id))
+                            .filter(name => name !== 'Uncategorized' && !name.includes('(Extracted)'));
+                        const categoryDisplay = categoryNames.length > 0 ? `[${categoryNames[0]}]` : "";
+
+                        // 2. คำนวณความสูงโจทย์ + พื้นที่สำหรับ Category
+                        const splitQuestion = doc.splitTextToSize(questionText, contentWidth);
+                        let qHeight = splitQuestion.length * (lineHeight - 1);
+                        if (categoryDisplay) qHeight += 5; // เพิ่มที่ว่างสำหรับป้ายชื่อหัวข้อ
+
+                        checkPageBreak(qHeight + blockSpacing);
+
+                        // 3. วาดตัวโจทย์ (สีดำ)
+                        doc.setFontSize(16);
+                        doc.setTextColor(0, 0, 0);
+                        doc.text(splitQuestion, pageMargin, y);
+                        y += (splitQuestion.length * (lineHeight - 1));
+
+                        // 4. วาดชื่อ Category (สีเทา ขนาดเล็ก เหมือนใน Practice PDF)
+                        if (categoryDisplay) {
+                            y += 2; // เว้นช่องไฟจากตัวโจทย์นิดนึง
+                            doc.setFontSize(10);
+                            doc.setTextColor(150);
+                            doc.text(categoryDisplay, pageMargin + 2, y);
+                            y += 3; // ขยับ y ลงหลังวาดเสร็จ
+
+                            // รีเซ็ตค่ากลับเป็นปกติ
+                            doc.setTextColor(0);
+                            doc.setFontSize(16);
+                        }
+
+                        y += itemSpacing; 
+
+                        // รูปโจทย์ (ถ้ามี)
+                        if (q.img) {
+                            try {
+                                const imgUrls = q.img.split('///').map(url => url.trim()).filter(Boolean);
+                                for (const imgUrl of imgUrls) {
+                                    const base64Img = await convertImgToBase64(transformUrl(imgUrl));
+                                    checkPageBreak(60 + itemSpacing);
+                                    doc.addImage(base64Img, 'JPEG', pageMargin, y, 80, 60); // ปรับขนาดตามต้องการ
+                                    y += 60 + itemSpacing;
+                                }
+                            } catch (e) { console.error(e); }
+                        }
+
+                        // --- ส่วนตัวเลือก (Choices) ---
+                        doc.setFont('THSarabunNew', 'normal');
+                        doc.setFontSize(14);
+                        doc.text("ตัวเลือก:", pageMargin, y);
+                        y += lineHeight;
+
+                        const choicesArray = (q.choices || "").split('///').map(s => s.trim());
+                        for (let i = 0; i < choicesArray.length; i++) {
+                            const choice = choicesArray[i];
+                            const prefix = `${String.fromCharCode(65 + i)}. `;
+
+                            if (choice.startsWith('<svg')) {
+                                checkPageBreak(15);
+                                doc.text(prefix, pageMargin, y + 5);
+                                try {
+                                    const svgB64 = await svgToPngBase64(choice, 100, 100); // แปลงขนาดเล็ก
+                                    doc.addImage(svgB64, 'PNG', pageMargin + 10, y, 10, 10); // ขนาด icon 10x10 มม.
+                                    y += 12; // เว้นบรรทัดน้อยลง
+                                } catch (e) {
+                                    doc.text("[SVG]", pageMargin + 10, y + 5);
+                                    y += lineHeight;
+                                }
+                            }
+                            else if (isUrl(choice)) {
+                                // ถ้าตัวเลือกเป็นรูป
+                                checkPageBreak(45); // เผื่อที่รูป
+                                doc.text(prefix, pageMargin, y + 5); // วาดตัว A.
+                                try {
+                                    const base64C = await convertImgToBase64(transformUrl(choice));
+                                    doc.addImage(base64C, 'JPEG', pageMargin + 10, y, 50, 40);
+                                    y += 42;
+                                } catch (e) {
+                                    doc.text("[Image Error]", pageMargin + 10, y);
+                                    y += lineHeight;
+                                }
+                            } else {
+                                // ถ้าตัวเลือกเป็นข้อความ
+                                const fullText = prefix + choice;
+                                const splitC = doc.splitTextToSize(fullText, contentWidth);
+                                checkPageBreak(splitC.length * (lineHeight - 2));
+                                doc.text(splitC, pageMargin, y);
+                                y += splitC.length * (lineHeight - 2) + 2;
+                            }
+                        }
+                        y += itemSpacing;
+
+                        // --- ส่วนเฉลยและคำตอบของคุณ ---
+                        checkPageBreak(30); // เผื่อที่สำหรับคำตอบ
+
+                        // เฉลย (Correct Answer)
+                        doc.setFontSize(16);
+                        doc.setTextColor(34, 139, 34); // Green
+                        if (q.answer.startsWith('<svg')) {
+                            doc.text("คำตอบที่ถูก: ", pageMargin, y);
+                            const svgAns = await svgToPngBase64(q.answer, 100, 100);
+                            doc.addImage(svgAns, 'PNG', pageMargin + 30, y - 5, 10, 10);
+                            y += lineHeight;
+                        } else if (isUrl(q.answer)) {
+                            doc.text("คำตอบที่ถูก: (รูปภาพด้านล่าง)", pageMargin, y);
+                            y += lineHeight;
+                            try {
+                                const base64Ans = await convertImgToBase64(transformUrl(q.answer));
+                                checkPageBreak(45);
+                                doc.addImage(base64Ans, 'JPEG', pageMargin, y, 50, 40);
+                                y += 48;
+                            } catch (e) { }
+                        } else {
+                            doc.text(`คำตอบที่ถูก: ${q.answer}`, pageMargin, y);
+                            y += lineHeight;
+                        }
+
+                        // คำตอบของคุณ (Your Answer)
+                        const isCorrect = q.select === q.answer;
+                        doc.setTextColor(isCorrect ? 34 : 220, 20, 60); // Green or Red
+                        if (q.select && q.select.startsWith('<svg')) {
+                            doc.text("คำตอบของคุณ: ", pageMargin, y);
+                            const svgSel = await svgToPngBase64(q.select, 100, 100);
+                            doc.addImage(svgSel, 'PNG', pageMargin + 30, y - 5, 10, 10);
+                            y += lineHeight + itemSpacing;
+                        } else if (isUrl(q.select)) {
+                            doc.text("คำตอบของคุณ: (รูปภาพด้านล่าง)", pageMargin, y);
+                            y += lineHeight;
+                            try {
+                                const base64Sel = await convertImgToBase64(transformUrl(q.select));
+                                checkPageBreak(45);
+                                doc.addImage(base64Sel, 'JPEG', pageMargin, y, 50, 40);
+                                y += 48;
+                            } catch (e) {
+                                doc.text("[ยังไม่ตอบ]", pageMargin, y);
+                                y += lineHeight;
+                            }
+                        } else {
+                            doc.text(`คำตอบของคุณ: ${q.select || 'ไม่ได้ตอบ'}`, pageMargin, y);
+                            y += lineHeight + itemSpacing;
+                        }
+
+                        // Explanation
+                        doc.setTextColor(100, 100, 100); // Gray
+                        doc.setFontSize(14);
+                        const explainText = `คำอธิบาย: ${q.explain || 'ไม่มี'}`;
+                        const splitExplain = doc.splitTextToSize(explainText, contentWidth);
+                        checkPageBreak(splitExplain.length * (lineHeight - 2));
+                        doc.text(splitExplain, pageMargin, y);
+                        y += (splitExplain.length * (lineHeight - 2)) + blockSpacing;
+
+                        // เส้นคั่น
+                        doc.setDrawColor(220);
+                        doc.line(pageMargin, y - (blockSpacing / 2), pageWidth - pageMargin, y - (blockSpacing / 2));
                     }
-                });
+
+                    doc.save('MDKKU-Quiz-Result.pdf');
+                }
+
+            // Function 2: Save a practice sheet (all selected questions)
+            async function savePracticeSheetToPdf() {
+                if (currentQuestions.length === 0) {
+                    Swal.fire("กรุณาเลือกหัวข้อข้อสอบก่อนทำการบันทึก");
+                    return;
+                }
+
+                const exportFormat = $('#export-format-select').val();
+                const useCompactAnswer = $('#key-compact').is(':checked');
+                const useDetailedAnswer = $('#key-detailed').is(':checked');
+                const dlPngOverlay = $('#dl-png-overlay').is(':checked');
+
+                answerKeyMap = [];
 
                 const totalQuestions = currentQuestions.length;
                 const startTime = Date.now();
                 $('#pdf-pc-text').text('0%');
                 $('#pdf-bar-fill').css('width', '0%');
-                $('#pdf-progress-widget').fadeIn();
+                $('#pdf-progress-widget').show();
 
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
                 doc.addFileToVFS('THSarabunNew.ttf', thSarabunBase64);
                 doc.addFont('THSarabunNew.ttf', 'THSarabunNew', 'normal');
-                doc.setFont('THSarabunNew');
+                doc.setFont('THSarabunNew', 'normal');
 
-                let y = 15;
-                const pageMargin = 15;
+                let y = OMR_CONFIG.margin;
+                const pageMargin = OMR_CONFIG.margin;
                 const pageHeight = doc.internal.pageSize.getHeight();
                 const pageWidth = doc.internal.pageSize.getWidth();
                 const contentWidth = pageWidth - (pageMargin * 2);
-                const lineHeight = 8;
-                const itemSpacing = 4;
-                const blockSpacing = 12;
+                const lineHeight = 7;
 
                 const checkPageBreak = (requiredHeight) => {
                     if (y + requiredHeight > pageHeight - pageMargin) {
@@ -5368,353 +5684,196 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
                     }
                 };
 
-                // HEADER
-                doc.setFontSize(18);
-                doc.text("สรุปผลการทำแบบทดสอบ (Quiz Result)", pageWidth / 2, y, { align: 'center' });
-                y += lineHeight + itemSpacing;
+                // --- Header ---
+                doc.setFontSize(20);
+                doc.text("MDKKUQUIZ - ชุดข้อสอบสำหรับทบทวน", pageWidth / 2, y, { align: 'center' });
+                y += 15;
 
-                doc.setFontSize(16);
-                doc.text(`คะแนน: ${score}/${save.questions.length}`, pageMargin, y);
-                y += blockSpacing;
-
-                // BODY LOOP
-                for (const [index, q] of save.questions.entries()) {
+                // ==========================================
+                // ส่วนที่ 1: คำถาม (โจทย์และรูปภาพ)
+                // ==========================================
+                for (const [index, q] of currentQuestions.entries()) {
                     updatePdfProgress(index + 1, totalQuestions, startTime);
-                    if (index % 2 === 0) await new Promise(r => setTimeout(r, 100)); // ให้โอกาสอัปเดต Progress ทุก 2 ข้อ 
+                    if (index % 3 === 0) await new Promise(r => setTimeout(r, 1)); 
+                    
+                    const qCategories = Array.isArray(q.category) ? q.category : (q.category ? [q.category] : []);
+                    const categoryNames = qCategories.map(id => getCategoryNameById(id))
+                        .filter(name => name !== 'Uncategorized' && !name.includes('(Extracted)'));
+                    const firstCategoryDisplay = categoryNames.length > 0 ? `[${categoryNames[0]}]` : "ไม่มี";
 
                     const questionText = `${index + 1}. ${q.problem.replace(/\n/g, ' ')}`;
-
-                    // คำนวณความสูงโจทย์
-                    let qHeight = doc.splitTextToSize(questionText, contentWidth).length * (lineHeight - 1);
-                    checkPageBreak(qHeight + blockSpacing);
-
-                    doc.setTextColor(0, 0, 0);
-                    const splitQuestion = doc.splitTextToSize(questionText, contentWidth);
-                    doc.text(splitQuestion, pageMargin, y);
-                    y += (splitQuestion.length * (lineHeight - 1)) + itemSpacing;
-
-                    // รูปโจทย์ (ถ้ามี)
-                    if (q.img) {
-                        try {
-                            const imgUrls = q.img.split('///').map(url => url.trim()).filter(Boolean);
-                            for (const imgUrl of imgUrls) {
-                                const base64Img = await convertImgToBase64(transformUrl(imgUrl));
-                                checkPageBreak(60 + itemSpacing);
-                                doc.addImage(base64Img, 'JPEG', pageMargin, y, 80, 60); // ปรับขนาดตามต้องการ
-                                y += 60 + itemSpacing;
-                            }
-                        } catch (e) { console.error(e); }
-                    }
-
-                    // --- ส่วนตัวเลือก (Choices) ---
-                    doc.setFont('THSarabunNew', 'normal');
-                    doc.setFontSize(14);
-                    doc.text("ตัวเลือก:", pageMargin, y);
-                    y += lineHeight;
-
-                    const choicesArray = (q.choices || "").split('///').map(s => s.trim());
-                    for (let i = 0; i < choicesArray.length; i++) {
-                        const choice = choicesArray[i];
-                        const prefix = `${String.fromCharCode(65 + i)}. `;
-
-                        if (isUrl(choice)) {
-                            // ถ้าตัวเลือกเป็นรูป
-                            checkPageBreak(45); // เผื่อที่รูป
-                            doc.text(prefix, pageMargin, y + 5); // วาดตัว A.
-                            try {
-                                const base64C = await convertImgToBase64(transformUrl(choice));
-                                doc.addImage(base64C, 'JPEG', pageMargin + 10, y, 50, 40);
-                                y += 42;
-                            } catch (e) {
-                                doc.text("[Image Error]", pageMargin + 10, y);
-                                y += lineHeight;
-                            }
-                        } else {
-                            // ถ้าตัวเลือกเป็นข้อความ
-                            const fullText = prefix + choice;
-                            const splitC = doc.splitTextToSize(fullText, contentWidth);
-                            checkPageBreak(splitC.length * (lineHeight - 2));
-                            doc.text(splitC, pageMargin, y);
-                            y += splitC.length * (lineHeight - 2) + 2;
-                        }
-                    }
-                    y += itemSpacing;
-
-                    // --- ส่วนเฉลยและคำตอบของคุณ ---
-                    checkPageBreak(30); // เผื่อที่สำหรับคำตอบ
-
-                    // เฉลย (Correct Answer)
                     doc.setFontSize(16);
-                    doc.setTextColor(34, 139, 34); // Green
-                    if (isUrl(q.answer)) {
-                        doc.text("คำตอบที่ถูก: (รูปภาพด้านล่าง)", pageMargin, y);
-                        y += lineHeight;
-                        try {
-                            const base64Ans = await convertImgToBase64(transformUrl(q.answer));
-                            checkPageBreak(45);
-                            doc.addImage(base64Ans, 'JPEG', pageMargin, y, 50, 40);
-                            y += 48;
-                        } catch (e) { }
-                    } else {
-                        doc.text(`คำตอบที่ถูก: ${q.answer}`, pageMargin, y);
-                        y += lineHeight;
-                    }
+                    const prefixLines = doc.splitTextToSize(questionText, contentWidth);
 
-                    // คำตอบของคุณ (Your Answer)
-                    const isCorrect = q.select === q.answer;
-                    doc.setTextColor(isCorrect ? 34 : 220, 20, 60); // Green or Red
-                    if (isUrl(q.select)) {
-                        doc.text("คำตอบของคุณ: (รูปภาพด้านล่าง)", pageMargin, y);
-                        y += lineHeight;
-                        try {
-                            const base64Sel = await convertImgToBase64(transformUrl(q.select));
-                            checkPageBreak(45);
-                            doc.addImage(base64Sel, 'JPEG', pageMargin, y, 50, 40);
-                            y += 48;
-                        } catch (e) {
-                            doc.text("[ยังไม่ตอบ]", pageMargin, y);
-                            y += lineHeight;
+                    // คำนวณความสูงที่ต้องใช้ (ข้อความ + รูป + ตัวเลือก)
+                    let estimatedHeight = prefixLines.length * lineHeight;
+                    if (firstCategoryDisplay) estimatedHeight += 5;
+
+                    let processedImgs = [];
+                    if (q.img) {
+                        const urls = q.img.split('///').map(u => u.trim()).filter(Boolean);
+                        for (const url of urls) {
+                            try {
+                                const base64 = await convertImgToBase64(transformUrl(url));
+                                const dims = await getScaledDimensions(base64, contentWidth - 20, 100);
+                                processedImgs.push({ base64, dims });
+                                estimatedHeight += dims.height + 5;
+                            } catch (e) { console.error("Image load fail", e); }
                         }
-                    } else {
-                        doc.text(`คำตอบของคุณ: ${q.select || 'ไม่ได้ตอบ'}`, pageMargin, y);
-                        y += lineHeight + itemSpacing;
                     }
 
-                    // Explanation
-                    doc.setTextColor(100, 100, 100); // Gray
-                    doc.setFontSize(14);
-                    const explainText = `คำอธิบาย: ${q.explain || 'ไม่มี'}`;
-                    const splitExplain = doc.splitTextToSize(explainText, contentWidth);
-                    checkPageBreak(splitExplain.length * (lineHeight - 2));
-                    doc.text(splitExplain, pageMargin, y);
-                    y += (splitExplain.length * (lineHeight - 2)) + blockSpacing;
+                    const choices = (q.choices || "").split('///').map(s => s.trim()).filter(Boolean);
+                    let processedChoices = [];
+                    for (const c of choices) {
+                        if (c.startsWith('<svg')) {
+                            try {
+                                const svgB64 = await svgToPngBase64(c, 100, 100);
+                                // กำหนด dims เป็นขนาด Icon
+                                processedChoices.push({ content: svgB64, dims: { width: 10, height: 10 }, isImg: true });
+                                estimatedHeight += 12;
+                            } catch (e) {
+                                processedChoices.push({ content: "[SVG]", isImg: false });
+                                estimatedHeight += lineHeight;
+                            }
+                        } else if (isUrl(c)) {
+                            try {
+                                const b64 = await convertImgToBase64(transformUrl(c));
+                                const d = await getScaledDimensions(b64, 50, 40);
+                                processedChoices.push({ content: b64, dims: d, isImg: true });
+                                estimatedHeight += d.height + 2;
+                            } catch (e) { processedChoices.push({ content: c, isImg: false }); estimatedHeight += lineHeight; }
+                        } else {
+                            processedChoices.push({ content: c, isImg: false });
+                            estimatedHeight += doc.splitTextToSize(c, contentWidth - 10).length * lineHeight;
+                        }
+                    }
 
-                    // เส้นคั่น
-                    doc.setDrawColor(220);
-                    doc.line(pageMargin, y - (blockSpacing / 2), pageWidth - pageMargin, y - (blockSpacing / 2));
+                    checkPageBreak(estimatedHeight + 10);
+
+                    // วาดโจทย์
+                    doc.setTextColor(0);
+                    doc.setFontSize(16);
+                    prefixLines.forEach(line => {
+                        doc.text(line, pageMargin, y);
+                        y += lineHeight;
+                    });
+
+                    if (firstCategoryDisplay) {
+                        doc.setFontSize(10); // ขนาดเล็กลง
+                        doc.setTextColor(150); // สีเทา (0-255)
+                        doc.text(firstCategoryDisplay, pageMargin + 2, y - 2); // วาดใต้โจทย์เยื้องขวานิดหน่อย
+                        y += 4; // เว้นระยะบรรทัดเพิ่มเล็กน้อย
+                        doc.setTextColor(0); // รีเซ็ตกลับเป็นสีดำสำหรับรูปและตัวเลือก
+                        doc.setFontSize(16);
+                    }
+
+                    // วาดรูปโจทย์ (Scale ถูกต้อง ไม่บีบ)
+                    processedImgs.forEach(imgData => {
+                        doc.addImage(imgData.base64, 'JPEG', pageMargin + (contentWidth - imgData.dims.width) / 2, y, imgData.dims.width, imgData.dims.height);
+                        y += imgData.dims.height + 5;
+                    });
+
+                    // วาดตัวเลือก
+                    processedChoices.forEach((choice, i) => {
+                        const label = `${String.fromCharCode(65 + i)}. `;
+                        if (choice.isImg) {
+                            doc.text(label, pageMargin + 5, y + 5);
+                            doc.addImage(choice.content, 'JPEG', pageMargin + 15, y, choice.dims.width, choice.dims.height);
+                            y += choice.dims.height + 2;
+                        } else {
+                            const lines = doc.splitTextToSize(label + choice.content, contentWidth - 10);
+                            lines.forEach(l => {
+                                doc.text(l, pageMargin + 5, y);
+                                y += lineHeight;
+                            });
+                        }
+                    });
+                    y += 5;
                 }
 
-                doc.save('MDKKU-Quiz-Result.pdf');
-            }
+                // ==========================================
+                // ส่วนที่ 2: กระดาษคำตอบ OMR (พร้อมฝังเฉลย)
+                // ==========================================
+                if (exportFormat === 'omr') {
+                    doc.addPage();
+                    drawFiducials(doc);
+                    y = OMR_CONFIG.margin + 10;
+                    doc.setFontSize(22);
+                    doc.text("กระดาษคำตอบ (Answer Sheet)", pageWidth / 2, y, { align: 'center' });
+                    y += 15;
 
-            // Function 2: Save a practice sheet (all selected questions)
-            async function savePracticeSheetToPdf() {
-    if (currentQuestions.length === 0) {
-        Swal.fire("กรุณาเลือกหัวข้อข้อสอบก่อนทำการบันทึก");
-        return;
-    }
+                    const startY = y;
+                    const maxRowsPerCol = Math.floor((pageHeight - startY - 30) / OMR_CONFIG.rowHeight);
+                    let currentQCount = 0;
 
-    const exportFormat = $('#export-format-select').val();
-    const useCompactAnswer = $('#key-compact').is(':checked');
-    const useDetailedAnswer = $('#key-detailed').is(':checked');
-    const dlPngOverlay = $('#dl-png-overlay').is(':checked');
+                    const embedHiddenData = (fullMap) => {
+                        if (fullMap.length === 0) return;
+                        const currentPage = doc.internal.getNumberOfPages();
+                        // กรองเอาเฉพาะพิกัดของหน้าที่กำลังทำอยู่เพื่อฝังลง PDF
+                        const pageData = fullMap.filter(m => m.page === currentPage);
 
-    answerKeyMap = [];
+                        doc.setTextColor(255, 255, 255);
+                        doc.setFontSize(2);
+                        const jsonData = JSON.stringify(pageData);
+                        const splitData = doc.splitTextToSize(`[MDKKU_OMR_DATA]${jsonData}[/MDKKU_OMR_DATA]`, 190);
+                        doc.text(splitData, 10, 285);
+                        doc.setTextColor(0);
+                    };
 
-    const totalQuestions = currentQuestions.length;
-                const startTime = Date.now();
-                $('#pdf-pc-text').text('0%');
-                $('#pdf-bar-fill').css('width', '0%');
-                $('#pdf-progress-widget').show();
+                    for (let i = 0; i < currentQuestions.length; i++) {
+                        const q = currentQuestions[i];
+                        updatePdfProgress(i + 1, totalQuestions, startTime);
+                        if (i % 2 === 0) await new Promise(r => setTimeout(r, 100)); // ให้โอกาสอัปเดต Progress ทุก 2 ข้อ
+                        const col = Math.floor(currentQCount / maxRowsPerCol);
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+                        if (col >= OMR_CONFIG.maxCols) {
+                            embedHiddenData(answerKeyMap);
+                            doc.addPage();
+                            drawFiducials(doc);
+                            currentQCount = 0;
+                            y = OMR_CONFIG.margin + 15;
+                        }
 
-    doc.addFileToVFS('THSarabunNew.ttf', thSarabunBase64);
-    doc.addFont('THSarabunNew.ttf', 'THSarabunNew', 'normal');
-    doc.setFont('THSarabunNew', 'normal');
+                        const actualCol = Math.floor(currentQCount / maxRowsPerCol);
+                        const actualRow = currentQCount % maxRowsPerCol;
+                        const cellX = (pageMargin + 5) + (actualCol * OMR_CONFIG.colWidth);
+                        const cellY = startY + (actualRow * OMR_CONFIG.rowHeight);
 
-    let y = OMR_CONFIG.margin;
-    const pageMargin = OMR_CONFIG.margin;
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const contentWidth = pageWidth - (pageMargin * 2);
-    const lineHeight = 7;
+                        doc.setFontSize(11);
+                        doc.text(`${i + 1}.`, cellX, cellY + 1);
 
-    const checkPageBreak = (requiredHeight) => {
-        if (y + requiredHeight > pageHeight - pageMargin) {
-            doc.addPage();
-            y = pageMargin;
-        }
-    };
+                        const choicesArray = (q.choices || "").split('///').map(s => s.trim()).filter(Boolean);
+                        const answerIndex = choicesArray.indexOf(q.answer);
+                        const numBubbles = Math.max(choicesArray.length, 4);
+                        const correctBubbleX = cellX + 8 + (answerIndex * OMR_CONFIG.bubbleSpacingX);
 
-    // --- Header ---
-    doc.setFontSize(20);
-    doc.text("MDKKUQUIZ - ชุดข้อสอบสำหรับทบทวน", pageWidth / 2, y, { align: 'center' });
-    y += 15;
+                        answerKeyMap.push({
+                            page: doc.internal.getNumberOfPages(), // เก็บเลขหน้า (แก้ปัญหา undefined)
+                            qNum: i + 1,
+                            correctLetter: String.fromCharCode(65 + answerIndex),
+                            numChoices: numBubbles,
+                            startX: cellX + 8,
+                            x: correctBubbleX, // เก็บพิกัด X ที่แน่นอนของเฉลย (เพื่อให้จุดแดงขึ้นตรงวง)
+                            y: cellY           // เก็บพิกัด Y
+                        });
 
-    // ==========================================
-    // ส่วนที่ 1: คำถาม (โจทย์และรูปภาพ)
-    // ==========================================
-    for (const [index, q] of currentQuestions.entries()) {
-        const qCategories = Array.isArray(q.category) ? q.category : (q.category ? [q.category] : []);
-        const categoryNames = qCategories.map(id => getCategoryNameById(id))
-            .filter(name => name !== 'Uncategorized' && !name.includes('(Extracted)'));
-        const firstCategoryDisplay = categoryNames.length > 0 ? `[${categoryNames[0]}]` : "ไม่มี";
+                        for (let b = 0; b < Math.min(numBubbles, 5); b++) {
+                            const bx = cellX + 8 + (b * OMR_CONFIG.bubbleSpacingX);
+                            doc.setDrawColor(180);
+                            doc.circle(bx, cellY, OMR_CONFIG.bubbleRadius, 'S');
+                            doc.setFontSize(7);
+                            doc.setTextColor(180);
+                            doc.text(String.fromCharCode(65 + b), bx - 0.8, cellY + 0.8);
+                        }
+                        currentQCount++;
+                    }
+                    embedHiddenData(answerKeyMap);
+                }
 
-        const questionText = `${index + 1}. ${q.problem.replace(/\n/g, ' ')}`;
-        doc.setFontSize(16);
-        const prefixLines = doc.splitTextToSize(questionText, contentWidth);
-
-        // คำนวณความสูงที่ต้องใช้ (ข้อความ + รูป + ตัวเลือก)
-        let estimatedHeight = prefixLines.length * lineHeight;
-        if (firstCategoryDisplay) estimatedHeight += 5;
-        
-        let processedImgs = [];
-        if (q.img) {
-            const urls = q.img.split('///').map(u => u.trim()).filter(Boolean);
-            for (const url of urls) {
-                try {
-                    const base64 = await convertImgToBase64(transformUrl(url));
-                    const dims = await getScaledDimensions(base64, contentWidth - 20, 100);
-                    processedImgs.push({ base64, dims });
-                    estimatedHeight += dims.height + 5;
-                } catch (e) { console.error("Image load fail", e); }
-            }
-        }
-
-        const choices = (q.choices || "").split('///').map(s => s.trim()).filter(Boolean);
-        let processedChoices = [];
-        for (const c of choices) {
-            if (isUrl(c)) {
-                try {
-                    const b64 = await convertImgToBase64(transformUrl(c));
-                    const d = await getScaledDimensions(b64, 50, 40);
-                    processedChoices.push({ content: b64, dims: d, isImg: true });
-                    estimatedHeight += d.height + 2;
-                } catch(e) { processedChoices.push({ content: c, isImg: false }); estimatedHeight += lineHeight; }
-            } else {
-                processedChoices.push({ content: c, isImg: false });
-                estimatedHeight += doc.splitTextToSize(c, contentWidth - 10).length * lineHeight;
-            }
-        }
-
-        checkPageBreak(estimatedHeight + 10);
-
-        // วาดโจทย์
-        doc.setTextColor(0);
-        doc.setFontSize(16);
-        prefixLines.forEach(line => {
-            doc.text(line, pageMargin, y);
-            y += lineHeight;
-        });
-
-        if (firstCategoryDisplay) {
-            doc.setFontSize(10); // ขนาดเล็กลง
-            doc.setTextColor(150); // สีเทา (0-255)
-            doc.text(firstCategoryDisplay, pageMargin + 2, y - 2); // วาดใต้โจทย์เยื้องขวานิดหน่อย
-            y += 4; // เว้นระยะบรรทัดเพิ่มเล็กน้อย
-            doc.setTextColor(0); // รีเซ็ตกลับเป็นสีดำสำหรับรูปและตัวเลือก
-            doc.setFontSize(16);
-        }
-
-        // วาดรูปโจทย์ (Scale ถูกต้อง ไม่บีบ)
-        processedImgs.forEach(imgData => {
-            doc.addImage(imgData.base64, 'JPEG', pageMargin + (contentWidth - imgData.dims.width)/2, y, imgData.dims.width, imgData.dims.height);
-            y += imgData.dims.height + 5;
-        });
-
-        // วาดตัวเลือก
-        processedChoices.forEach((choice, i) => {
-            const label = `${String.fromCharCode(65 + i)}. `;
-            if (choice.isImg) {
-                doc.text(label, pageMargin + 5, y + 5);
-                doc.addImage(choice.content, 'JPEG', pageMargin + 15, y, choice.dims.width, choice.dims.height);
-                y += choice.dims.height + 2;
-            } else {
-                const lines = doc.splitTextToSize(label + choice.content, contentWidth - 10);
-                lines.forEach(l => {
-                    doc.text(l, pageMargin + 5, y);
-                    y += lineHeight;
-                });
-            }
-        });
-        y += 5;
-    }
-
-    // ==========================================
-    // ส่วนที่ 2: กระดาษคำตอบ OMR (พร้อมฝังเฉลย)
-    // ==========================================
-    if (exportFormat === 'omr') {
-        doc.addPage();
-        drawFiducials(doc);
-        y = OMR_CONFIG.margin + 10;
-        doc.setFontSize(22);
-        doc.text("กระดาษคำตอบ (Answer Sheet)", pageWidth / 2, y, { align: 'center' });
-        y += 15;
-
-        const startY = y;
-        const maxRowsPerCol = Math.floor((pageHeight - startY - 30) / OMR_CONFIG.rowHeight);
-        let currentQCount = 0;
-
-        const embedHiddenData = (fullMap) => {
-            if(fullMap.length === 0) return;
-            const currentPage = doc.internal.getNumberOfPages();
-            // กรองเอาเฉพาะพิกัดของหน้าที่กำลังทำอยู่เพื่อฝังลง PDF
-            const pageData = fullMap.filter(m => m.page === currentPage);
-            
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(2);
-            const jsonData = JSON.stringify(pageData);
-            const splitData = doc.splitTextToSize(`[MDKKU_OMR_DATA]${jsonData}[/MDKKU_OMR_DATA]`, 190);
-            doc.text(splitData, 10, 285);
-            doc.setTextColor(0);
-        };
-
-        for (let i = 0; i < currentQuestions.length; i++) {
-            const q = currentQuestions[i];
-            updatePdfProgress(i + 1, totalQuestions, startTime);
-            if (i % 2 === 0) await new Promise(r => setTimeout(r, 100)); // ให้โอกาสอัปเดต Progress ทุก 2 ข้อ
-            const col = Math.floor(currentQCount / maxRowsPerCol);
-            
-            if (col >= OMR_CONFIG.maxCols) {
-                embedHiddenData(answerKeyMap);
-                doc.addPage();
-                drawFiducials(doc);
-                currentQCount = 0;
-                y = OMR_CONFIG.margin + 15;
-            }
-
-            const actualCol = Math.floor(currentQCount / maxRowsPerCol);
-            const actualRow = currentQCount % maxRowsPerCol;
-            const cellX = (pageMargin + 5) + (actualCol * OMR_CONFIG.colWidth);
-            const cellY = startY + (actualRow * OMR_CONFIG.rowHeight);
-
-            doc.setFontSize(11);
-            doc.text(`${i + 1}.`, cellX, cellY + 1);
-
-            const choicesArray = (q.choices || "").split('///').map(s => s.trim()).filter(Boolean);
-            const answerIndex = choicesArray.indexOf(q.answer);
-            const numBubbles = Math.max(choicesArray.length, 4);
-            const correctBubbleX = cellX + 8 + (answerIndex * OMR_CONFIG.bubbleSpacingX);
-
-            answerKeyMap.push({
-                page: doc.internal.getNumberOfPages(), // เก็บเลขหน้า (แก้ปัญหา undefined)
-                qNum: i + 1,
-                correctLetter: String.fromCharCode(65 + answerIndex),
-                numChoices: numBubbles,
-                startX: cellX + 8,
-                x: correctBubbleX, // เก็บพิกัด X ที่แน่นอนของเฉลย (เพื่อให้จุดแดงขึ้นตรงวง)
-                y: cellY           // เก็บพิกัด Y
-            });
-
-            for (let b = 0; b < Math.min(numBubbles, 5); b++) {
-                const bx = cellX + 8 + (b * OMR_CONFIG.bubbleSpacingX);
-                doc.setDrawColor(180);
-                doc.circle(bx, cellY, OMR_CONFIG.bubbleRadius, 'S');
-                doc.setFontSize(7);
-                doc.setTextColor(180);
-                doc.text(String.fromCharCode(65 + b), bx - 0.8, cellY + 0.8);
-            }
-            currentQCount++;
-        }
-        embedHiddenData(answerKeyMap);
-    }
-
-    // ==========================================
-    // ส่วนที่ 3: เฉลย Compact / Detailed (สีดำปกติ)
-    // ==========================================
-    if (useCompactAnswer || useDetailedAnswer) {
+                // ==========================================
+                // ส่วนที่ 3: เฉลย Compact / Detailed (สีดำปกติ)
+                // ==========================================
+                if (useCompactAnswer || useDetailedAnswer) {
                     doc.addPage();
                     y = pageMargin;
                     doc.setFontSize(20);
@@ -5727,40 +5886,86 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
                         doc.text("ส่วนที่ 1: เฉลยแบบย่อ", pageMargin, y);
                         y += 10;
 
-                        const answers = currentQuestions.map((q, index) => {
+                        const answers = [];
+                        const keyStartTime = Date.now();
+                        for (let i = 0; i < currentQuestions.length; i++) {
+                            updatePdfProgress(i + 1, currentQuestions.length, keyStartTime);
+                            const q = currentQuestions[i];
                             const choicesArray = (q.choices || "").split('///').map(s => s.trim());
                             const answerIndex = choicesArray.indexOf(q.answer);
-                            return {
-                                index: index + 1,
-                                answer: answerIndex !== -1 ? String.fromCharCode(65 + answerIndex) : q.answer,
-                                isImage: isUrl(q.answer)
-                            };
-                        });
 
+                            let imgBase64 = null;
+                            let displayLetter = answerIndex !== -1 ? String.fromCharCode(65 + answerIndex) : "";
+
+                            // ถ้าเฉลยเป็น SVG หรือ URL รูปภาพ ให้แปลงเป็น Base64
+                            if (q.answer.startsWith('<svg')) {
+                                imgBase64 = await svgToPngBase64(q.answer, 100, 100);
+                            } else if (isUrl(q.answer)) {
+                                try {
+                                    imgBase64 = await convertImgToBase64(transformUrl(q.answer));
+                                } catch (e) { console.error("Error loading key image for question " + (i + 1), e); }
+                            }
+
+                            answers.push({
+                                index: i + 1,
+                                letter: displayLetter,
+                                imgData: imgBase64
+                            });
+                        }
                         const columns = 5;
                         const cellWidth = contentWidth / columns;
-                        const cellHeight = 10;
+                        const cellHeight = 12;
 
                         for (let i = 0; i < answers.length; i++) {
                             const item = answers[i];
                             const col = i % columns;
-                            const row = Math.floor(i / columns);
-                            const x = pageMargin + (col * cellWidth);
-                            const currentY = y + (row * cellHeight);
 
-                            if (row % 2 !== 0) {
-                                doc.setFillColor(240, 240, 240);
-                                doc.rect(x, currentY, cellWidth, cellHeight, 'F');
-                                doc.setFillColor(255, 255, 255);
+                            // 1. ตรวจสอบพื้นที่ว่าง: เมื่อเริ่ม Column แรกของ "แถวใหม่"
+                            if (col === 0) {
+                                if (y + cellHeight > pageHeight - pageMargin) {
+                                    doc.addPage();
+                                    y = pageMargin + 10; // รีเซ็ต y ไปที่ขอบบนหน้าใหม่ (เผื่อที่ไว้ 10มม.)
+
+                                    // เขียนหัวข้อกำกับหน้าใหม่ (เผื่อคนอ่านงง)
+                                    doc.setFontSize(14);
+                                    doc.setTextColor(100);
+                                    doc.text("(เฉลยแบบย่อ - ต่อ)", pageWidth / 2, y - 5, { align: 'center' });
+                                    doc.setTextColor(0);
+                                }
                             }
 
-                            if (col === 0) checkPageBreak(cellHeight);
-                            doc.setDrawColor(0);
-                            doc.rect(x, currentY, cellWidth, cellHeight);
+                            const x = pageMargin + (col * cellWidth);
+                            const currentDrawY = y; // ใช้ค่า y ปัจจุบันในการวาด
 
-                            const textContent = `${item.index}. ${item.isImage ? '[IMG]' : item.answer}`;
-                            doc.text(textContent, x + 2, currentY + (cellHeight / 2) + 1);
+                            // 2. วาดกรอบช่อง
+                            doc.setDrawColor(200);
+                            doc.rect(x, currentDrawY, cellWidth, cellHeight);
+
+                            // 3. วาดเลขข้อ
+                            doc.setFontSize(12);
+                            doc.setTextColor(0);
+                            const numText = `${item.index}. `;
+                            doc.text(numText, x + 2, currentDrawY + (cellHeight / 2) + 1);
+
+                            const numWidth = doc.getTextWidth(numText);
+
+                            // 4. วาดคำตอบ (ตัวอักษร หรือ รูปภาพ)
+                            if (item.imgData) {
+                                doc.addImage(item.imgData, 'PNG', x + numWidth + 2, currentDrawY + 2, 8, 8);
+                            } else {
+                                doc.setFontSize(14);
+                                doc.text(item.letter, x + numWidth + 2, currentDrawY + (cellHeight / 2) + 1);
+                            }
+
+                            // 5. เมื่อวาดครบ 5 Column (ครบ 1 แถว) ให้ขยับค่า y ลงมา
+                            if (col === columns - 1) {
+                                y += cellHeight;
+                            } else if (i === answers.length - 1) {
+                                // กรณีข้อสุดท้ายแต่ไม่ครบแถว ก็ต้องขยับ y ลงเช่นกัน
+                                y += cellHeight;
+                            }
                         }
+                        y += 10;
 
                         const totalRows = Math.ceil(answers.length / columns);
                         y += (totalRows * cellHeight) + 15;
@@ -5779,19 +5984,33 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
                             checkPageBreak(lineHeight * 3);
 
                             doc.setFontSize(16);
-                            doc.setTextColor(0, 100, 0); // Green
-                            if (isUrl(q.answer)) {
-                                doc.text(`${index + 1}. คำตอบ: [รูปภาพ]`, pageMargin, y);
+                            doc.setTextColor(0, 100, 0); // สีเขียวเข้ม
+
+                            // 1. ตรวจสอบและแสดงผล "คำตอบ" (Text / SVG / Image)
+                            if (q.answer.startsWith('<svg')) {
+                                doc.text(`${index + 1}. คำตอบ: `, pageMargin, y);
+                                try {
+                                    const svgKey = await svgToPngBase64(q.answer, 100, 100);
+                                    doc.addImage(svgKey, 'PNG', pageMargin + 25, y - 5, 10, 10); // แสดงเป็น Icon 10x10mm
+                                } catch (e) { doc.text("[SVG]", pageMargin + 25, y); }
+                            } else if (isUrl(q.answer)) {
+                                doc.text(`${index + 1}. คำตอบ: `, pageMargin, y);
+                                try {
+                                    const imgKey = await convertImgToBase64(transformUrl(q.answer));
+                                    doc.addImage(imgKey, 'JPEG', pageMargin + 25, y - 5, 10, 10); // แสดงเป็น Icon 10x10mm
+                                } catch (e) { doc.text("[รูปภาพ]", pageMargin + 25, y); }
                             } else {
                                 doc.text(`${index + 1}. คำตอบ: ${q.answer}`, pageMargin, y);
                             }
+
                             y += lineHeight;
 
+                            // 2. แสดงผล "คำอธิบาย"
                             const splitExplain = doc.splitTextToSize(`คำอธิบาย: ${explainText}`, contentWidth - 5);
                             checkPageBreak(splitExplain.length * lineHeight + 8);
 
                             doc.setFontSize(14);
-                            doc.setTextColor(80, 80, 80);
+                            doc.setTextColor(80, 80, 80); // สีเทา
                             doc.text(splitExplain, pageMargin + 5, y);
                             doc.setTextColor(0);
 
@@ -5799,12 +6018,20 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
                         }
                     }
                 }
-    // บันทึกไฟล์
-    doc.save('MDKKU-Quiz-Practice.pdf');
-    if (exportFormat === 'omr' && dlPngOverlay) {
-        setTimeout(() => generatePNGOverlays(), 1500);
-    }
-}
+                // บันทึกไฟล์
+                doc.save('MDKKU-Quiz-Practice.pdf');
+                $('#pdf-status-text').text('เสร็จสิ้น! กำลังดาวน์โหลด...');
+                setTimeout(() => {
+                    $('#pdf-progress-widget').fadeOut(500, function () {
+                        $('#pdf-pc-text').text('0%');
+                        $('#pdf-bar-fill').css('width', '0%');
+                        $('#pdf-status-text').text('กำลังเตรียมข้อมูล...');
+                    });
+                }, 2000); // แสดงสถานะว่าเสร็จแล้วค้างไว้ 2 วินาทีก่อนหายไป
+                if (exportFormat === 'omr' && dlPngOverlay) {
+                    setTimeout(() => generatePNGOverlays(), 1500);
+                }
+            }
 
             // Function 3: Generate PNG Overlay สำหรับ OMR (เฉพาะวงกลมคำตอบ)
             // =========================================
@@ -5839,46 +6066,46 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
             }
 
             function generatePNGOverlays() {
-    if (answerKeyMap.length === 0) return;
+                if (answerKeyMap.length === 0) return;
 
-    const DPI = 150;
-    const scale = DPI / 25.4;
+                const DPI = 150;
+                const scale = DPI / 25.4;
 
-    // ดึงเลขหน้าที่มีอยู่จริงออกมา
-    const pages = [...new Set(answerKeyMap.map(item => item.page))];
+                // ดึงเลขหน้าที่มีอยู่จริงออกมา
+                const pages = [...new Set(answerKeyMap.map(item => item.page))];
 
-    pages.forEach(pageNum => {
-        // สร้าง Canvas ขนาด A4
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(OMR_CONFIG.a4Width * scale);
-        canvas.height = Math.round(OMR_CONFIG.a4Height * scale);
-        const ctx = canvas.getContext('2d');
+                pages.forEach(pageNum => {
+                    // สร้าง Canvas ขนาด A4
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.round(OMR_CONFIG.a4Width * scale);
+                    canvas.height = Math.round(OMR_CONFIG.a4Height * scale);
+                    const ctx = canvas.getContext('2d');
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // กรองเอาเฉลยเฉพาะของหน้านี้
-        const pageAnswers = answerKeyMap.filter(ans => ans.page === pageNum);
-        
-        pageAnswers.forEach(ans => {
-            // วาดวงกลมสีแดงตามพิกัด x, y ที่เก็บไว้
-            ctx.beginPath();
-            ctx.arc(ans.x * scale, ans.y * scale, OMR_CONFIG.bubbleRadius * scale, 0, 2 * Math.PI);
-            
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.4)'; // สีแดงจางๆ ข้างใน
-            ctx.fill();
-            
-            ctx.lineWidth = 3; // ความหนาเส้นขอบ
-            ctx.strokeStyle = 'red'; // สีแดงสด
-            ctx.stroke();
-        });
+                    // กรองเอาเฉลยเฉพาะของหน้านี้
+                    const pageAnswers = answerKeyMap.filter(ans => ans.page === pageNum);
 
-        // สั่งดาวน์โหลดไฟล์ภาพ
-        const link = document.createElement('a');
-        link.download = `MDKKU_Overlay_Page_${pageNum}.png`; // ชื่อไฟล์จะถูกต้องแล้ว
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-    });
-}
+                    pageAnswers.forEach(ans => {
+                        // วาดวงกลมสีแดงตามพิกัด x, y ที่เก็บไว้
+                        ctx.beginPath();
+                        ctx.arc(ans.x * scale, ans.y * scale, OMR_CONFIG.bubbleRadius * scale, 0, 2 * Math.PI);
+
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.4)'; // สีแดงจางๆ ข้างใน
+                        ctx.fill();
+
+                        ctx.lineWidth = 3; // ความหนาเส้นขอบ
+                        ctx.strokeStyle = 'red'; // สีแดงสด
+                        ctx.stroke();
+                    });
+
+                    // สั่งดาวน์โหลดไฟล์ภาพ
+                    const link = document.createElement('a');
+                    link.download = `MDKKU_Overlay_Page_${pageNum}.png`; // ชื่อไฟล์จะถูกต้องแล้ว
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            }
 
             // =========================================
             // AI Auto-Grader (สมองกลตรวจข้อสอบ)
@@ -6081,7 +6308,7 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
                 // sendActivityLog('ANSWER', current_question.questionId, resultStatus, "Choice: " + selectedValue);
 
                 // อัปเดตสีของปุ่ม (ถูก/ผิด)
-                checkAnswerUI(selectedValue,false);
+                checkAnswerUI(selectedValue, false);
 
                 // อัปเดตตารางผลลัพธ์ด้านล่าง
                 showSubmission($('#submission-filter').val());
@@ -6304,12 +6531,12 @@ function getScaledDimensions(imgBase64, maxWidth, maxHeight) {
 
 
             // --- Report Modal Controls ---
-            
+
             $('#report').off('click').on('click', () => {
                 openReportModal(currentQuestions[questionIndex]);
             });
             // ฟังก์ชันหลักสำหรับเปิด Report Modal (รับ Object ข้อสอบจากไหนก็ได้)
-            window.openReportModal = function(q) {
+            window.openReportModal = function (q) {
                 if (!q || !q.problem) {
                     Swal.fire("ไม่พบข้อมูลคำถาม");
                     return;
