@@ -9,29 +9,20 @@
 
     <!-- External Libraries -->
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
-    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
-    <link href="https://fonts.cdnfonts.com/css/th-sarabun-new-4" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono&display=swap"
+        rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
-    <!-- jsPDF and Thai Font for PDF Exports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-    <!-- PDF.js for Auto-Grader Module -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
-        // กำหนด Worker สำหรับ PDF.js ให้ทำงานเบื้องหลังได้ลื่นไหล
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
-
-    <!-- KaTeX for Mathematical Equations -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
         onload="renderAllMath()"></script>
-
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-CXPE1MX3HS"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -43,81 +34,87 @@
 
 <style>
     /* =========================================
-       1. CSS Variables for Easy Theming (ตัวแปร CSS สำหรับการปรับแต่งธีม)
+       1. CSS Variables — Claude Warm Style
        ========================================= */
     :root {
-        /* Typography */
-        --font-primary: 'TH Sarabun New', 'Roboto', sans-serif;
+        /* Typography — warm serif for questions, clean sans for UI */
+        --font-primary: 'IBM Plex Sans Thai', 'TH Sarabun New', sans-serif;
+        --font-question: 'Lora', 'TH Sarabun New', Georgia, serif;
+        --font-mono: 'IBM Plex Mono', monospace;
 
-        /* General Colors */
-        --color-background: #f4f4f4;
-        --color-surface: #ffffff;
-        --color-text: #333;
+        /* Warm Cream Palette */
+        --color-background: #F5F1EB;
+        --color-surface: #FEFCF9;
+        --color-surface-2: #F9F5EE;
+        --color-surface-3: #F2EDE4;
+        --color-text: #1C1917;
+        --color-text-muted: #78716C;
+        --color-border: #E5DDD0;
+        --color-border-soft: #EDE8DF;
 
-        /* Primary & Interaction Colors */
-        --color-primary: #1a73e8;
-        --color-primary-hover: #1765c8;
+        /* Primary — warm amber/sienna instead of cold blue */
+        --color-primary: #C05621;
+        --color-primary-hover: #9C4519;
+        --color-primary-light: #FEF3E8;
+        --color-primary-pale: #FDF0E4;
 
-        /* Dark & Light UI Colors */
-        --color-dark: #212529;
-        --color-dark-hover: #343a40;
-        --color-light: #e9ecef;
-        --color-light-hover: #ced4da;
+        /* Dark / Light UI */
+        --color-dark: #292524;
+        --color-dark-hover: #3C3735;
+        --color-light: #EDE8DF;
+        --color-light-hover: #E2DAD0;
 
-        /* Feedback Colors */
-        --color-correct: #198754;
-        --color-correct-bg: #d1e7dd;
-        --color-wrong: #dc3545;
-        --color-wrong-bg: #f8d7da;
+        /* Feedback */
+        --color-correct: #166534;
+        --color-correct-bg: #DCFCE7;
+        --color-wrong: #9B1C1C;
+        --color-wrong-bg: #FEE2E2;
 
-        /* Toggle Button Colors (NEW) */
-        --color-toggle-red: #FF0000;
-        --color-toggle-default: #f8f9fa;
-        --color-toggle-hover: #e9ecef;
-        --color-toggle-mcq: #28a745;
-        /* Green for MCQ Group */
-        --color-toggle-ai: #6f42c1;
-        /* Purple for AI Category */
-        --pastel-anatomy: #FFF0F0;
-        --active-anatomy: #FFC1C1;
-        --text-anatomy: #000000;
-        --pastel-physio: #F0F7FF;
-        --active-physio: #B3D7FF;
-        --text-physio: #000000;
-        --pastel-micro: #F5F0FF;
-        --active-micro: #D1C4E9;
-        --text-micro: #000000;
-        --pastel-patho: #F0FFF4;
-        --active-patho: #C1EFC4;
-        --text-patho: #000000;
-        --pastel-pharm: #FFF9F0;
-        --active-pharm: #FFE0B2;
-        --text-pharm: #000000;
-        --pastel-clinical: #F0FFFF;
-        --active-clinical: #B2EBF2;
-        --text-clinical: #000000;
-        --color-toggle-non: #ffffff;
-        /* Gray for Non-category */
+        /* Toggle Button Colors */
+        --color-toggle-red: #B91C1C;
+        --color-toggle-default: #F9F5EE;
+        --color-toggle-hover: #F0EAE0;
+        --color-toggle-mcq: #166534;
+        --color-toggle-ai: #5B21B6;
 
-        /* General Styling */
-        --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        --border-radius: 8px;
+        /* Category pastels — slightly more muted, warm-toned */
+        --pastel-anatomy: #FFF1F0;
+        --active-anatomy: #FECACA;
+        --text-anatomy: #1C1917;
+        --pastel-physio: #EFF6FF;
+        --active-physio: #BFDBFE;
+        --text-physio: #1C1917;
+        --pastel-micro: #F5F3FF;
+        --active-micro: #DDD6FE;
+        --text-micro: #1C1917;
+        --pastel-patho: #F0FDF4;
+        --active-patho: #BBF7D0;
+        --text-patho: #1C1917;
+        --pastel-pharm: #FFFBEB;
+        --active-pharm: #FDE68A;
+        --text-pharm: #1C1917;
+        --pastel-clinical: #ECFEFF;
+        --active-clinical: #A5F3FC;
+        --text-clinical: #1C1917;
+        --color-toggle-non: #FEFCF9;
 
-        /* Z-Index Layers */
+        /* Layout */
+        --shadow-sm: 0 1px 3px rgba(28, 25, 23, 0.08), 0 1px 2px rgba(28, 25, 23, 0.04);
+        --shadow-md: 0 4px 12px rgba(28, 25, 23, 0.08), 0 2px 6px rgba(28, 25, 23, 0.05);
+        --shadow-card: 0 0 0 1px var(--color-border-soft), var(--shadow-sm);
+        --border-radius: 10px;
+        --border-radius-lg: 14px;
+
+        /* Z-Index */
         --zi-fab: 100;
-        /* ปุ่มลอย */
         --zi-modal-card: 1000;
-        /* Modal พื้นฐาน */
         --zi-report-card: 1100;
-        /* Modal รายงานปัญหา (ให้สูงกว่านิดหน่อย) */
         --zi-overlay: 9999;
-        /* Loading Overlay */
         --zi-confirm: 10000;
-        /* หน้าต่างยืนยันโหวต (สูงสุด) */
     }
 
     /* =========================================
-       2. Base & Body Styles (สไตล์พื้นฐานของหน้าเว็บ)
+       2. Base & Body
        ========================================= */
     html {
         font-size: 16px;
@@ -126,9 +123,11 @@
 
     body {
         font-family: var(--font-primary);
-        font-size: 20px;
-        font-weight: 700;
+        font-size: 18px;
+        font-weight: 400;
         background-color: var(--color-background);
+        /* Subtle warm grain texture */
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
         color: var(--color-text);
         margin: 0 auto;
         padding: 2rem 1rem;
@@ -139,14 +138,15 @@
         margin-bottom: 50px;
     }
 
-    /* Main Container Layout */
     .container {
-        width: 80%;
+        width: 82%;
+        max-width: 960px;
         background: var(--color-surface);
+        border: 1px solid var(--color-border);
         padding: 1.5rem;
         padding-bottom: 3rem;
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow);
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-md);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -154,17 +154,15 @@
     }
 
     /* =========================================
-       3. Utility & Helper Classes (คลาสเสริมและ Loading Spinner)
+       3. Utility & Loading
        ========================================= */
-
-    /* Loading Spinner */
     .loading-spinner {
-        border: 5px solid #f3f3f3;
-        border-top: 5px solid var(--color-primary);
+        border: 4px solid var(--color-border);
+        border-top: 4px solid var(--color-primary);
         border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        animation: spin 1s linear infinite;
+        width: 44px;
+        height: 44px;
+        animation: spin 0.8s linear infinite;
         margin: 20px auto;
     }
 
@@ -179,8 +177,8 @@
     }
 
     .small-text {
-        font-size: 1.3rem;
-        color: #555;
+        font-size: 1.1rem;
+        color: var(--color-text-muted);
         text-align: center;
         width: 100%;
     }
@@ -195,322 +193,471 @@
     }
 
     /* =========================================
-       4. Category/Selection UI (ส่วนเลือกหมวดหมู่)
+       4. Category/Selection UI
        ========================================= */
-
-    /* Selection Container */
     .selection-container {
         width: 100%;
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 1rem;
-        border: 1px solid #dee2e6;
+        padding: 1.25rem;
+        border: 1px solid var(--color-border);
         border-radius: var(--border-radius);
-        background-color: var(--color-surface);
+        background: var(--color-surface-2);
     }
 
     .selection-container h2 {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         margin-top: 0;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
         color: var(--color-primary);
         font-weight: 700;
         text-align: center;
+        letter-spacing: -0.01em;
     }
 
-    /* Status Bar for Selected Category */
     #selected-category-status {
-        margin-top: 15px;
-        margin-bottom: 20px;
-        padding: 12px 15px;
-        border: 1px dashed var(--color-primary);
+        margin-top: 12px;
+        margin-bottom: 16px;
+        padding: 10px 12px;
+        border: 1px dashed var(--color-border);
         border-radius: var(--border-radius);
-        background-color: #f8fbff;
-        min-height: 45px;
+        background: var(--color-surface);
+        min-height: 42px;
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 7px;
         align-items: center;
     }
 
     .status-category-button {
-        padding: 4px 12px;
+        padding: 3px 10px;
         border: 1px solid var(--color-primary);
-        border-radius: 16px;
-        background-color: white;
+        border-radius: 20px;
+        background: var(--color-surface);
         color: var(--color-primary);
         cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 1rem;
+        transition: all 0.15s;
+        font-size: 0.95rem;
         font-weight: 600;
         display: flex;
         align-items: center;
-        gap: 6px;
-        box-shadow: 0 2px 4px rgba(26, 115, 232, 0.1);
+        gap: 5px;
     }
 
     .status-category-button:hover {
-        background-color: #fdeaea;
+        background: var(--color-wrong-bg);
         color: var(--color-wrong);
         border-color: var(--color-wrong);
-        transform: translateY(-1px);
     }
 
-    .status-category-button i {
-        font-size: 0.8em;
-        margin-left: 3px;
-    }
-
-    /* Accordion Styles */
     .accordion-group {
-        border: 1px solid #ddd;
-        margin-bottom: 10px;
-        border-radius: 5px;
-        background-color: #fff;
+        border: 1px solid var(--color-border);
+        margin-bottom: 8px;
+        border-radius: var(--border-radius);
+        background: var(--color-surface);
         padding: 0;
+        transition: border-color 0.2s;
     }
 
     .accordion-header {
-        font-weight: bold;
-        font-size: 1.4rem;
-        padding: 15px 20px;
-        color: var(--color-dark);
-        background-color: var(--color-light);
-        border-radius: 5px;
+        font-weight: 600;
+        font-size: 1.2rem;
+        padding: 12px 16px;
+        color: var(--color-text);
+        background: var(--color-surface-2);
+        border-radius: var(--border-radius);
         cursor: pointer;
         list-style: none;
-        transition: background-color 0.2s;
+        transition: background-color 0.15s;
         display: flex;
         align-items: center;
     }
 
-    /* Accordion Toggle Icon */
     .accordion-header::before {
         content: '\f055';
-        /* FontAwesome Plus Circle */
         font-family: 'Font Awesome 6 Free';
         font-weight: 900;
         margin-right: 10px;
-        font-size: 1.1em;
+        font-size: 1em;
         color: var(--color-primary);
-        transition: transform 0.2s;
     }
 
     .accordion-group[open]>.accordion-header::before {
         content: '\f056';
-        /* FontAwesome Minus Circle */
         color: var(--color-wrong);
     }
 
     .accordion-header:hover {
-        background-color: var(--color-light-hover);
+        background: var(--color-light-hover);
     }
 
     .accordion-group>.button-grid {
-        padding: 15px 20px 15px 20px;
-        border-top: 1px solid #eee;
+        padding: 12px 16px;
+        border-top: 1px solid var(--color-border-soft);
     }
 
-    /* Badge แสดงจำนวนใน Accordion */
     .selected-count-badge {
-        background-color: var(--color-primary);
+        background: var(--color-primary);
         color: white;
         border-radius: 10px;
         padding: 1px 8px;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         margin-left: auto;
-        /* ดันไปทางขวา */
-        font-weight: 800;
+        font-weight: 700;
         display: none;
-        /* ซ่อนถ้าเป็น 0 */
     }
 
-    /* Toggle Buttons Styles */
     .button-grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 8px;
         justify-content: flex-start;
     }
 
     .toggle-button {
-        padding: 8px 15px;
-        border: 2px solid #ced4da;
-        border-radius: 25px;
-        background-color: var(--color-toggle-default);
+        padding: 6px 13px;
+        border: 1.5px solid var(--color-border);
+        border-radius: 20px;
+        background: var(--color-toggle-default);
         color: var(--color-text);
         cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 1.2rem;
-        font-weight: 700;
+        transition: all 0.15s;
+        font-size: 1.05rem;
+        font-weight: 600;
         white-space: nowrap;
+        font-family: var(--font-primary);
     }
 
     .toggle-button:hover {
-        background-color: var(--color-toggle-hover);
-        border-color: #adb5bd;
+        background: var(--color-toggle-hover);
+        border-color: #A8A29E;
     }
 
-    /* Base style for toggle-button with category colors */
     .toggle-button.cat-anatomy {
-        background-color: var(--pastel-anatomy);
-        border-color: #FFDADA;
-        color: var(--text-anatomy);
+        background: var(--pastel-anatomy);
+        border-color: #FECACA;
     }
 
     .toggle-button.cat-physio {
-        background-color: var(--pastel-physio);
-        border-color: #D1E3FF;
-        color: var(--text-physio);
+        background: var(--pastel-physio);
+        border-color: #BFDBFE;
     }
 
     .toggle-button.cat-micro {
-        background-color: var(--pastel-micro);
-        border-color: #E6D9FF;
-        color: var(--text-micro);
+        background: var(--pastel-micro);
+        border-color: #DDD6FE;
     }
 
     .toggle-button.cat-patho {
-        background-color: var(--pastel-patho);
-        border-color: #D9FFDE;
-        color: var(--text-patho);
+        background: var(--pastel-patho);
+        border-color: #BBF7D0;
     }
 
     .toggle-button.cat-pharm {
-        background-color: var(--pastel-pharm);
-        border-color: #FFEBCF;
-        color: var(--text-pharm);
+        background: var(--pastel-pharm);
+        border-color: #FDE68A;
     }
 
     .toggle-button.cat-clinical {
-        background-color: var(--pastel-clinical);
-        border-color: #D1F7F7;
-        color: var(--text-clinical);
+        background: var(--pastel-clinical);
+        border-color: #A5F3FC;
     }
 
     .toggle-button.cat-non {
-        background-color: var(--color-toggle-non);
-        border-color: #4a4a4a;
-        color: black;
+        background: var(--color-toggle-non);
+        border-color: #A8A29E;
+        color: var(--color-text);
     }
 
-    /* Hover States */
     .toggle-button.cat-anatomy:hover {
-        background-color: #FFE0E0;
+        background: #FFE4E6;
     }
 
     .toggle-button.cat-physio:hover {
-        background-color: #E1EFFF;
+        background: #DBEAFE;
     }
 
     .toggle-button.cat-micro:hover {
-        background-color: #ECE0FF;
+        background: #EDE9FE;
     }
 
     .toggle-button.cat-patho:hover {
-        background-color: #E0FFE5;
+        background: #DCFCE7;
     }
 
     .toggle-button.cat-pharm:hover {
-        background-color: #FFF2DB;
+        background: #FEF9C3;
     }
 
     .toggle-button.cat-clinical:hover {
-        background-color: #E0F9F9;
+        background: #CFFAFE;
     }
 
     .toggle-button.cat-non:hover {
-        background-color: #d7d7d7;
+        background: var(--color-light-hover);
     }
 
-    /* Selected/Checked States (Override general primary color) */
     input[type="checkbox"]:checked+.toggle-button.cat-anatomy {
-        background-color: var(--active-anatomy);
-        color: #000;
-        border-color: #FF8080;
+        background: var(--active-anatomy);
+        border-color: #F87171;
     }
 
     input[type="checkbox"]:checked+.toggle-button.cat-physio {
-        background-color: var(--active-physio);
-        color: #000;
-        border-color: #80BFFF;
+        background: var(--active-physio);
+        border-color: #60A5FA;
     }
 
     input[type="checkbox"]:checked+.toggle-button.cat-micro {
-        background-color: var(--active-micro);
-        color: #000;
-        border-color: #B39DDB;
+        background: var(--active-micro);
+        border-color: #A78BFA;
     }
 
     input[type="checkbox"]:checked+.toggle-button.cat-patho {
-        background-color: var(--active-patho);
-        color: #000;
-        border-color: #81C784;
+        background: var(--active-patho);
+        border-color: #4ADE80;
     }
 
     input[type="checkbox"]:checked+.toggle-button.cat-pharm {
-        background-color: var(--active-pharm);
-        color: #000;
-        border-color: #FFB74D;
+        background: var(--active-pharm);
+        border-color: #FCD34D;
     }
 
     input[type="checkbox"]:checked+.toggle-button.cat-clinical {
-        background-color: var(--active-clinical);
-        color: #000;
-        border-color: #4DD0E1;
+        background: var(--active-clinical);
+        border-color: #22D3EE;
     }
 
     input[type="checkbox"]:checked+.toggle-button.cat-non {
-        background-color: #444444;
+        background: var(--color-dark);
         color: white;
-        border-color: #000000;
+        border-color: var(--color-dark);
     }
 
     /* =========================================
-       5. Quiz Core UI (ส่วนหลักของแบบทดสอบ)
+       5. INDEX CARD PANEL (NEW)
        ========================================= */
-
-    /* Main Quiz Area */
-    #quiz-container {
-        width: 95%;
-        max-width: 900px;
-        padding: 2rem;
-        border: 1px solid #dee2e6;
+    #question-index-panel {
+        width: 100%;
+        margin-bottom: 1rem;
+        background: var(--color-surface-2);
+        border: 1px solid var(--color-border);
         border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+
+    #index-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 14px;
+        background: var(--color-surface-3);
+        border-bottom: 1px solid var(--color-border-soft);
+        cursor: pointer;
+        user-select: none;
+    }
+
+    #index-panel-header span {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--color-text-muted);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    #index-panel-header .index-score-badge {
+        font-size: 0.9rem;
+        background: var(--color-primary-light);
+        color: var(--color-primary);
+        border: 1px solid #F6C29B;
+        border-radius: 20px;
+        padding: 2px 10px;
+        font-weight: 700;
+    }
+
+    #index-panel-toggle-icon {
+        color: var(--color-text-muted);
+        font-size: 0.85rem;
+        transition: transform 0.2s;
+    }
+
+    #index-panel-toggle-icon.open {
+        transform: rotate(180deg);
+    }
+
+    #index-grid-container {
+        padding: 10px 12px;
+        display: none;
+        /* toggled by JS */
+    }
+
+    #index-grid-container.open {
+        display: block;
+    }
+
+    .index-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .index-dot {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: 1.5px solid var(--color-border);
+        background: var(--color-surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+        color: var(--color-text-muted);
+        font-family: var(--font-mono);
+    }
+
+    .index-dot:hover {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+        background: var(--color-primary-pale);
+        transform: translateY(-1px);
+    }
+
+    .index-dot.idx-current {
+        border-color: var(--color-primary);
+        background: var(--color-primary);
+        color: white;
+        box-shadow: 0 2px 8px rgba(192, 86, 33, 0.35);
+    }
+
+    .index-dot.idx-correct {
+        border-color: #22C55E;
+        background: #F0FDF4;
+        color: #166534;
+    }
+
+    .index-dot.idx-wrong {
+        border-color: #EF4444;
+        background: #FEF2F2;
+        color: #9B1C1C;
+    }
+
+    .index-legend {
+        display: flex;
+        gap: 14px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--color-border-soft);
+    }
+
+    .index-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+        font-weight: 600;
+    }
+
+    .index-legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        border: 1.5px solid currentColor;
+    }
+
+    .legend-current {
+        color: var(--color-primary);
+        background: var(--color-primary);
+    }
+
+    .legend-correct {
+        color: #22C55E;
+        background: #F0FDF4;
+        border-color: #22C55E;
+    }
+
+    .legend-wrong {
+        color: #EF4444;
+        background: #FEF2F2;
+        border-color: #EF4444;
+    }
+
+    .legend-unanswered {
+        color: #A8A29E;
+        background: var(--color-surface);
+        border-color: #D6D3D1;
+    }
+
+    /* =========================================
+       6. Quiz Core UI — rethought layout
+       ========================================= */
+    #quiz-container {
+        width: 100%;
+        max-width: 860px;
+        padding: 0;
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-lg);
+        background: var(--color-surface);
         display: flex;
         flex-direction: column;
-        align-items: center;
-        text-align: center;
+        align-items: stretch;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
     }
 
+    /* Top bar: question number + score */
     #quiz-container h1 {
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
+        font-family: var(--font-primary);
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--color-text-muted);
+        padding: 10px 20px;
+        background: var(--color-surface-2);
+        border-bottom: 1px solid var(--color-border-soft);
+        line-height: 1.4;
     }
 
-    /* Category/Question Text - BIGGER & BOLDER */
+    /* vote notification bar */
+    #vote-notification-bar {
+        padding: 0 20px;
+        min-height: 0;
+    }
+
+    /* Category label */
+    #categoryquestion {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--color-primary);
+        padding: 10px 20px 0;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        opacity: 0.85;
+    }
+
+    /* Question text — serif, generous size */
     #question {
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        font-size: clamp(1.8rem, 4vw, 2rem);
-        line-height: 1.3;
-        color: #000;
+        font-family: var(--font-question);
+        font-weight: 500;
+        font-size: clamp(1.2rem, 3vw, 1.6rem);
+        line-height: 1.65;
+        color: var(--color-text);
+        padding: 12px 20px 8px;
     }
 
-    /* Image Display Styles */
+    /* Image container */
     #image-container-div {
         display: flex;
         justify-content: center;
         align-items: center;
-        margin-top: 20px;
-        margin-bottom: 20px;
-        width: 80%;
-        max-width: 600px;
-        height: 400px;
+        margin: 10px 20px;
+        max-height: 380px;
         overflow: hidden;
         position: relative;
-        border: 1px solid #ccc;
-        background-color: #f9f9f9;
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius);
+        background: var(--color-surface-2);
     }
 
     #image-container-div img {
@@ -523,93 +670,111 @@
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
-        background-color: rgba(0, 0, 0, 0.5);
+        background: rgba(28, 25, 23, 0.55);
         color: white;
         border: none;
         border-radius: 50%;
-        width: 40px;
-        height: 40px;
+        width: 38px;
+        height: 38px;
         cursor: pointer;
         display: none;
         justify-content: center;
         align-items: center;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         z-index: 10;
-        transition: background-color 0.2s;
+        transition: background 0.15s;
     }
 
     .img-nav-btn:hover {
-        background-color: rgba(0, 0, 0, 0.8);
+        background: rgba(28, 25, 23, 0.85);
     }
 
     #prev-img-btn {
-        left: 10px;
+        left: 8px;
     }
 
     #next-img-btn {
-        right: 10px;
+        right: 8px;
     }
 
     #image-counter {
         position: absolute;
-        bottom: 10px;
+        bottom: 8px;
         right: 10px;
-        background-color: rgba(0, 0, 0, 0.6);
+        background: rgba(28, 25, 23, 0.6);
         color: white;
-        padding: 2px 8px;
+        padding: 2px 7px;
         border-radius: 10px;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         display: none;
         z-index: 10;
     }
 
-    /* Choice Buttons - CENTERED & RESPONSIVE */
+    /* Choices — full width, clear visual hierarchy */
     #choices {
         display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 1rem;
-        width: 50%;
-        margin-bottom: 1.5rem;
-        margin-top: auto;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        padding: 8px 20px 16px;
+        box-sizing: border-box;
     }
 
     #choices button {
-        flex: 1 1 250px;
-        max-width: 450px;
-
-        padding: 0.75rem 1rem;
+        width: 100%;
+        padding: 12px 16px;
         font-family: var(--font-primary);
-        font-size: 1.5rem;
-        font-weight: 700;
-        min-height: 60px;
-
-        background-color: var(--color-light);
+        font-size: 1.15rem;
+        font-weight: 500;
+        min-height: 52px;
+        text-align: left;
+        background: var(--color-surface-2);
         color: var(--color-text);
-        border: none;
+        border: 1.5px solid var(--color-border);
         border-radius: var(--border-radius);
         cursor: pointer;
-        transition: all 0.2s ease-in-out;
-
+        transition: all 0.15s ease;
         display: flex;
         align-items: center;
-        justify-content: center;
+        gap: 10px;
+        line-height: 1.45;
     }
 
     #choices button img {
         max-width: 100%;
-        max-height: 150px;
+        max-height: 120px;
         width: auto;
         object-fit: contain;
         border-radius: 4px;
         pointer-events: none;
     }
 
-    #choices button svg {
-        max-width: 100%;
-        max-height: 150px;
-        width: auto;
-        height: auto;
+    #choices button:hover {
+        background: var(--color-primary-pale);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+        transform: translateX(2px);
+    }
+
+    #choices button.selected {
+        background: var(--color-primary-light);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+        font-weight: 600;
+        box-shadow: 0 0 0 3px rgba(192, 86, 33, 0.12);
+    }
+
+    #choices button.correct {
+        background: var(--color-correct-bg);
+        border-color: #22C55E;
+        color: var(--color-correct);
+        font-weight: 700;
+    }
+
+    #choices button.wrong {
+        background: var(--color-wrong-bg);
+        border-color: #EF4444;
+        color: var(--color-wrong);
     }
 
     .svg-render-area,
@@ -618,29 +783,19 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 8px;
-        background-color: #ffffff;
+        padding: 6px;
+        background: white;
         border-radius: 4px;
         overflow: hidden;
     }
 
-    /* บังคับขนาด SVG ให้พอดีกรอบ ไม่ให้ล้น */
     .svg-render-area svg,
     .svg-choice-container svg {
         max-width: 100% !important;
-        max-height: 150px !important;
-        /* ปรับเพิ่ม/ลดได้ตามความเหมาะสม */
+        max-height: 120px !important;
         width: auto !important;
         height: auto !important;
         display: block;
-    }
-
-    /* สำหรับหน้า Quiz: ให้ SVG ในปุ่มตัวเลือกดูเด่นขึ้น */
-    #choices button .svg-choice-container {
-        background-color: transparent;
-        /* ให้กลืนไปกับสีปุ่ม */
-        pointer-events: none;
-        /* ป้องกันการแย่งคลิกปุ่ม */
     }
 
     table td .svg-choice-container svg {
@@ -648,188 +803,178 @@
         max-width: 40px !important;
     }
 
-    #choices button:hover {
-        background-color: var(--color-light-hover);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        transform: translateY(-2px);
-    }
-
-    /* Choice States */
-    #choices button.selected {
-        background-color: var(--color-primary);
-        color: white;
-    }
-
-    #choices button.correct {
-        background-color: var(--color-correct);
-        color: white;
-    }
-
-    #choices button.wrong {
-        background-color: var(--color-wrong);
-        color: white;
-    }
-
     /* =========================================
-       6. Controls & Navigation (ปุ่มควบคุมและการนำทาง)
+       7. Controls & Navigation
        ========================================= */
-
-    /* Control Containers */
     .controls-container {
-        margin-top: 20px;
-        padding-top: 15px;
-        border-top: 1px solid #ddd;
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid var(--color-border-soft);
         display: flex;
-        gap: 1rem;
+        gap: 10px;
         flex-wrap: wrap;
         justify-content: center;
         width: 100%;
     }
 
     .nav-container {
-        margin-top: 1rem;
+        margin-top: 0;
         display: flex;
-        gap: 1rem;
+        gap: 10px;
         flex-wrap: wrap;
-        justify-content: center;
-        width: 100%;
         justify-content: space-between;
-        max-width: 800px;
+        width: 100%;
+        padding: 12px 20px;
+        border-top: 1px solid var(--color-border-soft);
+        box-sizing: border-box;
+        background: var(--color-surface-2);
     }
 
-    /* General Button Styles */
+    /* Submit button lives inside quiz-container */
+    #submit-btn-wrapper {
+        padding: 0 20px 4px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
     .quiz-button {
         color: white;
-        padding: 0.75rem 1.5rem;
+        padding: 0.65rem 1.3rem;
         border: none;
         border-radius: var(--border-radius);
         cursor: pointer;
         font-family: var(--font-primary);
-        font-size: 1.2rem;
-        font-weight: 700;
-        transition: all 0.2s ease-in-out;
+        font-size: 1.1rem;
+        font-weight: 600;
+        transition: all 0.15s ease;
+        letter-spacing: 0.01em;
     }
 
     .quiz-button:hover {
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+        transform: translateY(-1px);
     }
 
-    /* Specific Button Colors */
     .btn-dark {
-        background-color: var(--color-dark);
+        background: var(--color-dark);
     }
 
     .btn-dark:hover {
-        background-color: var(--color-dark-hover);
+        background: var(--color-dark-hover);
     }
 
     .btn-light {
-        background-color: #00a868;
+        background: #15803D;
         color: white;
     }
 
     .btn-light:hover {
-        background-color: #007a4d;
+        background: #166534;
     }
 
     #save {
-        background-color: #1a73e8;
+        background: var(--color-primary);
     }
 
     #save:hover {
-        background-color: #1765c8;
+        background: var(--color-primary-hover);
     }
 
     .btn-export {
-        background-color: #28a745;
+        background: #15803D;
     }
 
     .btn-export:hover {
-        background-color: #218838;
+        background: #166534;
     }
 
     .btn-import {
-        background-color: #6f42c1;
+        background: #6D28D9;
     }
 
     .btn-import:hover {
-        background-color: #5a32a3;
+        background: #5B21B6;
     }
 
     .btn-clear-all {
-        background-color: #6c757d;
+        background: #78716C;
         color: white;
         border: none;
-        padding: 4px 12px;
-        border-radius: 16px;
-        font-size: 0.9rem;
+        padding: 3px 10px;
+        border-radius: 14px;
+        font-size: 0.88rem;
         cursor: pointer;
-        font-weight: bold;
-        transition: background 0.2s;
+        font-weight: 600;
+        transition: background 0.15s;
     }
 
     .btn-clear-all:hover {
-        background-color: #5a6268;
+        background: #57534E;
     }
 
     #toggle-random-btn {
-        background-color: #e8710a;
+        background: #B45309;
     }
 
     #toggle-random-btn:hover {
-        background-color: #d16509;
+        background: #92400E;
     }
 
     #report {
-        background: linear-gradient(to right, #FFB6B6, #F7FFB6, #B6FFB6, #B6FFFF, #B6B6FF, #FFB6FF);
-        color: black;
+        background: linear-gradient(135deg, #FCA5A5 0%, #FDE68A 33%, #A7F3D0 66%, #BAE6FD 100%);
+        color: var(--color-text);
         font-weight: 700;
-        margin-top: 1rem;
+        margin-top: 8px;
     }
 
     #report:hover {
-        transform: scale(1.05) translateY(-2px);
+        transform: scale(1.03) translateY(-1px);
     }
 
     #submit-btn {
         width: 100%;
-        max-width: 400px;
+        background: var(--color-primary);
+        font-size: 1.15rem;
+        padding: 0.75rem;
+        border-radius: var(--border-radius);
     }
 
-    /* Previous/Next Navigation */
+    #submit-btn:hover {
+        background: var(--color-primary-hover);
+    }
+
     #prev-question,
     #next-question {
-        margin: auto;
-        width: 200px;
-        padding: 0.75rem 1.5rem;
-        font-size: 1.2rem;
+        flex: 1;
+        padding: 0.65rem 1rem;
+        font-size: 1.1rem;
+        max-width: 220px;
     }
 
-    /* Feedback Display */
+    /* Feedback */
     #feedback {
-        margin: 1.5rem 0;
-        font-weight: bold;
-        font-size: 1.75rem;
-        padding: 1rem;
+        margin: 0 20px 4px;
+        font-weight: 700;
+        font-size: 1.25rem;
+        padding: 12px 16px;
         border-radius: var(--border-radius);
-        width: 100%;
-        max-width: 800px;
-        line-height: 1.4;
+        line-height: 1.45;
     }
 
     #feedback.correct {
         color: var(--color-correct);
-        background-color: var(--color-correct-bg);
+        background: var(--color-correct-bg);
+        border: 1px solid #86EFAC;
     }
 
     #feedback.incorrect {
         color: var(--color-wrong);
-        background-color: var(--color-wrong-bg);
+        background: var(--color-wrong-bg);
+        border: 1px solid #FCA5A5;
     }
 
     /* =========================================
-       7. Modal Styles (สไตล์โมดัลทั่วไป)
+       8. Modal Styles
        ========================================= */
     .modal-card {
         display: none;
@@ -838,9 +983,10 @@
         left: 50%;
         transform: translate(-50%, -50%);
         z-index: var(--zi-modal-card);
-        background-color: var(--color-surface);
-        border-radius: var(--border-radius);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        background: var(--color-surface);
+        border-radius: var(--border-radius-lg);
+        box-shadow: 0 20px 40px rgba(28, 25, 23, 0.18);
+        border: 1px solid var(--color-border);
         width: 90%;
         max-width: 600px;
         max-height: 80vh;
@@ -848,7 +994,7 @@
     }
 
     .modal-body {
-        padding: 2rem;
+        padding: 1.75rem;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -856,9 +1002,10 @@
     }
 
     .modal-title {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: 1rem;
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.01em;
     }
 
     .modal-section {
@@ -867,70 +1014,56 @@
         border-radius: var(--border-radius);
         width: 100%;
         box-sizing: border-box;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 1px 3px rgba(28, 25, 23, 0.05);
     }
 
     /* =========================================
-       8. Modal VOTE: Modern & Smooth Style (สไตล์โมดัลโหวตหมวดหมู่)
+       9. Vote Modal
        ========================================= */
-    #vote-category-modal .modal-body {
-        padding: 2rem !important;
-    }
-
     #vote-category-modal .modal-title {
-        font-size: 2rem !important;
+        font-size: 1.7rem !important;
         font-weight: 800;
-        letter-spacing: -0.5px;
     }
 
     #vote-category-modal p.small-text {
-        font-size: 1.2rem;
-        color: #6c757d;
-        margin-bottom: 1.5rem;
+        font-size: 1.1rem;
+        color: var(--color-text-muted);
     }
 
-    /* Question Preview Box */
     #vote-question-preview {
-        font-size: 1.25rem !important;
+        font-size: 1.15rem !important;
         line-height: 1.6;
-        color: #2c3e50;
-        background: #f8f9fa;
+        color: var(--color-text);
+        background: var(--color-surface-2);
         border: none !important;
-        border-left: 6px solid var(--color-primary) !important;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        padding: 20px !important;
-        transition: transform 0.3s ease;
+        border-left: 5px solid var(--color-primary) !important;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        padding: 16px !important;
     }
 
-    #vote-question-preview:hover {
-        transform: scale(1.01);
-    }
-
-    /* Quick Categorization Panel Styles */
     #quick-cat-container {
         width: 100%;
-        max-width: 900px;
-        margin-top: 1rem;
-        padding: 15px;
-        border: 2px solid #e0e0e0;
+        max-width: 860px;
+        margin-top: 0.75rem;
+        padding: 14px;
+        border: 1px solid var(--color-border);
         border-radius: var(--border-radius);
-        background-color: #fafafa;
+        background: var(--color-surface-2);
         display: none;
-        /* ซ่อนไว้ก่อน เปิดด้วยปุ่ม */
     }
 
     .quick-cat-group {
-        margin-bottom: 15px;
+        margin-bottom: 12px;
         text-align: left;
     }
 
     .quick-cat-group-title {
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 800;
-        color: #555;
-        margin-bottom: 8px;
-        border-left: 4px solid var(--color-primary);
+        color: var(--color-text-muted);
+        margin-bottom: 7px;
+        border-left: 3px solid var(--color-primary);
         padding-left: 8px;
         display: flex;
         justify-content: space-between;
@@ -938,102 +1071,94 @@
 
     .quick-cat-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+        gap: 7px;
     }
 
     .btn-quick-cat {
-        padding: 6px 10px;
-        font-size: 1rem;
-        border: 1px solid #ddd;
+        padding: 5px 9px;
+        font-size: 0.95rem;
+        border: 1px solid var(--color-border);
         border-radius: 6px;
-        background: white;
+        background: var(--color-surface);
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.15s;
         text-align: left;
-        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
         font-weight: 600;
+        font-family: var(--font-primary);
     }
 
     .btn-quick-cat:hover {
         background: var(--color-primary);
         color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
     }
 
-    /* สีแบ่งตามกลุ่มเนื้อหา */
     .q-ana {
-        border-left: 5px solid #ff8a80;
+        border-left: 4px solid #F87171;
     }
 
     .q-physio {
-        border-left: 5px solid #80d8ff;
+        border-left: 4px solid #60A5FA;
     }
 
     .q-micro {
-        border-left: 5px solid #b388ff;
+        border-left: 4px solid #A78BFA;
     }
 
     .q-patho {
-        border-left: 5px solid #827717;
+        border-left: 4px solid #78350F;
     }
 
     .q-pharm {
-        border-left: 5px solid #ffd180;
+        border-left: 4px solid #FCD34D;
     }
 
     .q-radio {
-        border-left: 5px solid #a7ffeb;
+        border-left: 4px solid #34D399;
     }
 
     #toggle-quick-cat {
-        background: #455a64;
+        background: #44403C;
         color: white;
     }
 
-    /* =========================================
-   Custom Confirm Modal Styles
-   ========================================= */
-
+    /* Custom Confirm Modal */
     .custom-confirm-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.6);
+        background: rgba(28, 25, 23, 0.55);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: var(--zi-confirm);
         opacity: 0;
-        animation: fadeIn 0.2s ease-in-out forwards;
+        animation: fadeInOverlay 0.2s ease-in-out forwards;
     }
 
-    @keyframes fadeIn {
+    @keyframes fadeInOverlay {
         to {
             opacity: 1;
         }
     }
 
-    .custom-confirm-overlay:hover {
-        background: rgba(0, 0, 0, 0.7);
-    }
-
     .custom-confirm-card {
         background: var(--color-surface);
         border-radius: var(--border-radius);
+        border: 1px solid var(--color-border);
         padding: 20px;
         max-width: 90%;
         width: 360px;
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--shadow-md);
         font-family: var(--font-primary);
-        font-weight: 500;
     }
 
     .custom-confirm-card p {
-        margin: 0 0 16px;
-        font-size: 1.3rem;
+        margin: 0 0 14px;
+        font-size: 1.2rem;
         color: var(--color-text);
         line-height: 1.5;
     }
@@ -1044,16 +1169,12 @@
 
     .confirm-button {
         border: none;
-        padding: 10px 14px;
-        border-radius: 4px;
+        padding: 9px 14px;
+        border-radius: 6px;
         cursor: pointer;
         font-weight: 600;
-        font-size: 1rem;
-        transition: background 0.3s, transform 0.1s;
-    }
-
-    .confirm-button:active {
-        transform: scale(0.98);
+        font-size: 0.98rem;
+        transition: all 0.15s;
     }
 
     .confirm-no {
@@ -1067,22 +1188,20 @@
     }
 
     .confirm-yes {
-        background: var(--color-correct);
-        /* ใช้สีเขียวสำหรับยืนยัน */
+        background: #16A34A;
         color: white;
     }
 
     .confirm-yes:hover {
-        background: #157347;
-        /* เข้มขึ้นเมื่อ hover */
+        background: #15803D;
     }
 
     /* Category Badges */
     .category-badge-container {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
-        min-height: 40px;
+        gap: 10px;
+        min-height: 38px;
         align-items: center;
     }
 
@@ -1090,227 +1209,176 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 10px 20px;
+        padding: 8px 16px;
         border-radius: 50px;
-        font-size: 1.15rem;
+        font-size: 1.05rem;
         font-weight: 600;
-        letter-spacing: 0.3px;
-        transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-
+        transition: all 0.2s;
     }
 
-    /* Approved Style (Green) */
     .category-badge.approved {
-        background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
-        color: #155724;
+        background: linear-gradient(135deg, #BBF7D0, #86EFAC);
+        color: #166534;
         border: none;
-        box-shadow: 0 4px 6px rgba(150, 230, 161, 0.4);
+        box-shadow: 0 2px 6px rgba(22, 101, 52, 0.2);
     }
 
-    .category-badge.approved i {
-        background: rgba(255, 255, 255, 0.5);
-        border-radius: 50%;
-        padding: 4px;
-        font-size: 0.9rem;
-        margin-left: 8px;
-    }
-
-    /* Suggested Style (Interactive Dark Orange) */
     .category-badge.suggested {
-        background: linear-gradient(135deg, #ff8c42 0%, #ff7a3d 100%);
-        color: #ffffff;
-        border: 2px solid #ff6b1a;
+        background: linear-gradient(135deg, #FB923C, #EA580C);
+        color: white;
+        border: 2px solid #C2410C;
         cursor: pointer;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(255, 107, 26, 0.25);
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 3px 10px rgba(234, 88, 12, 0.2);
     }
 
     .category-badge.suggested:hover {
-        background: linear-gradient(135deg, #ff6b1a 0%, #ff5500 100%);
-        color: #ffffff;
-        border-color: #cc5500;
-        transform: translateY(-6px) scale(1.08);
-        box-shadow: 0 12px 24px rgba(255, 107, 26, 0.45);
+        transform: translateY(-4px) scale(1.06);
+        box-shadow: 0 8px 20px rgba(234, 88, 12, 0.35);
     }
 
-    .category-badge.suggested:active {
-        transform: translateY(-2px) scale(0.96);
-        box-shadow: 0 4px 8px rgba(255, 107, 26, 0.35);
-    }
-
-    /* Vote Count Badge */
     .vote-count-badge {
-        background-color: rgba(255, 255, 255, 0.25);
-        color: #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.4);
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.35);
         border-radius: 20px;
-        padding: 4px 12px;
-        font-size: 0.85rem;
+        padding: 3px 10px;
+        font-size: 0.82rem;
         font-weight: 600;
-        margin-left: 10px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        backdrop-filter: blur(4px);
+        margin-left: 8px;
     }
 
-    /* Votes Remaining Text */
     .votes-remaining-text {
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         font-weight: 700;
         color: rgba(255, 255, 255, 0.9);
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
 
-    /* Add New Category Section */
     .vote-row {
-        background: #fff;
-        border: 1px dashed #ced4da;
-        padding: 15px;
-        border-radius: 12px;
-        margin-bottom: 12px;
-        transition: border-color 0.3s;
-        gap: 15px;
+        background: var(--color-surface);
+        border: 1px dashed var(--color-border);
+        padding: 12px;
+        border-radius: var(--border-radius);
+        margin-bottom: 10px;
+        transition: border-color 0.2s;
+        gap: 12px;
     }
 
     .vote-row:hover {
         border-color: var(--color-primary);
-        background: #f8faff;
+        background: var(--color-primary-pale);
     }
 
     .vote-select {
-        height: 50px;
-        font-size: 1.1rem;
-        border-radius: 8px;
-        border: 1px solid #dfe1e5;
-        background-color: #fff;
-        padding: 0 15px;
+        height: 46px;
+        font-size: 1.05rem;
+        border-radius: 7px;
+        border: 1px solid var(--color-border);
+        background: var(--color-surface);
+        padding: 0 12px;
         cursor: pointer;
-        transition: border-color 0.2s, box-shadow 0.2s;
+        transition: border-color 0.15s;
+        font-family: var(--font-primary);
     }
 
     .vote-select:focus {
         border-color: var(--color-primary);
-        box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.1);
+        box-shadow: 0 0 0 3px rgba(192, 86, 33, 0.12);
         outline: none;
     }
 
     .btn-remove-row {
-        margin: auto;
-        background-color: #dc3545;
+        background: #DC2626;
         color: white;
         border: none;
         border-radius: 50%;
-        width: 35px;
-        height: 35px;
-        font-size: 1.2rem;
+        width: 32px;
+        height: 32px;
+        font-size: 1.1rem;
         cursor: pointer;
-        transition: all 0.2s ease;
+        margin: auto;
+        transition: all 0.15s;
     }
 
     .btn-remove-row:hover {
-        background-color: #c82333;
-        transform: translateY(-2px);
+        background: #B91C1C;
+        transform: translateY(-1px);
     }
 
     #btn-add-vote-row {
-        padding: 10px 20px;
-        font-size: 1.2rem;
+        padding: 9px 18px;
+        font-size: 1.1rem;
         border-radius: 50px;
-        background-color: #e9f5ff;
+        background: var(--color-primary-light);
         color: var(--color-primary);
-        border: 2px solid var(--color-primary);
+        border: 1.5px solid var(--color-primary);
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.15s;
     }
 
     #btn-add-vote-row:hover {
-        background-color: rgba(26, 115, 232, 0.05);
-        border-style: solid;
-        transform: translateY(-2px);
+        background: var(--color-primary-pale);
+        transform: translateY(-1px);
     }
 
-    /* Submit / Close Buttons */
     #btn-submit-vote,
     #btn-close-vote-modal {
-        padding: 12px 30px;
-        font-size: 1.3rem;
+        padding: 11px 26px;
+        font-size: 1.2rem;
         border-radius: 50px;
-        letter-spacing: 0.5px;
     }
 
     #btn-submit-vote {
-        background: linear-gradient(45deg, #1a73e8, #0056b3);
-        box-shadow: 0 4px 10px rgba(26, 115, 232, 0.4);
+        background: var(--color-primary);
+        box-shadow: 0 3px 10px rgba(192, 86, 33, 0.3);
     }
 
     #btn-submit-vote:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(26, 115, 232, 0.6);
+        background: var(--color-primary-hover);
     }
 
-    /* Empty State Text */
     .empty-state-text {
-        font-size: 1.1rem;
-        color: #adb5bd;
+        font-size: 1.05rem;
+        color: #A8A29E;
         font-weight: 400;
-        padding: 10px 0;
+        padding: 8px 0;
     }
 
-    /* Warning Text Styles */
     .warning-text {
-        font-size: 0.85rem;
-        color: #d32f2f;
+        font-size: 0.82rem;
+        color: #B45309;
         margin-top: 2px;
         display: block;
         font-weight: 700;
         animation: fadeIn 0.3s;
     }
 
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    /* Vote Message Container Styles */
     #vote-message-container {
-        padding: 15px;
+        padding: 12px;
         border-radius: 8px;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
         display: none;
-        /* ซ่อนไว้ก่อน แสดงเมื่อ openVoteModal ทำงาน */
     }
 
     /* =========================================
-       9. Modal REPORT: Specific Styles (สไตล์โมดัลรายงานปัญหา)
+       10. Report Modal
        ========================================= */
-
-    /* Question Details Section (Error/Wrong Highlight) */
     #report-question-details {
-        background-color: #fef4f4;
+        background: #FFF7F7;
         border: 1px solid var(--color-wrong);
     }
 
     #report-question-details h6 {
         color: var(--color-wrong);
-        font-size: 1.3rem;
+        font-size: 1.2rem;
         margin-top: 0;
-        margin-bottom: 0.5rem;
-        border-bottom: 2px solid var(--color-wrong);
-        padding-bottom: 5px;
+        margin-bottom: 0.4rem;
     }
 
     #report-question-text {
-        font-size: 1.15rem !important;
+        font-size: 1.1rem !important;
         line-height: 1.5;
         text-align: left;
-        color: var(--color-dark);
+        color: var(--color-text);
     }
 
     .report-img-preview {
@@ -1319,44 +1387,43 @@
         width: auto;
         display: block;
         margin: 5px auto;
-        border: 1px solid #ccc;
+        border: 1px solid var(--color-border);
         border-radius: 4px;
     }
 
     .report-choice-img {
-        max-height: 100px;
+        max-height: 90px;
         max-width: 100%;
         display: block;
-        margin-top: 8px;
+        margin-top: 6px;
         border-radius: 4px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--color-border);
     }
 
     #report-choices-list {
-        margin-top: 10px;
+        margin-top: 8px;
         padding-left: 0;
         list-style: none;
-        font-size: 5rem;
+        font-size: 1.1rem;
         line-height: 1.6;
     }
 
     #report-choices-list p {
-        margin: 5px 0;
+        margin: 4px 0;
         padding: 3px 5px;
-        border-left: 3px solid #ccc;
-        transition: background-color 0.1s;
+        border-left: 3px solid var(--color-border-soft);
     }
 
     .report-choice-svg-container {
-        width: 60px;
-        height: 60px;
+        width: 56px;
+        height: 56px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #f9f9f9;
-        border: 1px solid #eee;
+        background: #FAFAF9;
+        border: 1px solid var(--color-border-soft);
         border-radius: 4px;
-        margin-top: 8px;
+        margin-top: 6px;
     }
 
     .report-choice-svg-container svg {
@@ -1365,47 +1432,46 @@
     }
 
     .modal-section:nth-of-type(1) {
-        background-color: #f0f4ff;
-        border: 1px solid var(--color-primary-hover);
+        background: #F0F4FF;
+        border: 1px solid #818CF8;
     }
 
     .modal-section:nth-of-type(1) h6 {
-        color: var(--color-primary-hover);
-        font-size: 1.3rem;
+        color: #4338CA;
+        font-size: 1.2rem;
     }
 
-    /* Suggestion Section (Correct Highlight) */
     .modal-section:nth-of-type(2) {
-        background-color: #f0fff0;
-        border: 1px solid var(--color-correct);
+        background: #F0FFF4;
+        border: 1px solid #4ADE80;
     }
 
     .modal-section:nth-of-type(2) h6 {
         color: var(--color-correct);
-        font-size: 1.3rem;
+        font-size: 1.2rem;
     }
 
     .modal-section:nth-of-type(3) {
-        background-color: #f9f0ff;
-        border: 1px solid var(--color-toggle-ai);
+        background: #F9F0FF;
+        border: 1px solid #C084FC;
     }
 
     .modal-section:nth-of-type(3) h6 {
-        color: var(--color-toggle-ai);
-        font-size: 1.3rem;
+        color: #7C3AED;
+        font-size: 1.2rem;
     }
 
-    /* Dropdown and Textarea for Suggestion */
     #report-correct-choice-select,
     #report-new-choice-textarea {
         width: 100%;
-        padding: 10px;
+        padding: 9px;
         border-radius: var(--border-radius);
-        border: 1px solid #ced4da;
+        border: 1px solid var(--color-border);
         font-family: var(--font-primary);
         font-size: 1rem;
         box-sizing: border-box;
-        transition: border-color 0.2s;
+        transition: border-color 0.15s;
+        background: var(--color-surface);
     }
 
     #report-correct-choice-select:focus,
@@ -1414,88 +1480,75 @@
         outline: none;
     }
 
-    /* Specific styling for Reason Textarea */
     #report_text {
-        min-height: 100px !important;
+        min-height: 95px !important;
         width: 100%;
-        padding: 0.75rem;
+        padding: 0.7rem;
         border-radius: var(--border-radius);
-        border: 1px solid #ced4da;
+        border: 1px solid var(--color-border);
         font-family: var(--font-primary);
         font-size: 1rem;
         box-sizing: border-box;
+        background: var(--color-surface);
     }
 
     /* =========================================
-       10. Modal IMPORT: Specific Styles (สไตล์โมดัลนำเข้า)
+       11. Import Modal
        ========================================= */
     #modal-import-code {
         width: 95%;
-        min-height: 80px;
-        padding: 0.75rem;
-        font-size: 1rem;
-        font-family: monospace;
+        min-height: 75px;
+        padding: 0.7rem;
+        font-size: 0.95rem;
+        font-family: var(--font-mono);
         border-radius: var(--border-radius);
-        border: 1px solid #ced4da;
-        margin-bottom: 1rem;
+        border: 1px solid var(--color-border);
+        margin-bottom: 0.75rem;
+        background: var(--color-surface-2);
     }
 
     #modal-import-file-label {
         cursor: pointer;
     }
 
-
     /* =========================================
-       11. Results & Search (ผลลัพธ์และการค้นหา)
+       12. Results & Search
        ========================================= */
-
-    /* Results Table Styles */
     #submission-filter {
         width: 100%;
-        max-width: 300px;
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-        font-size: 1.2rem;
+        max-width: 280px;
+        padding: 0.65rem;
+        margin-bottom: 0.4rem;
+        font-size: 1.1rem;
         border-radius: var(--border-radius);
-        border: 1px solid #dee2e6;
+        border: 1px solid var(--color-border);
+        background: var(--color-surface);
         appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='currentColor' class='bi bi-chevron-down' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23A8A29E' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
-        background-position: right 0.75rem center;
+        background-position: right 0.7rem center;
         padding-right: 2rem;
         cursor: pointer;
-    }
-
-    #submission-filter option {
-        font-size: 1.2rem;
-        cursor: pointer;
-        background-color: var(--color-surface);
-        color: var(--color-text);
-    }
-
-    #submission-filter:hover {
-        background-color: var(--color-light-hover);
+        font-family: var(--font-primary);
     }
 
     table {
         table-layout: auto;
         width: 100%;
-        margin-top: 2rem;
-        font-size: 1.3rem;
+        margin-top: 1.5rem;
+        font-size: 1.15rem;
         border-collapse: collapse;
     }
 
     table th,
     table td {
-        border: 1px solid #ddd;
-        padding: 0.75rem;
+        border: 1px solid var(--color-border);
+        padding: 0.65rem;
         text-align: left;
         vertical-align: top;
-        /* ให้เนื้อหาเริ่มจากด้านบน */
         word-wrap: break-word;
-        /* ตัดคำที่ยาวเกินไป */
         overflow-wrap: break-word;
-        min-width: 80px;
+        min-width: 70px;
     }
 
     table th:nth-child(2),
@@ -1503,550 +1556,433 @@
         width: 30%;
     }
 
-    /* Question */
     table th:nth-child(5),
     table td:nth-child(5) {
         width: 25%;
     }
 
-    /* Explanation */
-
     .table-img-grid {
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
-        max-width: 150px;
-        /* จำกัดความกว้างรวมของกลุ่มรูปภาพ */
+        max-width: 140px;
     }
 
     .table-img-thumb {
-        width: 60px;
-        /* ปรับขนาดรูปในตารางให้เล็กลง */
-        height: 60px;
+        width: 56px;
+        height: 56px;
         object-fit: cover;
         border-radius: 4px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--color-border);
         cursor: pointer;
         transition: transform 0.2s;
     }
 
     .table-img-thumb:hover {
         transform: scale(3);
-        /* ขยายรูปเมื่อ hover */
         z-index: 100;
         position: relative;
     }
 
     table td img.answer-img {
-        max-height: 80px;
+        max-height: 72px;
         width: auto;
     }
 
     table th {
-        background-color: var(--color-dark);
+        background: var(--color-dark);
         color: white;
     }
 
-    /* Style สำหรับการ์ดสรุปผลการทำข้อสอบ */
-
+    /* Result Cards */
     #submission-cards-container {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 20px;
+        gap: 16px;
         width: 100%;
     }
 
     .result-cards-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 20px;
+        gap: 16px;
         width: 100%;
-        margin-top: 20px;
+        margin-top: 16px;
     }
 
     .result-card.current-active {
         grid-column: 1 / -1;
-        /* บังคับให้ข้อปัจจุบันยาวเต็มบรรทัดแรก */
-        border: 3px solid var(--color-primary);
-        background-color: #f0f7ff;
-        box-shadow: 0 4px 15px rgba(26, 115, 232, 0.2);
+        border: 2px solid var(--color-primary);
+        background: var(--color-primary-pale);
+        box-shadow: 0 4px 14px rgba(192, 86, 33, 0.15);
     }
 
     .result-card {
-        background: #fff;
-        border-radius: 12px;
-        border: 1px solid #e0e0e0;
+        background: var(--color-surface);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--color-border);
         overflow: hidden;
         display: flex;
         flex-direction: column;
         text-align: left;
-        transition: transform 0.2s;
         cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .result-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
     }
 
     .result-card .search-card-header {
-        padding: 10px 15px;
-        background: #f8f9fa;
-        border-bottom: 1px solid #eee;
+        padding: 9px 13px;
+        background: var(--color-surface-2);
+        border-bottom: 1px solid var(--color-border-soft);
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
 
     .result-card .search-card-category {
-        font-size: 1.1rem;
-        color: #666;
-        font-weight: 800;
+        font-size: 1rem;
+        color: var(--color-text-muted);
+        font-weight: 700;
     }
 
     .result-card .search-card-choices {
         list-style: none;
         padding: 0;
-        margin: 10px 0;
-        font-size: 1.2rem;
+        margin: 8px 0;
+        font-size: 1.1rem;
         text-align: left;
     }
 
     .result-card .search-card-choices li {
-        padding: 4px 8px;
-        border-bottom: 1px dashed #f0f0f0;
-        color: #495057;
+        padding: 3px 7px;
+        border-bottom: 1px dashed var(--color-border-soft);
+        color: var(--color-text);
     }
 
     .result-card .search-card-footer {
-        padding: 12px 15px;
-        background: #fff;
-        border-top: 1px solid #eee;
-        font-size: 1.4rem;
-        color: #666;
+        padding: 10px 13px;
+        background: var(--color-surface);
+        border-top: 1px solid var(--color-border-soft);
+        font-size: 1.1rem;
+        color: var(--color-text-muted);
         line-height: 1.5;
     }
 
     .result-card .search-card-actions {
         display: flex;
-        gap: 8px;
-        padding: 10px 15px;
-        background: #f9f9f9;
-        border-top: 1px solid #eee;
+        gap: 7px;
+        padding: 9px 13px;
+        background: var(--color-surface-2);
+        border-top: 1px solid var(--color-border-soft);
     }
 
-    /* รองรับ SVG ใน Card */
-    .result-card .svg-render-area {
-        max-width: 100%;
-        height: auto;
-        display: flex;
-        justify-content: center;
-        background: #fdfdfd;
-        padding: 10px;
-        border-radius: 5px;
-    }
-
-    .result-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-    }
-
-    .result-card .search-card-img,
-    .result-card .answer-img,
-    .result-card .svg-choice-container {
-        max-height: 200px;
-        /* ปรับให้ใหญ่ขึ้น */
-        width: auto;
-        object-fit: contain;
-        border-radius: 8px;
-        cursor: zoom-in;
-        /* เปลี่ยน cursor ให้รู้ว่ากดขยายได้ */
-        transition: opacity 0.2s;
-    }
-
-    .result-card .search-card-img:hover {
-        opacity: 0.8;
-    }
-
-    /* แถบสีข้างการ์ด: เขียวเมื่อถูก แดงเมื่อผิด */
     .result-card.is-correct {
-        border-left: 8px solid var(--color-correct);
+        border-left: 6px solid #22C55E;
     }
 
     .result-card.is-incorrect {
-        border-left: 8px solid var(--color-wrong);
-    }
-
-    .result-card-header {
-        padding: 10px 15px;
-        background: #f8f9fa;
-        font-weight: 800;
-        font-size: 1.1rem;
-        display: flex;
-        justify-content: space-between;
+        border-left: 6px solid #EF4444;
     }
 
     .result-card-body {
-        padding: 15px;
+        padding: 13px;
         flex-grow: 1;
     }
 
-
     .result-ans-box {
-        padding: 10px;
-        border-radius: 8px;
-        margin-top: 10px;
-        font-size: 1.2rem;
+        padding: 9px;
+        border-radius: 7px;
+        margin-top: 8px;
+        font-size: 1.1rem;
     }
 
     .result-ans-box.user-ans {
-        background: #f0f0f0;
-        border: 1px solid #ddd;
+        background: var(--color-surface-2);
+        border: 1px solid var(--color-border);
     }
 
     .result-ans-box.correct-ans {
-        background: #d1e7dd;
-        border: 1px solid #badbcc;
-        color: #0f5132;
-        margin-top: 5px;
+        background: var(--color-correct-bg);
+        border: 1px solid #86EFAC;
+        color: var(--color-correct);
+        margin-top: 4px;
     }
 
-    @media (max-width: 768px) {
-        .result-cards-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* Search Section Styles */
+    /* Search */
     #search-section {
-        width: 95%;
-        max-width: 900px;
-        padding: 2rem;
-        margin-top: 2rem;
-        border: 1px solid #dee2e6;
-        border-radius: var(--border-radius);
+        width: 100%;
+        max-width: 860px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-lg);
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 1rem;
+        background: var(--color-surface);
     }
 
     #search-section h2 {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         margin: 0;
+        font-family: var(--font-question);
+        font-weight: 600;
     }
 
     #search-input {
         width: 100%;
-        max-width: 600px;
-        padding: 0.75rem;
-        font-size: 1.2rem;
+        max-width: 560px;
+        padding: 0.7rem;
+        font-size: 1.1rem;
         font-family: var(--font-primary);
-        font-weight: 700;
+        font-weight: 500;
         border-radius: var(--border-radius);
-        border: 1px solid #ced4da;
+        border: 1.5px solid var(--color-border);
+        background: var(--color-surface);
+        transition: border-color 0.15s;
+    }
+
+    #search-input:focus {
+        border-color: var(--color-primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(192, 86, 33, 0.1);
     }
 
     #search-results-container {
         width: 100%;
-        margin-top: 1rem;
+        margin-top: 0.75rem;
     }
 
-    .search-img-thumb {
-        max-height: 80px;
-        max-width: 150px;
-        width: auto;
-        vertical-align: middle;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        margin: 2px;
-        transition: transform 0.2s;
-    }
-
-    .search-img-thumb:hover {
-        transform: scale(2.5);
-        z-index: 10;
-        position: relative;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-    }
-
-    /* คอนเทนเนอร์สำหรับการ์ดค้นหา */
     .search-results-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
         width: 100%;
-        margin-top: 20px;
+        margin-top: 16px;
     }
 
     .search-card {
-        background: #ffffff;
-        border-radius: 12px;
-        border: 1px solid #e0e0e0;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        background: var(--color-surface);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--color-border);
+        box-shadow: var(--shadow-sm);
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform 0.15s, box-shadow 0.15s;
         text-align: left;
     }
 
     .search-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
     }
 
-    /* ส่วนหัว: หมวดหมู่ */
     .search-card-header {
-        padding: 10px 15px;
-        background: #f8f9fa;
-        border-bottom: 1px solid #eee;
+        padding: 9px 13px;
+        background: var(--color-surface-2);
+        border-bottom: 1px solid var(--color-border-soft);
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
 
     .search-card-category {
-        font-size: 1.2rem;
-        color: #666;
-        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--color-text-muted);
+        font-weight: 700;
     }
 
     .search-card-relevance {
-        font-size: 0.8rem;
-        padding: 2px 8px;
-        background: #e1f5fe;
-        color: #0288d1;
+        font-size: 0.78rem;
+        padding: 2px 7px;
+        background: #EFF6FF;
+        color: #1D4ED8;
         border-radius: 10px;
     }
 
-    /* ส่วนเนื้อหา: โจทย์และรูป */
     .search-card-body {
-        padding: 15px;
+        padding: 13px;
         flex-grow: 1;
     }
 
     .search-card-problem {
-        font-size: 1.4rem;
-        font-weight: 700;
+        font-size: 1.3rem;
+        font-weight: 600;
         line-height: 1.4;
-        margin-bottom: 12px;
-        color: #212529;
+        margin-bottom: 10px;
+        color: var(--color-text);
+        font-family: var(--font-question);
     }
 
     .search-card-images {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 12px;
+        gap: 7px;
+        margin-bottom: 10px;
     }
 
     .search-card-img {
-        width: 80px;
-        height: 80px;
+        width: 76px;
+        height: 76px;
         object-fit: cover;
         border-radius: 6px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--color-border);
         cursor: pointer;
     }
 
-    /* ส่วนตัวเลือก */
     .search-card-choices {
         list-style: none;
         padding: 0;
-        margin: 0 0 15px 0;
-        font-size: 1.2rem;
+        margin: 0 0 12px 0;
+        font-size: 1.1rem;
     }
 
     .search-card-choices li {
-        padding: 4px 0;
-        border-bottom: 1px dashed #f0f0f0;
-        color: #495057;
+        padding: 3px 0;
+        border-bottom: 1px dashed var(--color-border-soft);
+        color: var(--color-text);
     }
 
-    /* ส่วนคำตอบ */
     .search-card-answer {
-        background: #d1e7dd;
-        padding: 10px 15px;
-        border-left: 5px solid #198754;
+        background: var(--color-correct-bg);
+        padding: 9px 13px;
+        border-left: 4px solid #22C55E;
     }
 
     .search-card-answer b {
-        color: #155724;
+        color: var(--color-correct);
         display: block;
-        font-size: 0.9rem;
-        margin-bottom: 3px;
+        font-size: 0.87rem;
+        margin-bottom: 2px;
     }
 
     .search-card-answer-val {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #198754;
-    }
-
-    /* ส่วนคำอธิบาย */
-    .search-card-footer {
-        padding: 12px 15px;
-        background: #fff;
-        border-top: 1px solid #eee;
         font-size: 1.2rem;
-        color: #666;
-        line-height: 1.5;
+        font-weight: 700;
+        color: var(--color-correct);
     }
 
-    .search-card-footer b {
-        color: #333;
+    .search-card-footer {
+        padding: 10px 13px;
+        background: var(--color-surface);
+        border-top: 1px solid var(--color-border-soft);
+        font-size: 1.1rem;
+        color: var(--color-text-muted);
+        line-height: 1.5;
     }
 
     .search-card-actions {
         display: flex;
-        gap: 8px;
-        padding: 12px 15px;
-        background: #f9f9f9;
-        border-top: 1px solid #eee;
+        gap: 7px;
+        padding: 10px 13px;
+        background: var(--color-surface-2);
+        border-top: 1px solid var(--color-border-soft);
     }
 
     .btn-search-action {
         flex: 1;
-        padding: 8px;
+        padding: 7px;
         border: none;
         border-radius: 6px;
         font-family: var(--font-primary);
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 700;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 5px;
-        transition: all 0.2s;
+        transition: all 0.15s;
     }
 
     .btn-search-report {
-        background-color: #ff4d4f;
+        background: #EF4444;
         color: white;
     }
 
     .btn-search-report:hover {
-        background-color: #d9363e;
+        background: #DC2626;
     }
 
     .btn-search-vote {
-        background: linear-gradient(to right, #1a73e8, #0056b3);
-        color: #fff;
+        background: linear-gradient(to right, var(--color-primary), var(--color-primary-hover));
+        color: white;
     }
 
     .btn-search-vote:hover {
-        background: linear-gradient(to right, #1765c8, #004494);
+        filter: brightness(1.08);
     }
 
-    /* =========================================
-   [NEW] Search Suggestions Styling
-   ========================================= */
-
-    /* 1. Container จัดระเบียบชิป */
+    /* Search Suggestions */
     #suggestion-chips {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
-        /* เว้นระยะห่างระหว่างปุ่ม */
-        margin-top: 10px;
+        gap: 9px;
+        margin-top: 8px;
         align-items: center;
     }
 
-    /* 2. ตัว Chip (ปุ่มแนะนำ) */
     .suggestion-chip {
-        /* Layout & Sizing */
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 8px 16px;
-        /* เพิ่ม Padding ให้ปุ่มใหญ่ขึ้น กดง่ายในมือถือ */
+        padding: 7px 14px;
         border-radius: 50px;
-        /* ทรงแคปซูล (Pill shape) */
-
-        /* Typography */
         font-family: var(--font-primary);
-        font-size: 1.1rem;
-        /* ตัวหนังสือใหญ่ขึ้น */
+        font-size: 1.05rem;
         font-weight: 500;
-        line-height: 1.2;
-
-        /* Colors & Borders */
-        background-color: #ffffff;
+        background: var(--color-surface);
         color: var(--color-primary);
-        /* สีน้ำเงินตาม Theme */
-        border: 2px solid var(--color-primary);
-        /* เส้นขอบหนาขึ้นเล็กน้อย */
-
-        /* Decorate (เงาและมิติ) */
-        box-shadow: 0 4px 6px rgba(26, 115, 232, 0.15);
-        /* เงานุ่มๆ */
+        border: 1.5px solid var(--color-primary);
+        box-shadow: 0 2px 6px rgba(192, 86, 33, 0.1);
         cursor: pointer;
         user-select: none;
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        /* Animation นุ่มนวล */
-
-        /* Mobile Touch Target */
-        min-height: 44px;
-        /* มาตรฐาน Apple/Android สำหรับปุ่มกด */
+        transition: all 0.25s;
+        min-height: 42px;
     }
 
-    /* 3. จัดการ Text ด้านใน */
     .suggestion-chip .original-term {
-        font-size: 0.9em;
-        color: #888;
-        /* สีเทาจางๆ */
+        font-size: 0.88em;
+        color: #A8A29E;
         text-decoration: line-through;
-        /* ขีดฆ่าคำผิด */
-        text-decoration-thickness: 2px;
-        margin-right: 8px;
-        opacity: 0.8;
-        font-weight: 400;
+        margin-right: 7px;
     }
 
     .suggestion-chip i {
-        font-size: 0.9em;
-        margin: 0 8px;
+        font-size: 0.88em;
+        margin: 0 7px;
         color: var(--color-primary);
-        transition: transform 0.2s;
+        transition: transform 0.15s;
     }
 
     .suggestion-chip b {
         font-weight: 800;
-        font-size: 1.15em;
-        /* คำที่ถูกให้ใหญ่กว่านิดหน่อย */
-        letter-spacing: 0.5px;
     }
 
-    /* 4. Hover State (เมื่อเอาเมาส์ชี้) */
     .suggestion-chip:hover {
-        background-color: var(--color-primary);
-        color: #ffffff;
-        transform: translateY(-4px) scale(1.02);
-        /* ลอยขึ้น + ขยาย */
-        box-shadow: 0 8px 15px rgba(26, 115, 232, 0.3);
-        /* เงาลึกขึ้น */
-        border-color: var(--color-primary);
+        background: var(--color-primary);
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 14px rgba(192, 86, 33, 0.25);
     }
 
     .suggestion-chip:hover .original-term {
         color: rgba(255, 255, 255, 0.6);
-        /* เปลี่ยนสีคำผิดให้กลืนกับพื้นหลัง */
-        text-decoration-color: rgba(255, 255, 255, 0.8);
     }
 
     .suggestion-chip:hover i {
-        color: #ffffff;
+        color: white;
         transform: translateX(3px);
-        /* ลูกศรขยับไปขวา */
-    }
-
-    /* 5. Active State (ตอนกดคลิก) */
-    .suggestion-chip:active {
-        transform: translateY(-1px) scale(0.98);
-        /* ยุบลงเล็กน้อย */
-        box-shadow: 0 2px 4px rgba(26, 115, 232, 0.2);
     }
 
     /* =========================================
-       12. Floating Action Buttons (FABs)
+       13. Floating Action Buttons
        ========================================= */
     .fab-container {
         position: fixed;
@@ -2055,70 +1991,67 @@
         z-index: var(--zi-fab);
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 9px;
     }
 
     .fab {
-        width: 48px;
-        height: 48px;
+        width: 46px;
+        height: 46px;
         border-radius: 50%;
-        background-color: var(--color-primary);
+        background: var(--color-primary);
         color: white;
         border: none;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 3px 10px rgba(192, 86, 33, 0.35);
         cursor: pointer;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 24px;
-        transition: background-color 0.3s, transform 0.2s, width 0.2s, height 0.2s;
+        font-size: 22px;
+        transition: all 0.2s;
     }
 
     .fab i {
         pointer-events: none;
-        /* ป้องกันการคลิกโดนไอคอนแล้ว event ไม่ทำงาน */
     }
 
     .fab:hover {
-        background-color: var(--color-primary-hover);
+        background: var(--color-primary-hover);
         transform: scale(1.05);
     }
 
     #scroll-to-quiz-btn {
-        background-color: var(--color-dark);
+        background: var(--color-dark);
     }
 
     #scroll-to-quiz-btn:hover {
-        background-color: var(--color-dark-hover);
+        background: var(--color-dark-hover);
     }
 
-    #zoom-in-btn:active,
-    #zoom-out-btn:active {
-        transform: scale(0.9);
+    #zoom-in-btn {
+        background: #15803D;
+    }
+
+    #zoom-out-btn {
+        background: #B91C1C;
     }
 
     /* =========================================
-    12. PDF Progress Widget (กล่องแสดงความคืบหน้าการสร้าง PDF)
+       14. PDF Progress Widget
        ========================================= */
-
-    /* กล่องแจ้งเตือนความคืบหน้า PDF แบบลอย */
     #pdf-progress-widget {
         position: fixed;
-        bottom: 80px;
-        /* หลบปุ่ม FAB ขึ้นมานิดนึง */
-        right: 20px;
-        width: 280px;
-        background: white;
+        bottom: 76px;
+        right: 18px;
+        width: 270px;
+        background: var(--color-surface);
         border: 2px solid var(--color-primary);
-        border-radius: 15px;
-        padding: 15px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        border-radius: var(--border-radius-lg);
+        padding: 14px;
+        box-shadow: var(--shadow-md);
         z-index: 2000;
-        /* ให้อยู่เหนือเกือบทุกอย่างแต่ไม่บล็อก Modal */
         display: none;
-        /* ซ่อนไว้ก่อน */
         font-family: var(--font-primary);
-        animation: slideInRight 0.5s ease-out;
+        animation: slideInRight 0.4s ease-out;
     }
 
     @keyframes slideInRight {
@@ -2135,172 +2068,184 @@
 
     #pdf-progress-widget .progress-title {
         font-weight: 800;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         color: var(--color-primary);
-        margin-bottom: 8px;
+        margin-bottom: 7px;
         display: flex;
         justify-content: space-between;
     }
 
     #pdf-progress-widget .progress-bar-bg {
         width: 100%;
-        background: #e9ecef;
-        height: 12px;
-        border-radius: 6px;
+        background: var(--color-border);
+        height: 10px;
+        border-radius: 5px;
         overflow: hidden;
     }
 
     #pdf-progress-widget .progress-bar-fill {
         height: 100%;
-        background: linear-gradient(90deg, #1a73e8, #00c6ff);
+        background: linear-gradient(90deg, var(--color-primary), #F97316);
         width: 0%;
         transition: width 0.4s ease;
     }
 
     #pdf-progress-widget .progress-status {
-        font-size: 1rem;
-        color: #666;
-        margin-top: 8px;
+        font-size: 0.92rem;
+        color: var(--color-text-muted);
+        margin-top: 7px;
         line-height: 1.2;
     }
 
     /* =========================================
-       13. Responsive Adjustments (การปรับให้เข้ากับหน้าจอขนาดเล็ก)
+       15. Responsive
        ========================================= */
     @media (max-width: 768px) {
         body {
-            margin-top: 120px;
-            padding: 1rem 0.5rem;
-        }
-
-        .modal-card {
-            /* บังคับให้เปลี่ยนวิธีจัดตำแหน่ง */
-            position: fixed !important;
-
-            /* แทนที่จะอยู่ตรงกลาง 50% ให้สั่งให้อยู่ห่างจากขอบบนจอแค่นิดเดียวพอ */
-            top: 20px !important;
-            bottom: auto !important;
-
-            /* ยกเลิกการดันขึ้นแนวตั้ง (-50%) เหลือแค่ดันแนวนอนให้กลางจอ */
-            transform: translate(-50%, 0) !important;
-
-            /* ปรับขนาดให้เต็มจอมากขึ้น กันตกขอบ */
-            width: 95% !important;
-            max-height: 85vh !important;
-
-            /* เผื่อกรณี Google Site บัง */
-            z-index: 2147483647 !important;
-            /* ค่าสูงสุดของ 32-bit int */
+            margin-top: 100px;
+            padding: 0.75rem 0.4rem;
         }
 
         .container {
-            padding: 1rem;
+            width: 98%;
+            padding: 0.75rem;
         }
 
-        .selection-container {
-            padding: 0.5rem;
+        .modal-card {
+            position: fixed !important;
+            top: 16px !important;
+            bottom: auto !important;
+            transform: translate(-50%, 0) !important;
+            width: 95% !important;
+            max-height: 85vh !important;
+            z-index: 2147483647 !important;
         }
 
-        #quiz-container,
-        #search-section {
-            padding: 1rem;
+        #quiz-container {
+            width: 100%;
         }
 
-        /* Navigation Buttons */
+        #question {
+            font-size: 1.15rem;
+            padding: 10px 14px 6px;
+        }
+
+        #choices {
+            padding: 6px 14px 12px;
+            gap: 7px;
+        }
+
+        #choices button {
+            font-size: 1.05rem;
+            padding: 10px 13px;
+            min-height: 48px;
+        }
+
         .nav-container {
-            flex-direction: column;
-            gap: 0.5rem;
+            padding: 10px 14px;
         }
 
         #prev-question,
         #next-question {
+            max-width: 100%;
             width: 100%;
         }
 
-        /* Table Responsiveness */
+        .nav-container {
+            flex-direction: column;
+        }
+
+        .result-cards-grid,
+        #submission-cards-container {
+            grid-template-columns: 1fr;
+        }
+
         table {
             display: block;
             overflow-x: auto;
-            /* ยอมให้ scroll แนวนอนได้บนมือถือ */
             white-space: nowrap;
-            /* ป้องกันบรรทัดตัดกันมั่วซั่ว */
         }
 
         table td {
             white-space: normal;
-            /* แต่ข้างในเซลล์ยังตัดคำปกติ */
         }
 
-        /* Image Display */
         #image-container-div {
-            width: 80%;
-            max-width: 500px;
-            height: 400px;
-            overflow: auto;
+            margin: 8px 14px;
         }
 
-        #image-container-div img {
-            max-width: 100%;
-            height: auto;
-        }
-
-        /* FAB Position */
         .fab-container {
             top: 50%;
         }
 
         .fab {
-            width: 56px;
-            height: 56px;
-            font-size: 20px;
+            width: 50px;
+            height: 50px;
+            font-size: 19px;
         }
 
-        /* Smaller Text for Selection UI */
         .selection-container h2 {
-            font-size: 1.3rem;
-        }
-
-        .accordion-header {
             font-size: 1.2rem;
         }
 
-        .toggle-button {
-            font-size: 1rem;
-            padding: 8px 10px;
+        .accordion-header {
+            font-size: 1.1rem;
         }
 
-        #selected-category-status {
-            font-size: 1rem;
+        .toggle-button {
+            font-size: 0.96rem;
+            padding: 6px 10px;
+        }
+
+        .index-dot {
+            width: 28px;
+            height: 28px;
+            font-size: 0.72rem;
         }
 
         #suggestion-chips {
-            justify-content: flex-start;
-            /* ชิดซ้าย */
-            gap: 8px;
+            gap: 7px;
         }
 
         .suggestion-chip {
-            padding: 8px 16px;
-            /* ลด padding นิดหน่อยแต่ยังกดง่าย */
-            font-size: 1rem;
-            /* ลดขนาดฟอนต์ให้พอดีจอเล็ก */
-            flex: 0 1 auto;
-            /* ให้ความกว้างยืดหดตามเนื้อหา */
-            max-width: 100%;
-            /* ไม่ให้ล้นจอ */
+            padding: 7px 13px;
+            font-size: 0.96rem;
         }
 
-        /* ถ้าคำยาวมากๆ ให้ตัดคำ */
         .suggestion-chip b {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 200px;
+            max-width: 180px;
         }
     }
 
     #loading-overlay {
         z-index: var(--zi-overlay);
+    }
+
+    /* =========================================
+       16. Info Banner & Misc
+       ========================================= */
+    .info-banner {
+        background: #FFFBEB;
+        border: 1px solid #FCD34D;
+        border-radius: var(--border-radius);
+        padding: 10px 14px;
+        margin-top: 12px;
+        font-size: 1.25rem;
+        color: #78350F;
+        font-weight: 700;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
     }
 </style>
 
@@ -2308,67 +2253,45 @@
     <div class="container">
 
         <!-- =========================================
-         I. Modal Cards (โมดัลต่างๆ)
+         I. Modal Cards
          ========================================= -->
 
-        <!-- 1. Report Modal Card (แจ้งปัญหา) -->
+        <!-- 1. Report Modal -->
         <div id="report-card" class="modal-card">
             <div class="modal-body">
                 <h5 class="modal-title" style="color: var(--color-wrong);">แจ้งปัญหาและเสนอแนวทางแก้ไข</h5>
-
-                <!-- Section 1: Question Being Reported (Red/Error Tinge) -->
                 <div id="report-question-details" class="modal-section"
-                    style="text-align: left; background-color: #fff3f3; border: 2px solid #dc3545; padding: 15px;">
-
-                    <h6 style="color: #dc3545; font-size: 1.3rem; margin-bottom: 5px;">โจทย์ที่พบปัญหา:</h6>
+                    style="text-align: left; background-color: #FFF7F7; border: 2px solid var(--color-wrong); padding: 14px;">
+                    <h6 style="color: var(--color-wrong); font-size: 1.2rem; margin-bottom: 5px;">โจทย์ที่พบปัญหา:</h6>
                     <p id="report-question-text" class="small-text"
-                        style="font-weight: 700; color: var(--color-text); margin-bottom: 15px; font-size: 3rem; line-height: 1.3;">
+                        style="font-weight: 700; color: var(--color-text); margin-bottom: 13px; font-size: 1.15rem; line-height: 1.4;">
                     </p>
-
-                    <div id="report-question-images" style="text-align: center; margin-bottom: 15px;"></div>
-
-
-                    <div style="border-top: 1px dashed #dc3545; padding-top: 10px;">
-                        <h6 style="font-size: 1.2rem; margin-top: 5px; margin-bottom: 5px;">ตัวเลือกที่มี (Choices):
+                    <div id="report-question-images" style="text-align: center; margin-bottom: 13px;"></div>
+                    <div style="border-top: 1px dashed var(--color-wrong); padding-top: 9px;">
+                        <h6 style="font-size: 1.1rem; margin-top: 4px; margin-bottom: 4px;">ตัวเลือกที่มี (Choices):
                         </h6>
-                        <div id="report-choices-list" style="font-size: 1.3rem; font-weight: 500; padding-left: 10px;">
-                            <!-- Choices will be populated by JS -->
+                        <div id="report-choices-list" style="font-size: 1.2rem; font-weight: 500; padding-left: 8px;">
                         </div>
                     </div>
                 </div>
-
-                <!-- Section 2: Suggested Correction (Green/Success Tinge) -->
                 <div class="modal-section"
-                    style="text-align: left; background-color: #f0fff0; border: 2px solid #28a745;">
-
-                    <h6 style="color: #28a745; font-size: 1.3rem;">เสนอคำตอบที่ถูกต้อง / แก้ไข</h6>
-
-                    <!-- Option 1: Select from existing -->
-                    <p class="small-text" style="margin-bottom: 5px; font-weight: 700; color: #333;">1.
-                        เลือกจากตัวเลือกเดิม:
-                    </p>
+                    style="text-align: left; background-color: #F0FFF4; border: 2px solid #22C55E;">
+                    <h6 style="color: var(--color-correct); font-size: 1.2rem;">เสนอคำตอบที่ถูกต้อง / แก้ไข</h6>
+                    <p class="small-text" style="margin-bottom: 5px; font-weight: 700; color: var(--color-text);">1.
+                        เลือกจากตัวเลือกเดิม:</p>
                     <select id="report-correct-choice-select"
-                        style="width: 100%; padding: 10px; margin-bottom: 10px; font-size: 1.4rem; border-radius: 5px; border: 2px solid #28a745; background-color: #fff; cursor: pointer; transition: all 0.3s ease;">
-                        <option value="">-- เลือกข้อที่ถูกต้องจากตัวเลือกด้านบน --</option>
-                    </select>
-
-                    <!-- Option 2: Suggest new -->
-                    <p class="small-text" style="margin-bottom: 5px; font-weight: 700; color: #333;">2. หรือ
-                        พิมพ์คำตอบใหม่
-                        (ถ้าไม่มีในตัวเลือกเดิม):</p>
+                        style="width: 100%; padding: 9px; margin-bottom: 9px; font-size: 1.3rem; border-radius: 6px; border: 2px solid #22C55E; background: white; cursor: pointer;"></select>
+                    <p class="small-text" style="margin-bottom: 5px; font-weight: 700; color: var(--color-text);">2.
+                        หรือพิมพ์คำตอบใหม่:</p>
                     <input type="text" id="report-new-choice-input" placeholder="พิมพ์คำตอบที่ถูกต้องใหม่"
-                        style="width: 100%; padding: 0.75rem; border-radius: 5px; border: 1px solid #ced4da; font-size: 1rem; box-sizing: border-box;">
+                        style="width: 100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--color-border); font-size: 1rem; box-sizing: border-box; font-family: var(--font-primary);">
                 </div>
-
-                <!-- Section 3: Reason/Explanation (Primary Tinge) -->
                 <div class="modal-section"
-                    style="text-align: left; background-color: #f8f9fa; border: 1px solid #dee2e6;">
-                    <h6 style="color: var(--color-primary); font-size: 1.5rem;">รายละเอียด/เหตุผลของปัญหา</h6>
-                    <textarea id="report_text"
-                        placeholder="ระบุเหตุผลที่โจทย์/เฉลยผิด, หรือรายละเอียดปัญหาอื่นๆ ให้ชัดเจนที่สุด..."
-                        style="width: 100%; min-height: 100px; font-size: 1.2rem;"></textarea>
+                    style="text-align: left; background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <h6 style="color: var(--color-primary); font-size: 1.4rem;">รายละเอียด/เหตุผลของปัญหา</h6>
+                    <textarea id="report_text" placeholder="ระบุเหตุผลที่โจทย์/เฉลยผิด..."
+                        style="width: 100%; min-height: 90px; font-size: 1.1rem; font-family: var(--font-primary);"></textarea>
                 </div>
-
                 <div class="controls-container">
                     <button id="submit-report" class="quiz-button btn-dark">Submit Report</button>
                     <button id="cancel-report" class="quiz-button btn-light">Cancel</button>
@@ -2376,35 +2299,29 @@
             </div>
         </div>
 
-        <!-- 2. Progress Save/Load Modal (บันทึกความคืบหน้า) -->
+        <!-- 2. Progress Modal -->
         <div id="progress-modal-card" class="modal-card">
             <div class="modal-body">
-                <div class="controls-container" style="margin-top: 0.5rem;">
+                <div class="controls-container" style="margin-top: 0.4rem;">
                     <button id="close-progress-modal" class="quiz-button btn-light">ปิด</button>
                 </div>
                 <h5 class="modal-title">บันทึก / ทำต่อจากครั้งก่อน</h5>
-
-                <!-- Export Section -->
                 <div class="modal-section">
                     <h6>ส่งออกความคืบหน้าปัจจุบัน</h6>
-                    <p class="small-text" style="margin-bottom: 1rem;">บันทึกคำตอบและลำดับคำถามปัจจุบัน</p>
-                    <div id="feedback-save" class="small-text" style="margin-top: 10px;"></div>
+                    <p class="small-text" style="margin-bottom: 0.75rem;">บันทึกคำตอบและลำดับคำถามปัจจุบัน</p>
+                    <div id="feedback-save" class="small-text" style="margin-top: 8px;"></div>
                     <div class="controls-container">
                         <button id="modal-export-txt-btn" class="quiz-button btn-export">Export to TXT</button>
                         <button id="modal-export-copy-btn" class="quiz-button btn-export">Copy Code</button>
                     </div>
                 </div>
-
-                <!-- Import Section -->
                 <div class="modal-section">
                     <h6>โหลดความคืบหน้า</h6>
-                    <p class="small-text" style="margin-bottom: 1rem;">วางโค้ดที่คัดลอกมา หรืออัปโหลดไฟล์ .txt
-                        เพื่อทำต่อ</p>
+                    <p class="small-text" style="margin-bottom: 0.75rem;">วางโค้ดที่คัดลอกมา หรืออัปโหลดไฟล์ .txt</p>
                     <textarea id="modal-import-code" placeholder="วาง Code ที่นี่..."></textarea>
                     <div class="controls-container">
                         <label for="modal-import-file" id="modal-import-file-label"
-                            class="quiz-button btn-light">อัปโหลดไฟล์
-                            (.txt)</label>
+                            class="quiz-button btn-light">อัปโหลดไฟล์ (.txt)</label>
                         <input type="file" id="modal-import-file" accept=".txt" style="display:none;">
                         <button id="modal-import-btn" class="quiz-button btn-import">Load</button>
                     </div>
@@ -2412,196 +2329,153 @@
             </div>
         </div>
 
-        <!-- 3. PDF Choice Modal (เลือกรูปแบบ PDF) -->
+        <!-- 3. PDF Choice Modal -->
         <div id="pdf-choice-modal" class="modal-card">
             <div class="modal-body">
                 <h5 class="modal-title">เลือกรูปแบบการบันทึก PDF</h5>
                 <p class="small-text">กรุณาเลือกรูปแบบ PDF ที่ต้องการดาวน์โหลด</p>
-
-                <!-- Option 1: Download Results -->
                 <div class="modal-section"
-                    style="background-color: #f0f4ff; border: 1px solid var(--color-primary-hover);">
-                    <h6 style="color: var(--color-primary-hover);">โหลดผลการทำข้อสอบ (สำหรับทบทวน)</h6>
-                    <p class="small-text">ประกอบด้วยคำถาม, คำตอบของคุณ, เฉลย, และคำอธิบายเฉพาะข้อที่คุณได้ทำไปแล้ว</p>
+                    style="background-color: var(--color-primary-pale); border: 1px solid #F6C29B;">
+                    <h6 style="color: var(--color-primary);">โหลดผลการทำข้อสอบ (สำหรับทบทวน)</h6>
+                    <p class="small-text">ประกอบด้วยคำถาม, คำตอบของคุณ, เฉลย, และคำอธิบาย</p>
                     <button id="save-results-pdf-btn" class="quiz-button btn-dark">ดาวน์โหลดผลลัพธ์</button>
                 </div>
-
-                <!-- Option 2: Download Practice Sheet (OMR/Classic) -->
-                <div class="modal-section" style="background-color: #f0fff0; border: 1px solid var(--color-correct);">
+                <div class="modal-section"
+                    style="background-color: var(--color-correct-bg); border: 1px solid #86EFAC;">
                     <h6 style="color: var(--color-correct);">โหลดชุดข้อสอบ (สำหรับทำในกระดาษ / แอป)</h6>
-
-                    <div style="text-align: left; width: 100%; margin-bottom: 15px;">
-                        <label class="small-text" style="font-weight: 700; color: #333; text-align: left;">1.
+                    <div style="text-align: left; width: 100%; margin-bottom: 13px;">
+                        <label class="small-text" style="font-weight: 700; color: var(--color-text);">1.
                             รูปแบบกระดาษคำตอบ:</label>
                         <select id="export-format-select"
-                            style="width: 100%; padding: 10px; border-radius: 5px; font-size: 1.2rem; font-family: var(--font-primary); border: 1px solid #ced4da;">
+                            style="width: 100%; padding: 9px; border-radius: 6px; font-size: 1.1rem; font-family: var(--font-primary); border: 1px solid var(--color-border); background: var(--color-surface);">
                             <option value="classic">แบบปกติ (ไม่มีกระดาษคำตอบแยก)</option>
-                            <option value="omr">แบบ OMR (แนบกระดาษคำตอบวงกลมไว้หน้าท้ายๆ) TESTING***</option>
+                            <option value="omr">แบบ OMR TESTING***</option>
                         </select>
                     </div>
-
-                    <!-- OMR Extras (จะโชว์เมื่อเลือก OMR) -->
                     <div id="omr-extras"
-                        style="display:none; text-align: left; background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-                        <input type="checkbox" id="dl-png-overlay" style="transform: scale(1.3); margin-right: 10px;"
+                        style="display:none; text-align: left; background: #FFFBEB; padding: 9px; border-radius: 6px; margin-bottom: 13px;">
+                        <input type="checkbox" id="dl-png-overlay" style="transform: scale(1.2); margin-right: 9px;"
                             checked>
-                        <label for="dl-png-overlay" style="font-size: 1.2rem; font-weight: 700; color: #856404;">
-                            ดาวน์โหลดแผ่นใสเฉลย (PNG)
-                        </label>
-                        <p style="font-size: 1rem; color: #856404; margin-left: 25px; margin-top: 5px;">
-                            (ภาพโปร่งใสที่มีจุดสีแดง ใช้ลากไปวางทาบกระดาษคำตอบ OMR ในแอป GoodNotes)
-                        </p>
+                        <label for="dl-png-overlay"
+                            style="font-size: 1.1rem; font-weight: 700; color: #78350F;">ดาวน์โหลดแผ่นใสเฉลย
+                            (PNG)</label>
+                        <p style="font-size: 0.95rem; color: #78350F; margin-left: 22px; margin-top: 4px;">
+                            (ภาพโปร่งใสสำหรับ GoodNotes)</p>
                     </div>
-
                     <div
-                        style="text-align: left; width: 100%; margin-bottom: 15px; border-top: 1px dashed #ccc; padding-top: 10px;">
-                        <label class="small-text" style="font-weight: 700; color: #333; text-align: left;">2.
-                            รูปแบบเฉลยอ่านแนบท้ายสุด (เลือกได้):</label><br>
-                        <input type="checkbox" id="key-compact" style="transform: scale(1.3); margin-right: 10px;"
+                        style="text-align: left; width: 100%; margin-bottom: 13px; border-top: 1px dashed var(--color-border-soft); padding-top: 9px;">
+                        <label class="small-text" style="font-weight: 700; color: var(--color-text);">2.
+                            รูปแบบเฉลยอ่านแนบท้าย:</label><br>
+                        <input type="checkbox" id="key-compact" style="transform: scale(1.2); margin-right: 9px;"
                             checked>
-                        <label for="key-compact" style="font-size: 1.2rem; font-weight: 700;">เฉลยแบบย่อ (1.A, 2.B,
-                            3.C...)</label><br>
-
+                        <label for="key-compact" style="font-size: 1.1rem; font-weight: 700;">เฉลยแบบย่อ (1.A,
+                            2.B...)</label><br>
                         <input type="checkbox" id="key-detailed"
-                            style="transform: scale(1.3); margin-right: 10px; margin-top: 10px;" checked>
-                        <label for="key-detailed" style="font-size: 1.2rem; font-weight: 700;">เฉลยแบบละเอียด
+                            style="transform: scale(1.2); margin-right: 9px; margin-top: 9px;" checked>
+                        <label for="key-detailed" style="font-size: 1.1rem; font-weight: 700;">เฉลยแบบละเอียด
                             (มีคำอธิบาย)</label>
                     </div>
-
                     <button id="save-practice-pdf-btn" class="quiz-button btn-dark"
                         style="width: 100%;">ดาวน์โหลดชุดข้อสอบ</button>
                 </div>
-
-                <div class="controls-container" style="margin-top: 1rem;">
+                <div class="controls-container" style="margin-top: 0.75rem;">
                     <button id="close-pdf-modal-btn" class="quiz-button btn-light">ยกเลิก</button>
                 </div>
             </div>
         </div>
 
-        <!-- 4. Vote Category Modal (จัดหมวดหมู่ข้อสอบ) -->
+        <!-- 4. Vote Category Modal -->
         <div id="vote-category-modal" class="modal-card">
-            <div class="modal-body" style="padding: 1.5rem; max-width: 600px;">
-                <h5 class="modal-title" style="color: var(--color-primary); margin-bottom: 0.5rem;">
+            <div class="modal-body" style="padding: 1.4rem; max-width: 600px;">
+                <h5 class="modal-title" style="color: var(--color-primary); margin-bottom: 0.4rem;">
                     <i class="fas fa-tags"></i> จัดหมวดหมู่ข้อสอบ
                 </h5>
-
-                <!-- NEW: Message Container -->
-                <div id="vote-message-container" style="margin-bottom: 15px; padding: 10px; border-radius: 8px;"></div>
-
-                <!-- Preview โจทย์ -->
+                <div id="vote-message-container" style="margin-bottom: 13px; padding: 9px; border-radius: 8px;"></div>
                 <div id="vote-question-preview"
-                    style="background:#f8f9fa; padding:12px; border-left: 4px solid var(--color-primary); border-radius:4px; margin-bottom:20px; font-weight:600; font-size: 1rem; color: #333; line-height: 1.4;">
+                    style="background: var(--color-surface-2); padding: 11px; border-left: 4px solid var(--color-primary); border-radius: 4px; margin-bottom: 18px; font-weight: 600; font-size: 1rem; color: var(--color-text); line-height: 1.4;">
                 </div>
-
-                <!-- Section 1: หัวข้อปัจจุบัน (Approved) -->
                 <div class="vote-section">
-                    <h6 style="font-size: 1.1rem; color: #28a745; margin-bottom: 8px;">
+                    <h6 style="font-size: 1.05rem; color: var(--color-correct); margin-bottom: 7px;">
                         <i class="fas fa-check-circle"></i> หัวข้อปัจจุบัน (Approved)
                     </h6>
                     <div id="current-category-container" class="category-badge-container">
                         <span class="empty-state-text">- ยังไม่มีหัวข้อ -</span>
                     </div>
                 </div>
-
-                <!-- Section 2: สิ่งที่คนอื่นเสนอ (Pending) -->
-                <div class="vote-section" style="margin-top: 15px;">
-                    <h6 style="font-size: 1.1rem; color: #fd7e14; margin-bottom: 8px;">
+                <div class="vote-section" style="margin-top: 13px;">
+                    <h6 style="font-size: 1.05rem; color: #EA580C; margin-bottom: 7px;">
                         <i class="fas fa-clock"></i> รออนุมัติ (คลิกเพื่อโหวตเห็นด้วย +1)
                     </h6>
                     <div id="suggested-category-container" class="category-badge-container">
-                        <span class="empty-state-text"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</span>
+                        <span class="empty-state-text"><i class="fas fa-spinner fa-spin"></i> กำลังโหลด...</span>
                     </div>
                 </div>
-
-                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-
-                <!-- Section 3: เพิ่มหัวข้อใหม่ -->
-                <h6 style="font-size: 1.1rem; color: var(--color-dark); margin-bottom: 10px;">
+                <hr style="border: 0; border-top: 1px solid var(--color-border-soft); margin: 18px 0;">
+                <h6 style="font-size: 1.05rem; color: var(--color-dark); margin-bottom: 9px;">
                     <i class="fas fa-plus-circle"></i> เสนอหัวข้อเพิ่มเติม
                 </h6>
-
-                <div id="vote-rows-container">
-                    <!-- Dynamic Rows Here -->
-                </div>
-
-                <button id="btn-add-vote-row" class="btn-add-row"
-                    style="width: 100%; justify-content: center; margin-top: 10px;">
+                <div id="vote-rows-container"></div>
+                <button id="btn-add-vote-row" style="width: 100%; justify-content: center; margin-top: 9px;">
                     <i class="fas fa-plus"></i> เพิ่มช่องเลือกหัวข้อ
                 </button>
-
-                <div class="controls-container" style="margin-top: 1.5rem; justify-content: flex-end;">
+                <div class="controls-container" style="margin-top: 1.25rem; justify-content: flex-end;">
                     <button id="btn-close-vote-modal" class="quiz-button btn-light">ปิด</button>
-                    <button id="btn-submit-vote" class="quiz-button btn-dark" style="min-width: 120px;">ยืนยัน</button>
+                    <button id="btn-submit-vote" class="quiz-button btn-dark" style="min-width: 110px;">ยืนยัน</button>
                 </div>
             </div>
         </div>
 
-        <!-- 5. Donate Modal Card (ปุ่ม Donate ค่ากาแฟ) -->
+        <!-- 5. Donate Modal -->
         <div id="donate-modal-card" class="modal-card">
             <div class="modal-body">
-                <h5 class="modal-title" style="color: #6a3906;">
-                    โดเนทค่ากาแฟ for ปานัส
-                </h5>
-
-                <!-- Thank You / GIF Section 1uvVJWmtf2YTn-cPyruK8uzbQKbVVklz6-->
+                <h5 class="modal-title" style="color: #92400E;">โดเนทค่ากาแฟ for ปานัส</h5>
                 <div class="modal-section"
-                    style="background-color: #e0e0e0; border: 2px solid #b0b0b0; text-align: center;">
-                    <h6 style="font-size: 1.3rem; color: #333; margin-bottom: 10px;">Thx very much</h6>
-                    <p class="small-text" style="color: #555; margin-bottom: 15px;">
-                        จะพัฒนาเว็บให้ดีต่อไปๆๆๆ ขอบคุณทุกคนที่เข้ามาใช้นะ
-                    </p>
+                    style="background-color: var(--color-surface-2); border: 1px solid var(--color-border); text-align: center;">
+                    <h6 style="font-size: 1.2rem; color: var(--color-text); margin-bottom: 9px;">Thx very much</h6>
+                    <p class="small-text" style="color: var(--color-text-muted); margin-bottom: 13px;">
+                        จะพัฒนาเว็บให้ดีต่อไปๆๆๆ ขอบคุณทุกคนที่เข้ามาใช้นะ</p>
                     <img id="coffee-gif" src="https://lh3.googleusercontent.com/d/1uvVJWmtf2YTn-cPyruK8uzbQKbVVklz6"
                         alt="Coffee GIF"
-                        style="max-width: 100%; height: auto; margin: 10px auto; display: block; border-radius: 8px;">
+                        style="max-width: 100%; height: auto; margin: 9px auto; display: block; border-radius: 8px;">
                 </div>
-
-                <!-- QR Code Section -->
-                <div class="modal-section" style="background-color: #fff8e1; border: 2px solid #ffc107;">
-                    <h6 style="font-size: 1.3rem; color: #91741f; margin-bottom: 10px;">สแกน QR Code เพื่อโอนเงิน</h6>
-                    <!-- QR Code จาก Google Drive ID: 1OVxN9mh2ulPHO6uMnIJBPYx2pqDnw0OS -->
+                <div class="modal-section" style="background-color: #FFFBEB; border: 2px solid #FCD34D;">
+                    <h6 style="font-size: 1.2rem; color: #92400E; margin-bottom: 9px;">สแกน QR Code เพื่อโอนเงิน</h6>
                     <img id="qr-code-img" src="https://lh3.googleusercontent.com/d/1OVxN9mh2ulPHO6uMnIJBPYx2pqDnw0OS"
                         alt="QR Code Donation"
-                        style="max-width: 250px; height: auto; margin: 10px auto; display: block; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                        style="max-width: 240px; height: auto; margin: 9px auto; display: block; border-radius: 8px; box-shadow: var(--shadow-sm);">
                 </div>
-
                 <div class="controls-container" style="padding-top: 0; border-top: none;">
                     <button id="close-donate-modal" class="quiz-button btn-light">ปิด</button>
                 </div>
             </div>
         </div>
 
-        <!-- 6. Modal: Auto-Grader (ตรวจข้อสอบอัตโนมัติ) -->
+        <!-- 6. Auto-Grader Modal -->
         <div id="auto-grader-modal" class="modal-card">
             <div class="modal-body" style="text-align: center;">
-                <h4 class="modal-title" style="color: #6f42c1;"><i class="fas fa-scanner"></i> ระบบตรวจข้อสอบอัตโนมัติ
+                <h4 class="modal-title" style="color: #7C3AED;"><i class="fas fa-scanner"></i> ระบบตรวจข้อสอบอัตโนมัติ
                 </h4>
-
                 <div id="grader-dropzone" class="modal-section"
-                    style="background-color: #f8f9fa; border: 2px dashed #6f42c1; cursor: pointer; padding: 2rem;">
-                    <i class="fas fa-cloud-upload-alt fa-3x" style="color: #6f42c1; margin-bottom: 10px;"></i>
+                    style="background: var(--color-surface-2); border: 2px dashed #7C3AED; cursor: pointer; padding: 1.75rem;">
+                    <i class="fas fa-cloud-upload-alt fa-3x" style="color: #7C3AED; margin-bottom: 9px;"></i>
                     <h5 style="margin: 0;">คลิกเพื่ออัปโหลด PDF กระดาษคำตอบ</h5>
-                    <p class="small-text" style="margin: 5px 0 0 0;">(รับเฉพาะไฟล์ PDF ที่ Export จาก GoodNotes
-                        หรือแอปที่คล้ายกัน)</p>
+                    <p class="small-text" style="margin: 4px 0 0 0;">(รับเฉพาะไฟล์ PDF ที่ Export จาก GoodNotes)</p>
                 </div>
-
                 <input type="file" id="grader-file-input" accept="application/pdf" style="display: none;">
-
-                <!-- กล่องแสดงสถานะการตรวจ -->
-                <div id="grader-status" style="display: none; width: 100%; margin-top: 15px;">
-                    <div class="loading-spinner" style="border-top-color: #6f42c1; width: 40px; height: 40px;"></div>
-                    <p style="color: #6f42c1; font-weight: bold; margin-top: 10px;" id="grader-status-text">
-                        กำลังสแกนและประมวลผลพิกเซล...</p>
+                <div id="grader-status" style="display: none; width: 100%; margin-top: 13px;">
+                    <div class="loading-spinner" style="border-top-color: #7C3AED; width: 36px; height: 36px;"></div>
+                    <p style="color: #7C3AED; font-weight: bold; margin-top: 9px;" id="grader-status-text">กำลังสแกน...
+                    </p>
                 </div>
-
-                <!-- กล่องแสดงผลลัพธ์ -->
-                <div id="grader-results" style="display: none; width: 100%; text-align: left; margin-top: 15px;">
+                <div id="grader-results" style="display: none; width: 100%; text-align: left; margin-top: 13px;">
                     <div
-                        style="background-color: #d1e7dd; color: #0f5132; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px;">
-                        <h2 style="margin: 0; font-size: 2.5rem;" id="grader-score-text">0 / 0</h2>
+                        style="background: var(--color-correct-bg); color: var(--color-correct); padding: 13px; border-radius: 8px; text-align: center; margin-bottom: 13px;">
+                        <h2 style="margin: 0; font-size: 2.2rem;" id="grader-score-text">0 / 0</h2>
                         <p style="margin: 0; font-weight: bold;">คะแนนของคุณ</p>
                     </div>
-                    <div style="max-height: 250px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px;">
-                        <table style="margin-top: 0; font-size: 1.1rem; width: 100%;">
+                    <div
+                        style="max-height: 240px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: 8px;">
+                        <table style="margin-top: 0; font-size: 1.05rem; width: 100%;">
                             <thead style="position: sticky; top: 0; z-index: 1;">
                                 <tr>
                                     <th style="width: 20%; text-align: center;">ข้อ</th>
@@ -2613,8 +2487,7 @@
                         </table>
                     </div>
                 </div>
-
-                <div class="controls-container" style="margin-top: 1rem; justify-content: center; width: 100%;">
+                <div class="controls-container" style="margin-top: 0.75rem; justify-content: center; width: 100%;">
                     <button id="close-grader-modal" class="quiz-button btn-dark"
                         style="width: 100%;">ปิดหน้าต่าง</button>
                 </div>
@@ -2623,135 +2496,165 @@
 
 
         <!-- =========================================
-         II. Category Selection Area (ส่วนเลือกหมวดหมู่)
+         II. Category Selection Area
          ========================================= -->
         <div class="selection-container">
             <h2>✅ เลือกหัวข้อได้เลยย</h2>
-            <!-- Notification Bar สำหรับ Report -->
-            <div id="report-notification-container" style="display:none; margin-bottom: 20px;">
+
+            <div id="report-notification-container" style="display:none; margin-bottom: 16px;">
                 <div
-                    style="background-color: #ebc6c6; color: #880707; border: 1px solid #880707; border-radius: 8px; padding: 15px; position: relative;">
-                    <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 1.4rem;">
+                    style="background-color: #FEE2E2; color: #7F1D1D; border: 1px solid #FCA5A5; border-radius: 8px; padding: 13px; position: relative;">
+                    <h4 style="margin-top: 0; margin-bottom: 9px; font-size: 1.3rem;">
                         <i class="fas fa-exclamation-triangle"></i> พบข้อสอบรอการแก้ไข (Reports)
                     </h4>
-
-                    <div id="report-details-content">
-                        <!-- JS จะมาเติมข้อมูลตรงนี้ -->
-                    </div>
-
-                    <hr style="border-top: 1px solid #880707; margin: 10px 0;">
-
-                    <div style="font-size: 1.4rem; color: #880707;">
-                        กดสมัครมาแก้กันเองได้เลยเด้อถ้าเรียนวิชานี้อยู่ ระวังจำคำตอบผิดไปสอบ naja<br>
+                    <div id="report-details-content"></div>
+                    <hr style="border-top: 1px solid #FCA5A5; margin: 9px 0;">
+                    <div style="font-size: 1.3rem; color: #7F1D1D;">
+                        กดสมัครมาแก้กันเองได้เลยเด้อถ้าเรียนวิชานี้อยู่<br>
                         <a href="https://sites.google.com/kkumail.com/mdkkuquiz/database" target="_blank"
-                            style="background-color: #ac0a0a; color: white; padding: 5px 12px; border-radius: 20px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 5px;">
+                            style="background-color: #991B1B; color: white; padding: 5px 12px; border-radius: 20px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 5px;">
                             <i class="fas fa-user-shield"></i> สมัครเพื่อแก้ไขข้อสอบ
                         </a>
                     </div>
                 </div>
             </div>
 
-            <!-- Status Bar -->
             <div id="selected-category-status">
-                <p class="small-text" style="margin: 0; color: #007bff; font-weight: 700;">
-                    กำลังโหลดรายวิชา...
-                </p>
+                <p class="small-text" style="margin: 0; color: var(--color-primary); font-weight: 700;">
+                    กำลังโหลดรายวิชา...</p>
             </div>
 
-            <!-- Dynamic Accordion Area -->
             <div id="dynamic-accordion-area">
                 <div class="loading-spinner"></div>
-                <p style="text-align:center;">กำลังดึงข้อมูลจาก Server...</p>
+                <p style="text-align:center; color: var(--color-text-muted);">กำลังดึงข้อมูลจาก Server...</p>
             </div>
 
-            <!-- Controls -->
             <div class="controls-container">
                 <button id="save" class="quiz-button">Save to PDF</button>
                 <button id="btn-open-grader" class="quiz-button"
-                    style="background-color: #6f42c1; color: white; width: 100%;">
-                    <i class="fas fa-magic"></i> ระบบตรวจข้อสอบอัตโนมัติ จาก practice pdf OMR (Auto-Grader) TESTING***
+                    style="background-color: #6D28D9; color: white; width: 100%;">
+                    <i class="fas fa-magic"></i> ระบบตรวจข้อสอบอัตโนมัติ (Auto-Grader) TESTING***
                 </button>
                 <button id="toggle-random-btn" class="quiz-button">สลับโหมดสุ่ม/เรียงลำดับ</button>
                 <button id="toggle-review-mode-btn" class="quiz-button"
-                    style="background-color: #d32f2f;">โหมดทบทวนข้อผิด (Try this!!!): ปิด</button>
+                    style="background-color: var(--color-wrong);">โหมดทบทวนข้อผิด: ปิด</button>
                 <button id="show-all-answers-btn" class="quiz-button btn-light">แสดงเฉลย (Screening)</button>
                 <button id="show-progress-modal-btn" class="quiz-button btn-import">บันทึก / ทำต่อจากครั้งก่อน</button>
-                <button id="donate-coffee-btn" class="quiz-button" style="background-color: #6a3906; color: #fff;">
-                    Donate ค่ากาแฟ☕
-                </button>
+                <button id="donate-coffee-btn" class="quiz-button"
+                    style="background-color: #92400E; color: #fff;">Donate ค่ากาแฟ☕</button>
             </div>
-            <div class="small-text" style="margin-top: 10px;">
-                หมายเหตุ : ถ้าเจอโจทย์มีปัญหาพิมพ์เข้ามาใน report ได้เลย | คีย์ลัด [ไม่ได้ลองกด F7]: ← (ก่อนหน้า), →
-                (ถัดไป), Spacebar (เลือก), Enter (ส่งคำตอบ)
+            <div class="small-text" style="margin-top: 9px; color: var(--color-text-muted);">
+                หมายเหตุ : ถ้าเจอโจทย์มีปัญหาพิมพ์เข้ามาใน report ได้เลย | คีย์ลัด: ← (ก่อนหน้า), → (ถัดไป), Enter
+                (ส่งคำตอบ)
             </div>
-            <div class="info-banner"
-                style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 12px 15px; margin-top: 15px; font-size: 1.5rem; color: #856404;font-weight: 900;">
-                <strong style="color: #d32f2f; font-size: 1.5rem;">⭐</strong> <span style="font-size: 1.5rem;">NEW
-                    FEATURE!!!</span>
-                <strong style="font-weight: 900; color: #d32f2f;">โหมดทบทวนข้อผิด</strong>
-                <strong>-> จะเอาข้อที่ทำผิดไป Random ไว้ด้านหลังของข้อสอบชุดนั้นจนกว่าจะตอบถูก</strong>
+            <div class="info-banner">
+                <strong style="color: var(--color-wrong);">⭐</strong> <span>NEW FEATURE!!!</span>
+                <strong style="color: var(--color-wrong);">โหมดทบทวนข้อผิด</strong>
+                <strong> → จะเอาข้อที่ทำผิดไป Random ไว้ด้านหลังจนกว่าจะตอบถูก</strong>
             </div>
         </div>
 
 
         <!-- =========================================
-         III. Main Quiz Area (ส่วนทำข้อสอบ)
+         III. Main Quiz Area
          ========================================= -->
         <main id="quiz-container">
 
             <h1>Random Quiz | ข้อที่ <span id="questionIndex"></span> | <span id="score"></span></h1>
-            <div id="vote-notification-bar" style="min-height: 40px; margin-bottom: 15px;"></div>
+
+            <!-- INDEX CARD PANEL (NEW) -->
+            <div id="question-index-panel">
+                <div id="index-panel-header">
+                    <span>
+                        <i class="fas fa-th-large"></i>
+                        ภาพรวมชุดข้อสอบ
+                        <span id="index-score-badge-header" class="index-score-badge">0 / 0</span>
+                    </span>
+                    <i class="fas fa-chevron-down" id="index-panel-toggle-icon"></i>
+                </div>
+                <div id="index-grid-container">
+                    <div class="index-grid" id="index-dot-grid">
+                        <!-- dots rendered by JS -->
+                    </div>
+                    <div class="index-legend">
+                        <div class="index-legend-item" style="color: var(--color-primary);">
+                            <div class="index-legend-dot legend-current"
+                                style="background: var(--color-primary); border-color: var(--color-primary);"></div>
+                            ปัจจุบัน
+                        </div>
+                        <div class="index-legend-item" style="color: #15803D;">
+                            <div class="index-legend-dot" style="background: #F0FDF4; border-color: #22C55E;"></div> ถูก
+                        </div>
+                        <div class="index-legend-item" style="color: #B91C1C;">
+                            <div class="index-legend-dot" style="background: #FEF2F2; border-color: #EF4444;"></div> ผิด
+                        </div>
+                        <div class="index-legend-item">
+                            <div class="index-legend-dot"
+                                style="background: var(--color-surface); border-color: #D6D3D1;"></div> ยังไม่ตอบ
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="vote-notification-bar" style="min-height: 0; margin-bottom: 6px;"></div>
 
             <p id="categoryquestion"></p>
             <p id="question"></p>
+
             <div id="image-container-div" style="display: none;">
                 <button id="prev-img-btn" class="img-nav-btn"><i class="fas fa-chevron-left"></i></button>
                 <img id="question-image" src="" alt="Question Image" />
                 <button id="next-img-btn" class="img-nav-btn"><i class="fas fa-chevron-right"></i></button>
                 <div id="image-counter">1/1</div>
             </div>
+
             <div id="choices"></div>
-            <button id="submit-btn" class="quiz-button btn-dark">Submit Answer</button>
+
+            <!-- Submit button wrapper inside quiz container -->
+            <div id="submit-btn-wrapper">
+                <button id="submit-btn" class="quiz-button">ส่งคำตอบ</button>
+            </div>
+
             <p id="feedback"></p>
+
             <div class="nav-container">
-                <button id="prev-question" class="quiz-button btn-dark">Previous Question</button>
-                <button id="next-question" class="quiz-button btn-dark">Next Question</button>
+                <button id="prev-question" class="quiz-button btn-dark">
+                    <i class="fas fa-chevron-left" style="margin-right: 5px;"></i> ก่อนหน้า
+                </button>
+                <button id="next-question" class="quiz-button btn-dark">
+                    ถัดไป <i class="fas fa-chevron-right" style="margin-left: 5px;"></i>
+                </button>
             </div>
+
             <div id="quick-cat-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 13px;">
                     <h4 style="margin:0;"><i class="fas fa-tags"></i> Quick Categorization</h4>
-                    <small style="color: #666;">*กดแล้วระบบจะ Approve ทันที</small>
+                    <small style="color: var(--color-text-muted);">*กดแล้วระบบจะ Approve ทันที</small>
                 </div>
-                <div id="quick-cat-content">
-                    <!-- ปุ่มกลุ่มต่างๆ จะถูกสร้างด้วย JS -->
-                </div>
+                <div id="quick-cat-content"></div>
             </div>
+
             <div
-                style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px;margin-bottom: 10px;">
+                style="display: flex; gap: 9px; flex-wrap: wrap; justify-content: center; margin-top: 13px; margin-bottom: 8px; padding: 0 20px; box-sizing: border-box; width: 100%;">
                 <button id="report" class="quiz-button">Report Problem</button>
                 <button id="btn-open-vote" class="quiz-button"
-                    style="background: linear-gradient(to right, #f16744, #d32f2f); color: #fff;">
+                    style="background: linear-gradient(to right, #EA580C, #B91C1C); color: #fff;">
                     <i class="fas fa-tags"></i> แยกเลคข้อสอบ
                 </button>
-                <div style="margin-top: 10px; width: 100%;">
-                    <button id="toggle-quick-cat" class="quiz-button" style="width: 100%; font-size: 1.1rem;">
+                <div style="margin-top: 8px; width: 100%;">
+                    <button id="toggle-quick-cat" class="quiz-button" style="width: 100%; font-size: 1.05rem;">
                         <i class="fas fa-bolt"></i> เปิดแผงแยกหัวข้อด่วน (Quick Mode)
                     </button>
                 </div>
             </div>
-            <span style="font-size: 1.3rem; color: #555;">(ใครสนใจพรูฟ Report/จะแก้ข้อมูลข้อสอบเองเลย ไป Register ใน
-                หน้า Database
-                ได้เลยนะ)</span>
+            <span
+                style="font-size: 1.15rem; color: var(--color-text-muted); padding: 0 20px 16px; display: block; text-align: center;">(ใครสนใจพรูฟ
+                Report ไป Register ใน หน้า Database ได้เลยนะ)</span>
 
-            <!-- <span style="display: block; margin-top: 20px;">
-            <a class="small-text"
-                href="https://docs.google.com/spreadsheets/d/12rN8vcykEwgcPFK4LoOj18PEhj7JPhwMfz6uUkKrhJU/edit?usp=sharing"
-                target="_blank">View Report Sheet</a>
-        </span> -->
         </main>
 
         <!-- =========================================
-         IV. Results Table (ส่วนแสดงผลลัพธ์)
+         IV. Results Table
          ========================================= -->
         <select id="submission-filter">
             <option value="all">All Submissions</option>
@@ -2760,67 +2663,54 @@
         </select>
 
         <button id="jump-to-current-btn" class="quiz-button"
-            style="background-color: var(--color-primary); width: 100%; max-width: 300px; margin-top: 10px; margin-bottom: 1rem;">
+            style="background-color: var(--color-primary); width: 100%; max-width: 280px; margin-top: 9px; margin-bottom: 0.75rem;">
             <i class="fas fa-bullseye"></i> ไปที่ข้อปัจจุบัน (ข้อที่ <span id="btn-current-idx">1</span>)
         </button>
 
-        <div id="submission-cards-container" class="result-cards-grid">
-            <!-- Cards จะถูกเติมที่นี่โดย JS -->
-        </div>
+        <div id="submission-cards-container" class="result-cards-grid"></div>
 
         <!-- =========================================
-         V. Search Section (ส่วนค้นหา)
+         V. Search Section
          ========================================= -->
         <section id="search-section">
             <h2>ค้นหาจากโจทย์ทั้งหมด</h2>
             <input type="text" id="search-input" placeholder="พิมพ์คำค้นหาในโจทย์, ตัวเลือก, หรือคำอธิบาย...">
 
             <div id="search-suggestions-container"
-                style="width: 100%; max-width: 600px; text-align: left; margin-top: 5px; display: none;">
-                <p class="small-text" style="margin: 0; font-size: 1rem; color: #666;">Did you mean?</p>
+                style="width: 100%; max-width: 560px; text-align: left; margin-top: 4px; display: none;">
+                <p class="small-text" style="margin: 0; font-size: 0.95rem; color: var(--color-text-muted);">Did you
+                    mean?</p>
                 <div id="suggestion-chips" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;"></div>
             </div>
 
-            <div style="width: 100%; max-width: 600px; text-align: left; margin-top: 5px;">
-                <small style="color: #666; cursor: pointer;" onclick="$('#search-help').slideToggle()">
+            <div style="width: 100%; max-width: 560px; text-align: left; margin-top: 4px;">
+                <small style="color: var(--color-text-muted); cursor: pointer;"
+                    onclick="$('#search-help').slideToggle()">
                     <i class="fas fa-info-circle"></i> วิธีใช้การค้นหา (คลิกเพื่อดู)
                 </small>
                 <div id="search-help"
-                    style="display: none; background: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid #ddd; margin-top: 5px; font-size: 1.2rem; line-height: 1.4;">
+                    style="display: none; background: var(--color-surface-2); padding: 9px; border-radius: 6px; border: 1px solid var(--color-border); margin-top: 5px; font-size: 1.1rem; line-height: 1.4;">
                     เทคนิคการค้นหา:<br>
-                    1. ค้นหาเจาะจง (Exact): ใช้เครื่องหมายคำพูด เช่น "กระเพาะอาหาร"<br>
-                    2. ค้นหาหลายคำ (OR): "superior" <u>OR</u> "inferior" จะหาข้อที่มีคำว่า "superior" หรือ
-                    "inferior"<br>
-                    3. ต้องมีทุกคำ (AND): "superior" <u>AND</u> "inferior" (หาข้อที่มีทั้ง 2 คำนี้)<br>
-                    4. ไม่ต้องการคำนี้ (NOT): "superior" <u>NOT</u> "inferior" (เอาข้อที่มี "superior" แต่ไม่มี
-                    "inferior")
+                    1. Exact: "กระเพาะอาหาร"<br>
+                    2. OR: "superior" OR "inferior"<br>
+                    3. AND: "superior" AND "inferior"<br>
+                    4. NOT: "superior" NOT "inferior"
                 </div>
             </div>
             <button id="search-btn" class="quiz-button btn-dark">ค้นหา</button>
-            <div id="search-results-container">
-                <!-- Search results will be displayed here as a table -->
-            </div>
+            <div id="search-results-container"></div>
         </section>
     </div>
 
     <!-- =========================================
-     VI. Floating Action Buttons (FABs)
+     VI. Floating Action Buttons
      ========================================= -->
     <div class="fab-container">
-        <!-- ปุ่ม Zoom In -->
-        <button id="zoom-in-btn" class="fab" title="ขยายหน้าจอ" style="background-color: #28a745;">
-            <i class="fas fa-search-plus"></i>
-        </button>
-        <!-- ปุ่ม Zoom Out -->
-        <button id="zoom-out-btn" class="fab" title="ลดขนาดหน้าจอ" style="background-color: #dc3545;">
-            <i class="fas fa-search-minus"></i>
-        </button>
-        <button id="scroll-to-search-btn" class="fab" title="เลื่อนไปส่วนค้นหา">
-            <i class="fas fa-search"></i>
-        </button>
-        <button id="scroll-to-quiz-btn" class="fab" title="เลื่อนไปส่วนคำถาม">
-            <i class="fas fa-arrow-up"></i>
-        </button>
+        <button id="zoom-in-btn" class="fab" title="ขยายหน้าจอ"><i class="fas fa-search-plus"></i></button>
+        <button id="zoom-out-btn" class="fab" title="ลดขนาด"><i class="fas fa-search-minus"></i></button>
+        <button id="scroll-to-search-btn" class="fab" title="ไปส่วนค้นหา" style="background: var(--color-primary);"><i
+                class="fas fa-search"></i></button>
+        <button id="scroll-to-quiz-btn" class="fab" title="ไปส่วนคำถาม"><i class="fas fa-arrow-up"></i></button>
     </div>
 
     <div id="pdf-progress-widget">
@@ -2831,11 +2721,97 @@
         <div class="progress-bar-bg">
             <div id="pdf-bar-fill" class="progress-bar-fill"></div>
         </div>
-        <div id="pdf-status-text" class="progress-status">
-            กำลังเตรียมข้อมูล...
-        </div>
+        <div id="pdf-status-text" class="progress-status">กำลังเตรียมข้อมูล...</div>
     </div>
 
+    <script>
+        function renderAllMath() {
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false }
+                    ],
+                    throwOnError: false
+                });
+            }
+        }
+
+        // =========================================
+        // INDEX PANEL: render & toggle (NEW)
+        // =========================================
+        function renderIndexPanel() {
+            if (typeof currentQuestions === 'undefined' || !currentQuestions.length) return;
+
+            const $grid = $('#index-dot-grid');
+            $grid.empty();
+
+            let correct = 0, wrong = 0;
+            currentQuestions.forEach((q, idx) => {
+                let cls = 'index-dot';
+                let title = `ข้อที่ ${idx + 1}`;
+
+                if (idx === questionIndex) {
+                    cls += ' idx-current';
+                    title += ' (ปัจจุบัน)';
+                } else if (q.state) {
+                    if (q.select === q.answer) {
+                        cls += ' idx-correct';
+                        correct++;
+                        title += ' ✓ ถูก';
+                    } else {
+                        cls += ' idx-wrong';
+                        wrong++;
+                        title += ' ✗ ผิด';
+                    }
+                }
+
+                $grid.append(
+                    `<div class="${cls}" title="${title}" onclick="jumpToQuestion(${idx})">${idx + 1}</div>`
+                );
+            });
+
+            $('#index-score-badge-header').text(`${correct + (currentQuestions[questionIndex]?.state && currentQuestions[questionIndex]?.select === currentQuestions[questionIndex]?.answer ? 0 : 0)} ถูก / ${currentQuestions.length}`);
+
+            // Count from full array
+            let totalCorrect = currentQuestions.filter(q => q.state && q.select === q.answer).length;
+            $('#index-score-badge-header').text(`${totalCorrect} / ${currentQuestions.length}`);
+        }
+
+        $(function () {
+            // Toggle Index Panel
+            $('#index-panel-header').on('click', function () {
+                const $grid = $('#index-grid-container');
+                const $icon = $('#index-panel-toggle-icon');
+                const isOpen = $grid.hasClass('open');
+
+                if (isOpen) {
+                    $grid.removeClass('open');
+                    $icon.removeClass('open');
+                } else {
+                    $grid.addClass('open');
+                    $icon.addClass('open');
+                    renderIndexPanel();
+                }
+            });
+
+            // Hook into existing showQuestion / nextQuestion / prevQuestion lifecycle
+            // by wrapping with a MutationObserver on #questionIndex text changes
+            const questionIndexEl = document.getElementById('questionIndex');
+            if (questionIndexEl) {
+                const observer = new MutationObserver(() => {
+                    if ($('#index-grid-container').hasClass('open')) {
+                        renderIndexPanel();
+                    }
+                });
+                observer.observe(questionIndexEl, { childList: true, characterData: true, subtree: true });
+            }
+        });
+    </script>
+
+    <!-- =========================================
+       VII. All original JS (unchanged) — paste here
+     ========================================= -->
     <script>
 
         function renderAllMath() {
@@ -3270,8 +3246,8 @@
                             const $content = $('#report-details-content');
 
                             let html = `<p style="font-size: 1.3rem; margin-bottom: 5px;">
-                                มี <strong>${data.count}</strong> รายการแจ้งปัญหาที่ยังรอการตรวจสอบในวิชานี้
-                            </p>`;
+                                    มี <strong>${data.count}</strong> รายการแจ้งปัญหาที่ยังรอการตรวจสอบในวิชานี้
+                                </p>`;
 
                             // แสดงตัวอย่าง (Snippet)
                             if (data.samples && data.samples.length > 0) {
@@ -3332,15 +3308,15 @@
                 let statusSuffix = current_question.state && current_question.select === current_question.answer ? " | สถานะ: ทำถูกแล้ว ✅" : "";
 
                 $('#quiz-container h1').html(`
-        Random Quiz | ข้อที่ <span id="questionIndex">${questionIndex + 1}/${currentQuestions.length}</span> | 
-        คะแนน: <span id="score">${score}/${currentQuestions.length}</span>
-        <div style="font-size: 0.9em; margin-top: 5px; color: #666;">
-            (เหลือด้านหน้า: ${unansweredForward} ข้อ${skipWarning})
-        </div>
-        <div style="font-size: 0.9em; color: ${statusColor};">
-            ข้อนี้ทำไป: ${current_question.attemptCount} | ผิด: ${current_question.failCount}${statusSuffix}
-        </div>
-    `);
+            Random Quiz | ข้อที่ <span id="questionIndex">${questionIndex + 1}/${currentQuestions.length}</span> | 
+            คะแนน: <span id="score">${score}/${currentQuestions.length}</span>
+            <div style="font-size: 0.9em; margin-top: 5px; color: #666;">
+                (เหลือด้านหน้า: ${unansweredForward} ข้อ${skipWarning})
+            </div>
+            <div style="font-size: 0.9em; color: ${statusColor};">
+                ข้อนี้ทำไป: ${current_question.attemptCount} | ผิด: ${current_question.failCount}${statusSuffix}
+            </div>
+        `);
             }
 
             // --- Question Flow ---
@@ -3845,18 +3821,18 @@
                     : `<b style="color: ${textColor};">รอ Admin ตรวจสอบ</b>`;
 
                 const html = `
-                <div id="quick-vote-badge"
-                    data-category-id="${topVote.categoryId}"
-                    style="margin-top: -10px; margin-bottom: 10px; padding: 10px 20px; border-radius: 25px; 
-                         background-color: ${bgColor}; color: ${textColor}; font-weight: 700; 
-                         display: flex; align-items: center; justify-content: center; cursor: pointer;
-                         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border: 2px solid ${textColor};
-                         transition: all 0.3s ease-in-out; z-index: 10;">
-                    <i class="fas fa-tags" style="margin-right: 8px;"></i>
-                    <span style="font-size: 1.2rem; margin-right: 12px;">เสนอหัวข้อ: <b>${categoryName}</b></span>
-                    <span style="font-size: 1.1rem; font-weight: 600;">(${statusText})</span>
-                </div>
-            `;
+                    <div id="quick-vote-badge"
+                        data-category-id="${topVote.categoryId}"
+                        style="margin-top: -10px; margin-bottom: 10px; padding: 10px 20px; border-radius: 25px; 
+                             background-color: ${bgColor}; color: ${textColor}; font-weight: 700; 
+                             display: flex; align-items: center; justify-content: center; cursor: pointer;
+                             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border: 2px solid ${textColor};
+                             transition: all 0.3s ease-in-out; z-index: 10;">
+                        <i class="fas fa-tags" style="margin-right: 8px;"></i>
+                        <span style="font-size: 1.2rem; margin-right: 12px;">เสนอหัวข้อ: <b>${categoryName}</b></span>
+                        <span style="font-size: 1.1rem; font-weight: 600;">(${statusText})</span>
+                    </div>
+                `;
 
                 $bar.html(html);
 
@@ -3952,38 +3928,38 @@
                         }
 
                         return `
-                <input type="checkbox" id="cat-${t.categoryId}" 
-                       data-category-id="${t.categoryId}" 
-                       name="category" value="${t.categoryId}" hidden>
-                <label for="cat-${t.categoryId}" class="toggle-button ${colorClass}" title="${t.categoryName}">
-                    ${t.categoryName} <span style="font-size: 0.85em; opacity: 0.8;">${displayCount}</span>
-                </label>
-            `;
+                    <input type="checkbox" id="cat-${t.categoryId}" 
+                           data-category-id="${t.categoryId}" 
+                           name="category" value="${t.categoryId}" hidden>
+                    <label for="cat-${t.categoryId}" class="toggle-button ${colorClass}" title="${t.categoryName}">
+                        ${t.categoryName} <span style="font-size: 0.85em; opacity: 0.8;">${displayCount}</span>
+                    </label>
+                `;
                     }).join('');
 
                     // --- เพิ่มคำอธิบายตรงหัวข้อ Accordion ตามสไตล์ที่ระบุ ---
                     const helperText = !isExcludedGroup
                         ? `
-                        <span style="margin-left: 10px; background-color: #e0e0e0; color: #333; border-radius: 12px; font-size: 0.9rem;">
-                <span style="font-size: 1.2rem; font-weight: 700; color: #999;"> (</span>
-                <span style="font-size: 1.2rem; font-weight: 900; color: #444;">คำถามที่แยกเลคแล้ว</span>
-                <span style="font-size: 1.2rem; font-weight: 700; color: #999;">/คำถามทั้งหมด)</span>
-                </span>`
+                            <span style="margin-left: 10px; background-color: #e0e0e0; color: #333; border-radius: 12px; font-size: 0.9rem;">
+                    <span style="font-size: 1.2rem; font-weight: 700; color: #999;"> (</span>
+                    <span style="font-size: 1.2rem; font-weight: 900; color: #444;">คำถามที่แยกเลคแล้ว</span>
+                    <span style="font-size: 1.2rem; font-weight: 700; color: #999;">/คำถามทั้งหมด)</span>
+                    </span>`
                         : "";
 
                     let html = `
-            <details class="accordion-group" data-group-name="${groupName}">
-                <summary class="accordion-header">
-                    <i class="fas fa-folder" style="margin-right: 10px; color: black;"></i> 
-                    <span style="white-space: nowrap;">${groupName}</span>
-                    ${helperText}
-                    <span class="selected-count-badge">0</span>
-                </summary>
-                <div class="button-grid">
-                    ${categoryButtons}
-                </div>
-            </details>
-        `;
+                <details class="accordion-group" data-group-name="${groupName}">
+                    <summary class="accordion-header">
+                        <i class="fas fa-folder" style="margin-right: 10px; color: black;"></i> 
+                        <span style="white-space: nowrap;">${groupName}</span>
+                        ${helperText}
+                        <span class="selected-count-badge">0</span>
+                    </summary>
+                    <div class="button-grid">
+                        ${categoryButtons}
+                    </div>
+                </details>
+            `;
                     $container.append(html);
                 }
 
@@ -4012,9 +3988,9 @@
                     // หาชื่อ Category จาก globalStructure
                     const categoryName = getCategoryNameById(categoryId);
                     const html = `
-                    <span class="category-badge approved" title="หัวข้อนี้ถูกยืนยันแล้ว">
-                        ${categoryName} <i class="fas fa-check" style="margin-left:5px;"></i>
-                    </span>`;
+                        <span class="category-badge approved" title="หัวข้อนี้ถูกยืนยันแล้ว">
+                            ${categoryName} <i class="fas fa-check" style="margin-left:5px;"></i>
+                        </span>`;
                     $container.append(html);
                 });
             }
@@ -4037,11 +4013,11 @@
                         const labelName = categoryObj ? categoryObj.categoryName : categoryId;
 
                         $status.append(`
-                <button class="status-category-button" title="คลิกเพื่อเอาออก" 
-                        onclick="uncheckCategory('${categoryId.replace(/'/g, "\\'")}')">
-                    ${labelName} <i class="fas fa-times"></i>
-                </button>
-            `);
+                    <button class="status-category-button" title="คลิกเพื่อเอาออก" 
+                            onclick="uncheckCategory('${categoryId.replace(/'/g, "\\'")}')">
+                        ${labelName} <i class="fas fa-times"></i>
+                    </button>
+                `);
                     });
                 }
 
@@ -4392,22 +4368,22 @@
                         const imgArray = q.img.split('///').map(url => url.trim()).filter(Boolean);
                         if (imgArray.length > 0) {
                             problemMedia = `
-                            <div class="search-card-images" style="margin: 10px 0;">
-                                <div class="search-image-gallery" style="position: relative; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 8px; padding: 10px; min-height: 250px;">
-                                    <img src="${transformUrl(imgArray[0])}" class="search-gallery-main-img" style="max-width: 100%; max-height: 400px; object-fit: contain; cursor: pointer;" data-img-index="0">
-                                    ${imgArray.length > 1 ? `
-                                    <button class="search-gallery-prev" style="position: absolute; left: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
-                                        <i class="fas fa-chevron-left"></i>
-                                    </button>
-                                    <button class="search-gallery-next" style="position: absolute; right: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
-                                        <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                    <div class="search-gallery-counter" style="position: absolute; bottom: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;">
-                                        1 / ${imgArray.length}
+                                <div class="search-card-images" style="margin: 10px 0;">
+                                    <div class="search-image-gallery" style="position: relative; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 8px; padding: 10px; min-height: 250px;">
+                                        <img src="${transformUrl(imgArray[0])}" class="search-gallery-main-img" style="max-width: 100%; max-height: 400px; object-fit: contain; cursor: pointer;" data-img-index="0">
+                                        ${imgArray.length > 1 ? `
+                                        <button class="search-gallery-prev" style="position: absolute; left: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <button class="search-gallery-next" style="position: absolute; right: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                        <div class="search-gallery-counter" style="position: absolute; bottom: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;">
+                                            1 / ${imgArray.length}
+                                        </div>
+                                        ` : ''}
                                     </div>
-                                    ` : ''}
-                                </div>
-                            </div>`;
+                                </div>`;
 
                             setTimeout(() => {
                                 const $card = $(`.result-card[data-search-idx="${realIdx}"]`);
@@ -4450,29 +4426,29 @@
                     const isFirstInList = topRowQ && q.questionId === topRowQ.questionId;
 
                     cardsHtml += `
-              <div class="result-card ${isCorrect ? 'is-correct' : 'is-incorrect'} ${isFirstInList ? 'current-active' : ''}" data-search-idx="${realIdx}"
-                 onclick="jumpToQuestion(${realIdx})">
-                <div class="search-card-header">
-                    <span class="search-card-category"><i class="fas fa-folder"></i> ${categoryLabel}</span>
-                    <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">ข้อที่ ${realIdx + 1} ${isThisCurrent ? '(ปัจจุบัน)' : ''}</span>
-                </div>
-                <div class="result-card-body">
-                    <div class="search-card-problem">${q.problem.startsWith('<svg') ? '[SVG โจทย์]' : q.problem.replace(/\n/g, '<br>')}</div>
-                    ${problemMedia}
-                    <ul class="search-card-choices"><b>ตัวเลือก:</b> ${choicesList}</ul>
-                    <div class="result-ans-box user-ans"><small>คุณตอบ:</small><br><b>${renderContent(q.select)}</b></div>
-                    ${!isCorrect ? `<div class="result-ans-box correct-ans"><small>เฉลยที่ถูก:</small><br><b>${renderContent(q.answer)}</b></div>` : ''}
-                </div>
-                ${q.explain ? `<div class="search-card-footer"><b>อธิบาย:</b><br>${q.explain}</div>` : ''}
-                <div class="search-card-actions">
-                    <button class="btn-search-action btn-search-report" onclick="event.stopPropagation(); openReportModal(window.currentQuestions[${realIdx}])">
-                        <i class="fas fa-exclamation-triangle"></i> แจ้งปัญหา
-                    </button>
-                    <button class="btn-search-action btn-search-vote" onclick="event.stopPropagation(); openVoteModal(window.currentQuestions[${realIdx}], false)">
-                        <i class="fas fa-tags"></i> แยกเลค
-                    </button>
-                </div>
-            </div>`;
+                  <div class="result-card ${isCorrect ? 'is-correct' : 'is-incorrect'} ${isFirstInList ? 'current-active' : ''}" data-search-idx="${realIdx}"
+                     onclick="jumpToQuestion(${realIdx})">
+                    <div class="search-card-header">
+                        <span class="search-card-category"><i class="fas fa-folder"></i> ${categoryLabel}</span>
+                        <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">ข้อที่ ${realIdx + 1} ${isThisCurrent ? '(ปัจจุบัน)' : ''}</span>
+                    </div>
+                    <div class="result-card-body">
+                        <div class="search-card-problem">${q.problem.startsWith('<svg') ? '[SVG โจทย์]' : q.problem.replace(/\n/g, '<br>')}</div>
+                        ${problemMedia}
+                        <ul class="search-card-choices"><b>ตัวเลือก:</b> ${choicesList}</ul>
+                        <div class="result-ans-box user-ans"><small>คุณตอบ:</small><br><b>${renderContent(q.select)}</b></div>
+                        ${!isCorrect ? `<div class="result-ans-box correct-ans"><small>เฉลยที่ถูก:</small><br><b>${renderContent(q.answer)}</b></div>` : ''}
+                    </div>
+                    ${q.explain ? `<div class="search-card-footer"><b>อธิบาย:</b><br>${q.explain}</div>` : ''}
+                    <div class="search-card-actions">
+                        <button class="btn-search-action btn-search-report" onclick="event.stopPropagation(); openReportModal(window.currentQuestions[${realIdx}])">
+                            <i class="fas fa-exclamation-triangle"></i> แจ้งปัญหา
+                        </button>
+                        <button class="btn-search-action btn-search-vote" onclick="event.stopPropagation(); openVoteModal(window.currentQuestions[${realIdx}], false)">
+                            <i class="fas fa-tags"></i> แยกเลค
+                        </button>
+                    </div>
+                </div>`;
                 });
 
                 $container.html(cardsHtml);
@@ -4728,7 +4704,7 @@
 
                 // 7. Render เป็น Cards
                 let cardsHtml = `<p class="small-text" style="color: #28a745; font-weight: bold; width: 100%;">พบ ${searchResults.length} ข้อ</p>
-                     <div class="search-results-grid">`;
+                         <div class="search-results-grid">`;
 
                 searchResults.forEach((q, index) => {
                     let categoryLabel = 'Unknown';
@@ -4744,22 +4720,22 @@
                         const imgArray = q.img.split('///').map(url => url.trim()).filter(Boolean);
                         if (imgArray.length > 0) {
                             problemImgs = `
-                            <div class="search-card-images" style="margin: 10px 0;">
-                                <div class="search-image-gallery" style="position: relative; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 8px; padding: 10px; min-height: 250px;">
-                                    <img src="${transformUrl(imgArray[0])}" class="search-gallery-main-img" style="max-width: 100%; max-height: 400px; object-fit: contain; cursor: pointer;" data-img-index="0">
-                                    ${imgArray.length > 1 ? `
-                                    <button class="search-gallery-prev" style="position: absolute; left: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
-                                        <i class="fas fa-chevron-left"></i>
-                                    </button>
-                                    <button class="search-gallery-next" style="position: absolute; right: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
-                                        <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                    <div class="search-gallery-counter" style="position: absolute; bottom: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;">
-                                        1 / ${imgArray.length}
+                                <div class="search-card-images" style="margin: 10px 0;">
+                                    <div class="search-image-gallery" style="position: relative; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 8px; padding: 10px; min-height: 250px;">
+                                        <img src="${transformUrl(imgArray[0])}" class="search-gallery-main-img" style="max-width: 100%; max-height: 400px; object-fit: contain; cursor: pointer;" data-img-index="0">
+                                        ${imgArray.length > 1 ? `
+                                        <button class="search-gallery-prev" style="position: absolute; left: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <button class="search-gallery-next" style="position: absolute; right: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                        <div class="search-gallery-counter" style="position: absolute; bottom: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;">
+                                            1 / ${imgArray.length}
+                                        </div>
+                                        ` : ''}
                                     </div>
-                                    ` : ''}
-                                </div>
-                            </div>`;
+                                </div>`;
 
                             // Store image array in data attribute for navigation
                             setTimeout(() => {
@@ -4803,34 +4779,34 @@
                     let answerDisplay = isUrl(q.answer) ? `<img src="${transformUrl(q.answer)}" style="max-height:60px;">` : highlight(q.answer);
 
                     cardsHtml += `
-            <div class="search-card" data-search-idx="${index}">
-                <div class="search-card-header">
-                    <span class="search-card-category">${categoryLabel}</span>
-                    <span class="search-card-relevance">Match</span>
-                </div>
-                <div class="search-card-body">
-                    <div class="search-card-problem">${highlight(q.problem).replace(/\n/g, '<br>')}</div>
-                    ${problemImgs}
-                    <ul class="search-card-choices">${choicesList}</ul>
-                </div>
-                <div class="search-card-answer">
-                    <b>เฉลย:</b>
-                    <div class="search-card-answer-val">${answerDisplay}</div>
-                </div>
-                ${q.explain ? `
-                <div class="search-card-footer">
-                    <b>คำอธิบาย:</b><br>
-                    ${highlight(q.explain).replace(/\n/g, '<br>')}
-                </div>` : ''}
-                <div class="search-card-actions">
-                    <button class="btn-search-action btn-search-report" data-idx="${index}">
-                        <i class="fas fa-exclamation-triangle"></i> แจ้งปัญหา
-                    </button>
-                    <button class="btn-search-action btn-search-vote" data-idx="${index}">
-                        <i class="fas fa-tags"></i> แยกเลค
-                    </button>
-                </div>
-            </div>`;
+                <div class="search-card" data-search-idx="${index}">
+                    <div class="search-card-header">
+                        <span class="search-card-category">${categoryLabel}</span>
+                        <span class="search-card-relevance">Match</span>
+                    </div>
+                    <div class="search-card-body">
+                        <div class="search-card-problem">${highlight(q.problem).replace(/\n/g, '<br>')}</div>
+                        ${problemImgs}
+                        <ul class="search-card-choices">${choicesList}</ul>
+                    </div>
+                    <div class="search-card-answer">
+                        <b>เฉลย:</b>
+                        <div class="search-card-answer-val">${answerDisplay}</div>
+                    </div>
+                    ${q.explain ? `
+                    <div class="search-card-footer">
+                        <b>คำอธิบาย:</b><br>
+                        ${highlight(q.explain).replace(/\n/g, '<br>')}
+                    </div>` : ''}
+                    <div class="search-card-actions">
+                        <button class="btn-search-action btn-search-report" data-idx="${index}">
+                            <i class="fas fa-exclamation-triangle"></i> แจ้งปัญหา
+                        </button>
+                        <button class="btn-search-action btn-search-vote" data-idx="${index}">
+                            <i class="fas fa-tags"></i> แยกเลค
+                        </button>
+                    </div>
+                </div>`;
                 });
 
                 cardsHtml += `</div>`;
@@ -4910,12 +4886,12 @@
 
                     // สร้าง Badge สำหรับแสดงใน Modal
                     const $badge = $(`
-            <div class="category-badge suggested" title="คลิกเพื่อโหวตเห็นด้วย">
-                ${categoryName} 
-                <span class="vote-count-badge">${currentCount} <i class="fas fa-user"></i></span>
-                <span class="votes-remaining-text" style="font-size: 0.85rem; margin-left: 5px; color: #ffeb3b; font-weight: 700;">(${statusText})</span>
-            </div>
-        `);
+                <div class="category-badge suggested" title="คลิกเพื่อโหวตเห็นด้วย">
+                    ${categoryName} 
+                    <span class="vote-count-badge">${currentCount} <i class="fas fa-user"></i></span>
+                    <span class="votes-remaining-text" style="font-size: 0.85rem; margin-left: 5px; color: #ffeb3b; font-weight: 700;">(${statusText})</span>
+                </div>
+            `);
 
                     // ตั้งค่า Event เมื่อคลิกโหวตที่หัวข้อนั้นๆ
                     $badge.off('click').on('click', function () {
@@ -4992,9 +4968,9 @@
                     const remaining = MAX_AUTO_VOTE - sessionAutoVoteCount;
                     $msgContainer.css({ 'background-color': '#f8d7da', 'color': '#721c24', 'border': '1px solid #f5c6cb' });
                     $msgContainer.html(`
-            <h6 style="margin:0; font-weight:800; font-size:1.2rem;"><i class="fas fa-exclamation-circle"></i> ช่วยกันแยกเลคเชอร์หน่อยนะครับ 1 ครั้งที่ใช้เว็บจะให้ช่วยแยกแค่คนละ 2 ข้อ</h6>
-            <h1 style="margin:5px 0 0 0; font-size:1.5rem; text-align:left; color:#721c24;">เหลืออีก ${remaining} ข้อครับ 🙏</h1>
-        `);
+                <h6 style="margin:0; font-weight:800; font-size:1.2rem;"><i class="fas fa-exclamation-circle"></i> ช่วยกันแยกเลคเชอร์หน่อยนะครับ 1 ครั้งที่ใช้เว็บจะให้ช่วยแยกแค่คนละ 2 ข้อ</h6>
+                <h1 style="margin:5px 0 0 0; font-size:1.5rem; text-align:left; color:#721c24;">เหลืออีก ${remaining} ข้อครับ 🙏</h1>
+            `);
                 } else {
                     $msgContainer.css({ 'background-color': '#d1e7dd', 'color': '#0f5132', 'border': '1px solid #badbcc' });
                     $msgContainer.html(`<h6 style="margin:0; font-weight:800; font-size:1.2rem;"><i class="fas fa-info-circle"></i> ช่วยระบุเลคเชอร์ เพื่อให้เพื่อนๆ เลือกฝึกทำเฉพาะบทเรียนได้แม่นยำขึ้น</h6>`);
@@ -5060,8 +5036,8 @@
                     if (cats.length === 0) continue;
 
                     let html = `<div class="quick-cat-group">
-                        <div class="quick-cat-group-title">${groupName} <span>${cats.length} เลค</span></div>
-                        <div class="quick-cat-grid">`;
+                            <div class="quick-cat-group-title">${groupName} <span>${cats.length} เลค</span></div>
+                            <div class="quick-cat-grid">`;
 
                     cats.forEach(c => {
                         // ตรวจสอบว่าใน q.category ของข้อปัจจุบัน มี ID นี้หรือยัง
@@ -5075,11 +5051,11 @@
                         const clickEvent = isAlreadySelected ? "" : `onclick="handleQuickVote('${c.categoryId}', '${c.categoryName.replace(/'/g, "\\'")}')"`;
 
                         html += `<button class="btn-quick-cat ${colorMap[groupName]}" 
-                    style="${btnStyle}"
-                    ${clickEvent}
-                    title="${c.categoryName}">
-                    ${c.categoryName}${checkMark}
-                 </button>`;
+                        style="${btnStyle}"
+                        ${clickEvent}
+                        title="${c.categoryName}">
+                        ${c.categoryName}${checkMark}
+                     </button>`;
                     });
 
                     html += `</div></div>`;
@@ -5169,24 +5145,24 @@
                 });
 
                 const rowHtml = `
-        <div class="vote-row">
-            <button class="btn-remove-row"><i class="fas fa-minus"></i></button>
-            
-            <div style="flex:1;">
-                <select class="vote-select subject-select" style="width:100%; margin-bottom:5px;">${subjectOptions}</select>
+            <div class="vote-row">
+                <button class="btn-remove-row"><i class="fas fa-minus"></i></button>
+                
+                <div style="flex:1;">
+                    <select class="vote-select subject-select" style="width:100%; margin-bottom:5px;">${subjectOptions}</select>
+                </div>
+                
+                <div style="flex:1;">
+                    <select class="vote-select group-select" disabled style="width:100%; margin-bottom:5px;"><option value="">-- เลือกกลุ่ม (LEC Only) --</option></select>
+                    <span class="warning-text group-warning" style="display:none; color:#e65100; font-size:0.9rem; font-weight:bold;"><i class="fas fa-exclamation-triangle"></i> มีหลายกลุ่ม โปรดเลือก</span>
+                </div>
+    
+                <div style="flex:1;">
+                    <select class="vote-select category-select" disabled style="width:100%; margin-bottom:5px;"><option value="">-- เลือกหัวข้อ --</option></select>
+                    <span class="warning-text category-warning" style="display:none; color:#e65100; font-size:0.9rem; font-weight:bold;"><i class="fas fa-exclamation-triangle"></i> มีหลายหัวข้อ โปรดเลือก</span>
+                </div>
             </div>
-            
-            <div style="flex:1;">
-                <select class="vote-select group-select" disabled style="width:100%; margin-bottom:5px;"><option value="">-- เลือกกลุ่ม (LEC Only) --</option></select>
-                <span class="warning-text group-warning" style="display:none; color:#e65100; font-size:0.9rem; font-weight:bold;"><i class="fas fa-exclamation-triangle"></i> มีหลายกลุ่ม โปรดเลือก</span>
-            </div>
-
-            <div style="flex:1;">
-                <select class="vote-select category-select" disabled style="width:100%; margin-bottom:5px;"><option value="">-- เลือกหัวข้อ --</option></select>
-                <span class="warning-text category-warning" style="display:none; color:#e65100; font-size:0.9rem; font-weight:bold;"><i class="fas fa-exclamation-triangle"></i> มีหลายหัวข้อ โปรดเลือก</span>
-            </div>
-        </div>
-    `;
+        `;
 
                 const $row = $(rowHtml);
                 $('#vote-rows-container').append($row);
@@ -5420,228 +5396,228 @@
                     }, 3000);
                 }
             }
-            
+
             // Function 1: Save the results of the quiz (only answered questions)
 
-                async function saveResultsToPdf() {
-                    // --- 1. DATA PREPARATION ---
-                    const save = {
-                        category: [],
-                        questions: currentQuestions,
-                        score: score,
-                    };
-                    globalStructure.category.forEach(category => {
-                        // แก้ไข: ใช้ document.getElementById แทน $(...) เพื่อรองรับ ID ที่มีช่องว่าง/วงเล็บ
-                        const catEl = document.getElementById(`cat-${category.categoryId}`);
-                        if (catEl && catEl.checked) {
-                            save.category.push(category.categoryName);
-                        }
-                    });
+            async function saveResultsToPdf() {
+                // --- 1. DATA PREPARATION ---
+                const save = {
+                    category: [],
+                    questions: currentQuestions,
+                    score: score,
+                };
+                globalStructure.category.forEach(category => {
+                    // แก้ไข: ใช้ document.getElementById แทน $(...) เพื่อรองรับ ID ที่มีช่องว่าง/วงเล็บ
+                    const catEl = document.getElementById(`cat-${category.categoryId}`);
+                    if (catEl && catEl.checked) {
+                        save.category.push(category.categoryName);
+                    }
+                });
 
-                    const totalQuestions = currentQuestions.length;
-                    const startTime = Date.now();
-                    $('#pdf-pc-text').text('0%');
-                    $('#pdf-bar-fill').css('width', '0%');
-                    $('#pdf-progress-widget').fadeIn();
+                const totalQuestions = currentQuestions.length;
+                const startTime = Date.now();
+                $('#pdf-pc-text').text('0%');
+                $('#pdf-bar-fill').css('width', '0%');
+                $('#pdf-progress-widget').fadeIn();
 
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
-                    doc.addFileToVFS('THSarabunNew.ttf', thSarabunBase64);
-                    doc.addFont('THSarabunNew.ttf', 'THSarabunNew', 'normal');
-                    doc.setFont('THSarabunNew');
+                doc.addFileToVFS('THSarabunNew.ttf', thSarabunBase64);
+                doc.addFont('THSarabunNew.ttf', 'THSarabunNew', 'normal');
+                doc.setFont('THSarabunNew');
 
-                    let y = 15;
-                    const pageMargin = 15;
-                    const pageHeight = doc.internal.pageSize.getHeight();
-                    const pageWidth = doc.internal.pageSize.getWidth();
-                    const contentWidth = pageWidth - (pageMargin * 2);
-                    const lineHeight = 8;
-                    const itemSpacing = 4;
-                    const blockSpacing = 12;
+                let y = 15;
+                const pageMargin = 15;
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const contentWidth = pageWidth - (pageMargin * 2);
+                const lineHeight = 8;
+                const itemSpacing = 4;
+                const blockSpacing = 12;
 
-                    const checkPageBreak = (requiredHeight) => {
-                        if (y + requiredHeight > pageHeight - pageMargin) {
-                            doc.addPage();
-                            y = pageMargin;
-                        }
-                    };
+                const checkPageBreak = (requiredHeight) => {
+                    if (y + requiredHeight > pageHeight - pageMargin) {
+                        doc.addPage();
+                        y = pageMargin;
+                    }
+                };
 
-                    // HEADER
-                    doc.setFontSize(18);
-                    doc.text("สรุปผลการทำแบบทดสอบ (Quiz Result)", pageWidth / 2, y, { align: 'center' });
-                    y += lineHeight + itemSpacing;
+                // HEADER
+                doc.setFontSize(18);
+                doc.text("สรุปผลการทำแบบทดสอบ (Quiz Result)", pageWidth / 2, y, { align: 'center' });
+                y += lineHeight + itemSpacing;
 
+                doc.setFontSize(16);
+                doc.text(`คะแนน: ${score}/${save.questions.length}`, pageMargin, y);
+                y += blockSpacing;
+
+                // BODY LOOP
+                for (const [index, q] of save.questions.entries()) {
+                    updatePdfProgress(index + 1, totalQuestions, startTime);
+                    if (index % 2 === 0) await new Promise(r => setTimeout(r, 100)); // ให้โอกาสอัปเดต Progress ทุก 2 ข้อ 
+
+                    const questionText = `${index + 1}. ${q.problem.replace(/\n/g, ' ')}`;
+
+                    // 1. เตรียมข้อความ Category (ดึงเฉพาะชื่อแรกที่สั้นและไม่ใช่ Uncategorized/Extracted)
+                    const qCategories = Array.isArray(q.category) ? q.category : (q.category ? [q.category] : []);
+                    const categoryNames = qCategories.map(id => getCategoryNameById(id))
+                        .filter(name => name !== 'Uncategorized' && !name.includes('(Extracted)'));
+                    const categoryDisplay = categoryNames.length > 0 ? `[${categoryNames[0]}]` : "";
+
+                    // 2. คำนวณความสูงโจทย์ + พื้นที่สำหรับ Category
+                    const splitQuestion = doc.splitTextToSize(questionText, contentWidth);
+                    let qHeight = splitQuestion.length * (lineHeight - 1);
+                    if (categoryDisplay) qHeight += 5; // เพิ่มที่ว่างสำหรับป้ายชื่อหัวข้อ
+
+                    checkPageBreak(qHeight + blockSpacing);
+
+                    // 3. วาดตัวโจทย์ (สีดำ)
                     doc.setFontSize(16);
-                    doc.text(`คะแนน: ${score}/${save.questions.length}`, pageMargin, y);
-                    y += blockSpacing;
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(splitQuestion, pageMargin, y);
+                    y += (splitQuestion.length * (lineHeight - 1));
 
-                    // BODY LOOP
-                    for (const [index, q] of save.questions.entries()) {
-                        updatePdfProgress(index + 1, totalQuestions, startTime);
-                        if (index % 2 === 0) await new Promise(r => setTimeout(r, 100)); // ให้โอกาสอัปเดต Progress ทุก 2 ข้อ 
+                    // 4. วาดชื่อ Category (สีเทา ขนาดเล็ก เหมือนใน Practice PDF)
+                    if (categoryDisplay) {
+                        y += 2; // เว้นช่องไฟจากตัวโจทย์นิดนึง
+                        doc.setFontSize(10);
+                        doc.setTextColor(150);
+                        doc.text(categoryDisplay, pageMargin + 2, y);
+                        y += 3; // ขยับ y ลงหลังวาดเสร็จ
 
-                        const questionText = `${index + 1}. ${q.problem.replace(/\n/g, ' ')}`;
-
-                        // 1. เตรียมข้อความ Category (ดึงเฉพาะชื่อแรกที่สั้นและไม่ใช่ Uncategorized/Extracted)
-                        const qCategories = Array.isArray(q.category) ? q.category : (q.category ? [q.category] : []);
-                        const categoryNames = qCategories.map(id => getCategoryNameById(id))
-                            .filter(name => name !== 'Uncategorized' && !name.includes('(Extracted)'));
-                        const categoryDisplay = categoryNames.length > 0 ? `[${categoryNames[0]}]` : "";
-
-                        // 2. คำนวณความสูงโจทย์ + พื้นที่สำหรับ Category
-                        const splitQuestion = doc.splitTextToSize(questionText, contentWidth);
-                        let qHeight = splitQuestion.length * (lineHeight - 1);
-                        if (categoryDisplay) qHeight += 5; // เพิ่มที่ว่างสำหรับป้ายชื่อหัวข้อ
-
-                        checkPageBreak(qHeight + blockSpacing);
-
-                        // 3. วาดตัวโจทย์ (สีดำ)
+                        // รีเซ็ตค่ากลับเป็นปกติ
+                        doc.setTextColor(0);
                         doc.setFontSize(16);
-                        doc.setTextColor(0, 0, 0);
-                        doc.text(splitQuestion, pageMargin, y);
-                        y += (splitQuestion.length * (lineHeight - 1));
+                    }
 
-                        // 4. วาดชื่อ Category (สีเทา ขนาดเล็ก เหมือนใน Practice PDF)
-                        if (categoryDisplay) {
-                            y += 2; // เว้นช่องไฟจากตัวโจทย์นิดนึง
-                            doc.setFontSize(10);
-                            doc.setTextColor(150);
-                            doc.text(categoryDisplay, pageMargin + 2, y);
-                            y += 3; // ขยับ y ลงหลังวาดเสร็จ
+                    y += itemSpacing;
 
-                            // รีเซ็ตค่ากลับเป็นปกติ
-                            doc.setTextColor(0);
-                            doc.setFontSize(16);
-                        }
-
-                        y += itemSpacing; 
-
-                        // รูปโจทย์ (ถ้ามี)
-                        if (q.img) {
-                            try {
-                                const imgUrls = q.img.split('///').map(url => url.trim()).filter(Boolean);
-                                for (const imgUrl of imgUrls) {
-                                    const base64Img = await convertImgToBase64(transformUrl(imgUrl));
-                                    checkPageBreak(60 + itemSpacing);
-                                    doc.addImage(base64Img, 'JPEG', pageMargin, y, 80, 60); // ปรับขนาดตามต้องการ
-                                    y += 60 + itemSpacing;
-                                }
-                            } catch (e) { console.error(e); }
-                        }
-
-                        // --- ส่วนตัวเลือก (Choices) ---
-                        doc.setFont('THSarabunNew', 'normal');
-                        doc.setFontSize(14);
-                        doc.text("ตัวเลือก:", pageMargin, y);
-                        y += lineHeight;
-
-                        const choicesArray = (q.choices || "").split('///').map(s => s.trim());
-                        for (let i = 0; i < choicesArray.length; i++) {
-                            const choice = choicesArray[i];
-                            const prefix = `${String.fromCharCode(65 + i)}. `;
-
-                            if (choice.startsWith('<svg')) {
-                                checkPageBreak(15);
-                                doc.text(prefix, pageMargin, y + 5);
-                                try {
-                                    const svgB64 = await svgToPngBase64(choice, 100, 100); // แปลงขนาดเล็ก
-                                    doc.addImage(svgB64, 'PNG', pageMargin + 10, y, 10, 10); // ขนาด icon 10x10 มม.
-                                    y += 12; // เว้นบรรทัดน้อยลง
-                                } catch (e) {
-                                    doc.text("[SVG]", pageMargin + 10, y + 5);
-                                    y += lineHeight;
-                                }
+                    // รูปโจทย์ (ถ้ามี)
+                    if (q.img) {
+                        try {
+                            const imgUrls = q.img.split('///').map(url => url.trim()).filter(Boolean);
+                            for (const imgUrl of imgUrls) {
+                                const base64Img = await convertImgToBase64(transformUrl(imgUrl));
+                                checkPageBreak(60 + itemSpacing);
+                                doc.addImage(base64Img, 'JPEG', pageMargin, y, 80, 60); // ปรับขนาดตามต้องการ
+                                y += 60 + itemSpacing;
                             }
-                            else if (isUrl(choice)) {
-                                // ถ้าตัวเลือกเป็นรูป
-                                checkPageBreak(45); // เผื่อที่รูป
-                                doc.text(prefix, pageMargin, y + 5); // วาดตัว A.
-                                try {
-                                    const base64C = await convertImgToBase64(transformUrl(choice));
-                                    doc.addImage(base64C, 'JPEG', pageMargin + 10, y, 50, 40);
-                                    y += 42;
-                                } catch (e) {
-                                    doc.text("[Image Error]", pageMargin + 10, y);
-                                    y += lineHeight;
-                                }
-                            } else {
-                                // ถ้าตัวเลือกเป็นข้อความ
-                                const fullText = prefix + choice;
-                                const splitC = doc.splitTextToSize(fullText, contentWidth);
-                                checkPageBreak(splitC.length * (lineHeight - 2));
-                                doc.text(splitC, pageMargin, y);
-                                y += splitC.length * (lineHeight - 2) + 2;
-                            }
-                        }
-                        y += itemSpacing;
+                        } catch (e) { console.error(e); }
+                    }
 
-                        // --- ส่วนเฉลยและคำตอบของคุณ ---
-                        checkPageBreak(30); // เผื่อที่สำหรับคำตอบ
+                    // --- ส่วนตัวเลือก (Choices) ---
+                    doc.setFont('THSarabunNew', 'normal');
+                    doc.setFontSize(14);
+                    doc.text("ตัวเลือก:", pageMargin, y);
+                    y += lineHeight;
 
-                        // เฉลย (Correct Answer)
-                        doc.setFontSize(16);
-                        doc.setTextColor(34, 139, 34); // Green
-                        if (q.answer.startsWith('<svg')) {
-                            doc.text("คำตอบที่ถูก: ", pageMargin, y);
-                            const svgAns = await svgToPngBase64(q.answer, 100, 100);
-                            doc.addImage(svgAns, 'PNG', pageMargin + 30, y - 5, 10, 10);
-                            y += lineHeight;
-                        } else if (isUrl(q.answer)) {
-                            doc.text("คำตอบที่ถูก: (รูปภาพด้านล่าง)", pageMargin, y);
-                            y += lineHeight;
+                    const choicesArray = (q.choices || "").split('///').map(s => s.trim());
+                    for (let i = 0; i < choicesArray.length; i++) {
+                        const choice = choicesArray[i];
+                        const prefix = `${String.fromCharCode(65 + i)}. `;
+
+                        if (choice.startsWith('<svg')) {
+                            checkPageBreak(15);
+                            doc.text(prefix, pageMargin, y + 5);
                             try {
-                                const base64Ans = await convertImgToBase64(transformUrl(q.answer));
-                                checkPageBreak(45);
-                                doc.addImage(base64Ans, 'JPEG', pageMargin, y, 50, 40);
-                                y += 48;
-                            } catch (e) { }
-                        } else {
-                            doc.text(`คำตอบที่ถูก: ${q.answer}`, pageMargin, y);
-                            y += lineHeight;
-                        }
-
-                        // คำตอบของคุณ (Your Answer)
-                        const isCorrect = q.select === q.answer;
-                        doc.setTextColor(isCorrect ? 34 : 220, 20, 60); // Green or Red
-                        if (q.select && q.select.startsWith('<svg')) {
-                            doc.text("คำตอบของคุณ: ", pageMargin, y);
-                            const svgSel = await svgToPngBase64(q.select, 100, 100);
-                            doc.addImage(svgSel, 'PNG', pageMargin + 30, y - 5, 10, 10);
-                            y += lineHeight + itemSpacing;
-                        } else if (isUrl(q.select)) {
-                            doc.text("คำตอบของคุณ: (รูปภาพด้านล่าง)", pageMargin, y);
-                            y += lineHeight;
-                            try {
-                                const base64Sel = await convertImgToBase64(transformUrl(q.select));
-                                checkPageBreak(45);
-                                doc.addImage(base64Sel, 'JPEG', pageMargin, y, 50, 40);
-                                y += 48;
+                                const svgB64 = await svgToPngBase64(choice, 100, 100); // แปลงขนาดเล็ก
+                                doc.addImage(svgB64, 'PNG', pageMargin + 10, y, 10, 10); // ขนาด icon 10x10 มม.
+                                y += 12; // เว้นบรรทัดน้อยลง
                             } catch (e) {
-                                doc.text("[ยังไม่ตอบ]", pageMargin, y);
+                                doc.text("[SVG]", pageMargin + 10, y + 5);
+                                y += lineHeight;
+                            }
+                        }
+                        else if (isUrl(choice)) {
+                            // ถ้าตัวเลือกเป็นรูป
+                            checkPageBreak(45); // เผื่อที่รูป
+                            doc.text(prefix, pageMargin, y + 5); // วาดตัว A.
+                            try {
+                                const base64C = await convertImgToBase64(transformUrl(choice));
+                                doc.addImage(base64C, 'JPEG', pageMargin + 10, y, 50, 40);
+                                y += 42;
+                            } catch (e) {
+                                doc.text("[Image Error]", pageMargin + 10, y);
                                 y += lineHeight;
                             }
                         } else {
-                            doc.text(`คำตอบของคุณ: ${q.select || 'ไม่ได้ตอบ'}`, pageMargin, y);
-                            y += lineHeight + itemSpacing;
+                            // ถ้าตัวเลือกเป็นข้อความ
+                            const fullText = prefix + choice;
+                            const splitC = doc.splitTextToSize(fullText, contentWidth);
+                            checkPageBreak(splitC.length * (lineHeight - 2));
+                            doc.text(splitC, pageMargin, y);
+                            y += splitC.length * (lineHeight - 2) + 2;
                         }
+                    }
+                    y += itemSpacing;
 
-                        // Explanation
-                        doc.setTextColor(100, 100, 100); // Gray
-                        doc.setFontSize(14);
-                        const explainText = `คำอธิบาย: ${q.explain || 'ไม่มี'}`;
-                        const splitExplain = doc.splitTextToSize(explainText, contentWidth);
-                        checkPageBreak(splitExplain.length * (lineHeight - 2));
-                        doc.text(splitExplain, pageMargin, y);
-                        y += (splitExplain.length * (lineHeight - 2)) + blockSpacing;
+                    // --- ส่วนเฉลยและคำตอบของคุณ ---
+                    checkPageBreak(30); // เผื่อที่สำหรับคำตอบ
 
-                        // เส้นคั่น
-                        doc.setDrawColor(220);
-                        doc.line(pageMargin, y - (blockSpacing / 2), pageWidth - pageMargin, y - (blockSpacing / 2));
+                    // เฉลย (Correct Answer)
+                    doc.setFontSize(16);
+                    doc.setTextColor(34, 139, 34); // Green
+                    if (q.answer.startsWith('<svg')) {
+                        doc.text("คำตอบที่ถูก: ", pageMargin, y);
+                        const svgAns = await svgToPngBase64(q.answer, 100, 100);
+                        doc.addImage(svgAns, 'PNG', pageMargin + 30, y - 5, 10, 10);
+                        y += lineHeight;
+                    } else if (isUrl(q.answer)) {
+                        doc.text("คำตอบที่ถูก: (รูปภาพด้านล่าง)", pageMargin, y);
+                        y += lineHeight;
+                        try {
+                            const base64Ans = await convertImgToBase64(transformUrl(q.answer));
+                            checkPageBreak(45);
+                            doc.addImage(base64Ans, 'JPEG', pageMargin, y, 50, 40);
+                            y += 48;
+                        } catch (e) { }
+                    } else {
+                        doc.text(`คำตอบที่ถูก: ${q.answer}`, pageMargin, y);
+                        y += lineHeight;
                     }
 
-                    doc.save('MDKKU-Quiz-Result.pdf');
+                    // คำตอบของคุณ (Your Answer)
+                    const isCorrect = q.select === q.answer;
+                    doc.setTextColor(isCorrect ? 34 : 220, 20, 60); // Green or Red
+                    if (q.select && q.select.startsWith('<svg')) {
+                        doc.text("คำตอบของคุณ: ", pageMargin, y);
+                        const svgSel = await svgToPngBase64(q.select, 100, 100);
+                        doc.addImage(svgSel, 'PNG', pageMargin + 30, y - 5, 10, 10);
+                        y += lineHeight + itemSpacing;
+                    } else if (isUrl(q.select)) {
+                        doc.text("คำตอบของคุณ: (รูปภาพด้านล่าง)", pageMargin, y);
+                        y += lineHeight;
+                        try {
+                            const base64Sel = await convertImgToBase64(transformUrl(q.select));
+                            checkPageBreak(45);
+                            doc.addImage(base64Sel, 'JPEG', pageMargin, y, 50, 40);
+                            y += 48;
+                        } catch (e) {
+                            doc.text("[ยังไม่ตอบ]", pageMargin, y);
+                            y += lineHeight;
+                        }
+                    } else {
+                        doc.text(`คำตอบของคุณ: ${q.select || 'ไม่ได้ตอบ'}`, pageMargin, y);
+                        y += lineHeight + itemSpacing;
+                    }
+
+                    // Explanation
+                    doc.setTextColor(100, 100, 100); // Gray
+                    doc.setFontSize(14);
+                    const explainText = `คำอธิบาย: ${q.explain || 'ไม่มี'}`;
+                    const splitExplain = doc.splitTextToSize(explainText, contentWidth);
+                    checkPageBreak(splitExplain.length * (lineHeight - 2));
+                    doc.text(splitExplain, pageMargin, y);
+                    y += (splitExplain.length * (lineHeight - 2)) + blockSpacing;
+
+                    // เส้นคั่น
+                    doc.setDrawColor(220);
+                    doc.line(pageMargin, y - (blockSpacing / 2), pageWidth - pageMargin, y - (blockSpacing / 2));
                 }
+
+                doc.save('MDKKU-Quiz-Result.pdf');
+            }
 
             // Function 2: Save a practice sheet (all selected questions)
             async function savePracticeSheetToPdf() {
@@ -5694,8 +5670,8 @@
                 // ==========================================
                 for (const [index, q] of currentQuestions.entries()) {
                     updatePdfProgress(index + 1, totalQuestions, startTime);
-                    if (index % 3 === 0) await new Promise(r => setTimeout(r, 1)); 
-                    
+                    if (index % 3 === 0) await new Promise(r => setTimeout(r, 1));
+
                     const qCategories = Array.isArray(q.category) ? q.category : (q.category ? [q.category] : []);
                     const categoryNames = qCategories.map(id => getCategoryNameById(id))
                         .filter(name => name !== 'Uncategorized' && !name.includes('(Extracted)'));
@@ -6248,10 +6224,10 @@
                         const rowColor = res.isCorrect ? '' : 'background-color: #f8d7da; color: #842029;';
                         const icon = res.isCorrect ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-danger"></i>';
                         tableHtml += `<tr style="${rowColor}">
-                            <td style="text-align: center; border-bottom: 1px solid #ddd; padding: 8px;"><b>ข้อ ${res.qNum}</b></td>
-                            <td style="text-align: center; border-bottom: 1px solid #ddd; padding: 8px;">${res.selected} ${icon}</td>
-                            <td style="text-align: center; border-bottom: 1px solid #ddd; padding: 8px;"><b>${res.correct}</b></td>
-                        </tr>`;
+                                <td style="text-align: center; border-bottom: 1px solid #ddd; padding: 8px;"><b>ข้อ ${res.qNum}</b></td>
+                                <td style="text-align: center; border-bottom: 1px solid #ddd; padding: 8px;">${res.selected} ${icon}</td>
+                                <td style="text-align: center; border-bottom: 1px solid #ddd; padding: 8px;"><b>${res.correct}</b></td>
+                            </tr>`;
                     });
 
                     $('#grader-table-body').html(tableHtml);
@@ -6577,8 +6553,8 @@
                     const isCurrentAnswer = choice === modalTargetQuestion.answer;
                     let display = isUrl(choice) ? `[รูปภาพ] ...${choice.slice(-10)}` : (choice.startsWith('<svg') ? `[SVG]` : choice);
                     selectOptions += `<option value="${choice.replace(/"/g, '&quot;')}" ${isCurrentAnswer ? 'selected' : ''}>
-            ${String.fromCharCode(65 + index)}. ${display}${isCurrentAnswer ? ' (เฉลยปัจจุบัน)' : ''}
-        </option>`;
+                ${String.fromCharCode(65 + index)}. ${display}${isCurrentAnswer ? ' (เฉลยปัจจุบัน)' : ''}
+            </option>`;
                 });
                 $reportCorrectChoiceSelect.append(selectOptions);
 
