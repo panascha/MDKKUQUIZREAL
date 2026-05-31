@@ -245,6 +245,93 @@
         border-color: var(--color-wrong);
     }
 
+    /* =========================================
+   Super-group: MCQ / Lecture wrapper
+   ========================================= */
+.super-group {
+    border: 1px solid var(--color-border);
+    margin-bottom: 10px;
+    border-radius: var(--border-radius);
+    background: var(--color-surface);
+    overflow: hidden;
+}
+
+.super-group-header {
+    font-weight: 700;
+    font-size: 1.2rem;
+    padding: 12px 16px;
+    color: var(--color-surface);
+    background: var(--color-dark);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    transition: background-color 0.15s;
+}
+
+.super-group-header:hover {
+    background: var(--color-dark-hover);
+}
+
+.super-group-header .super-group-badge {
+    margin-left: auto;
+    background: rgba(255,255,255,0.18);
+    color: white;
+    border-radius: 10px;
+    padding: 1px 9px;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.super-group-header .super-group-arrow {
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+    opacity: 0.7;
+}
+
+.super-group-header.open .super-group-arrow {
+    transform: rotate(180deg);
+}
+
+.super-group-body {
+    display: none;
+    padding: 10px 12px;
+    background: var(--color-surface-2);
+    border-top: 1px solid var(--color-border-soft);
+}
+
+.super-group-body.open {
+    display: block;
+}
+
+/* MCQ header variant */
+.super-group-header.mcq-header {
+    background: #1e3a5f;
+}
+.super-group-header.mcq-header:hover {
+    background: #254876;
+}
+
+/* Lecture header variant */
+.super-group-header.lec-header {
+    background: #2d4a3e;
+}
+.super-group-header.lec-header:hover {
+    background: #3a5e50;
+}
+
+/* dark theme overrides */
+[data-theme="dark"] .super-group-header.mcq-header { background: #0c2340; color: #f8fafc !important; }
+[data-theme="dark"] .super-group-header.mcq-header:hover { background: #0f2d52; }
+[data-theme="dark"] .super-group-header.lec-header { background: #0a2a1e; color: #f8fafc !important; }
+[data-theme="dark"] .super-group-header.lec-header:hover { background: #0e3528; }
+
+/* claude theme overrides */
+[data-theme="claude"] .super-group-header.mcq-header { background: #7c3d1a; }
+[data-theme="claude"] .super-group-header.lec-header { background: #1a4a2e; }
+
+
     .accordion-group {
         border: 1px solid var(--color-border);
         margin-bottom: 8px;
@@ -305,12 +392,23 @@
     .button-grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 12px; /* เพิ่มระยะห่างระหว่างปุ่มเป็น 12px */
         justify-content: flex-start;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .category-label {
+        display: inline-flex;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .toggle-button {
-        padding: 6px 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 16px; /* เพิ่มพื้นที่ padding ภายในปุ่มให้อ่านและคลิกง่ายขึ้น */
         border: 1.5px solid var(--color-border);
         border-radius: 20px;
         background: var(--color-toggle-default);
@@ -319,8 +417,12 @@
         transition: all 0.15s;
         font-size: 1.05rem;
         font-weight: 600;
-        white-space: nowrap;
+        white-space: normal; /* ยอมให้ข้อความยาวขึ้นบรรทัดใหม่ได้ ป้องกันปุ่มดันหลุดขอบจอ */
+        word-break: break-word; /* ตัดคำอัตโนมัติหากชื่อยาวเกินไป */
+        text-align: center;
         font-family: var(--font-primary);
+        box-sizing: border-box;
+        line-height: 1.25;
     }
 
     .toggle-button:hover {
@@ -2189,6 +2291,10 @@
             font-size: 1.1rem;
         }
 
+        .button-grid {
+            gap: 10px;
+        }
+
         .toggle-button {
             font-size: 0.96rem;
             padding: 6px 10px;
@@ -2246,19 +2352,28 @@
         /* 3. ปรับปุ่มเลือกหัวข้อวิชา (Toggle Buttons) ให้เป็น Grid 2 คอลัมน์เพื่อความกระชับ */
         .button-grid {
             display: grid !important;
-            grid-template-columns: 1fr 1fr !important;
-            /* แบ่งฝั่งซ้าย-ขวาอย่างเท่ากัน */
-            gap: 6px !important;
+            grid-template-columns: repeat(2, 1fr) !important; /* แบ่งฝั่งซ้าย-ขวาให้ได้ขนาดเท่ากัน */
+            gap: 10px !important; /* เพิ่มระยะห่างระหว่างแถวปุ่มเลคเชอร์เป็น 10px */
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .category-label {
+            display: block !important;
             width: 100%;
         }
 
         .toggle-button {
-            display: block !important;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
             text-align: center !important;
             white-space: normal !important;
-            /* อนุญาตให้ข้อความยาวขึ้นบรรทัดใหม่ได้ */
-            font-size: 0.88rem !important;
-            padding: 6px 4px !important;
+            font-size: 0.9rem !important;
+            padding: 8px 6px !important;
+            min-height: 48px; /* กำหนดความสูงขั้นต่ำที่เหมาะสมตามหลักสากลของการสัมผัสบนจอสัมผัส (Touch Target Size) */
+            width: 100%;
+            box-sizing: border-box;
         }
 
         /* 4. ย่อขนาดตัวอักษรของหัวข้อหลักและขนาดของกล่องแจ้งเตือนปัญหา (Alert Box) */
@@ -2305,7 +2420,7 @@
        17. Theme Overrides
        ========================================= */
 
-    /* DARK theme */
+    /* DARK theme Overrides */
     [data-theme="dark"] {
         --color-background: #0f172a;
         --color-surface: #1e293b;
@@ -2477,6 +2592,99 @@
         background: #1e293b;
         color: #f8fafc;
         border-color: #334155;
+    }
+
+    /* --- ส่วนที่เพิ่มประสิทธิภาพการแสดงผลระดับสูงใน Dark Theme --- */
+    
+    /* แก้ปัญหาพื้นหลังของหน้าต่าง Modal ย่อยที่เดิมติดสไตล์ inline ของ Light theme มา */
+    [data-theme="dark"] #report-question-details {
+        background-color: #2a1a1a !important;
+        border-color: #f43f5e !important;
+    }
+    [data-theme="dark"] .modal-section {
+        background-color: #263145 !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(1) {
+        background-color: #0c2340 !important;
+        border-color: #38bdf8 !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(1) h6 {
+        color: #38bdf8 !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(2) {
+        background-color: #064e3b !important;
+        border-color: #34d399 !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(2) h6 {
+        color: #34d399 !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(3) {
+        background-color: #1f1a2a !important;
+        border-color: #a78bfa !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(3) h6 {
+        color: #a78bfa !important;
+    }
+    [data-theme="dark"] #report-correct-choice-select,
+    [data-theme="dark"] #report-new-choice-input,
+    [data-theme="dark"] #report-new-choice-textarea,
+    [data-theme="dark"] #report_text {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] .modal-section[style*="#FFFBEB"],
+    [data-theme="dark"] #omr-extras {
+        background-color: #2a251a !important;
+        border-color: #fcd34d !important;
+        color: #fcd34d !important;
+    }
+    [data-theme="dark"] #omr-extras p,
+    [data-theme="dark"] #omr-extras label {
+        color: #fcd34d !important;
+    }
+
+    /* ปรับปรุงจุดสถานะคำตอบ (Index Dots) และคำอธิบายบอกสถานะด้านล่าง */
+    [data-theme="dark"] .index-dot.idx-correct {
+        border-color: #34d399 !important;
+        background: #064e3b !important;
+        color: #34d399 !important;
+    }
+    [data-theme="dark"] .index-dot.idx-wrong {
+        border-color: #f43f5e !important;
+        background: #4c0519 !important;
+        color: #f43f5e !important;
+    }
+    [data-theme="dark"] .index-legend-item {
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] #index-panel-header .index-score-badge {
+        border-color: #38bdf8 !important;
+        color: #38bdf8 !important;
+        background-color: #0c2340 !important;
+    }
+
+    /* ปรับแต่งการแสดงผลกล่องคะแนนเฉลยในส่วนตารางสรุปผลและแถบโหวตด่วน */
+    [data-theme="dark"] .result-ans-box.correct-ans {
+        border-color: #34d399 !important;
+    }
+    [data-theme="dark"] #quick-vote-badge {
+        background-color: #2a251a !important;
+        border-color: #fcd34d !important;
+        color: #fcd34d !important;
+    }
+
+    /* แก้ปัญหากล่องแสดงผลเวิร์กสเปซ SVG (ภาพลายเส้นทางการแพทย์) ให้เป็นโทนสีมืด พร้อมสลับสีเส้นสีดำเป็นสีขาวแบบสบายตา */
+    [data-theme="dark"] .svg-render-area,
+    [data-theme="dark"] .svg-choice-container {
+        background-color: #1e293b !important;
+        border: 1.5px solid #334155 !important;
+    }
+    [data-theme="dark"] .svg-render-area svg,
+    [data-theme="dark"] .svg-choice-container svg {
+        filter: invert(0.9) hue-rotate(180deg);
     }
 
     /* CLAUDE theme */
@@ -4214,14 +4422,13 @@
                 const $container = $('#dynamic-accordion-area');
                 $container.empty();
 
-                // 1. เตรียมข้อมูลการนับ (Total vs Split)
+                // --- ตัวเลข stats ---
                 const categoryStats = {};
                 if (typeof allQuestions !== 'undefined' && allQuestions.length > 0) {
                     allQuestions.forEach(q => {
                         const cats = Array.isArray(q.category) ? q.category : [q.category];
                         const realCats = cats.filter(c => c && c !== 'Uncategorized');
-                        const isSplit = realCats.length > 1; // แยกแล้วถ้ามีหมวดหมู่ > 1
-
+                        const isSplit = realCats.length > 1;
                         realCats.forEach(catId => {
                             if (!categoryStats[catId]) categoryStats[catId] = { total: 0, split: 0 };
                             categoryStats[catId].total++;
@@ -4230,94 +4437,241 @@
                     });
                 }
 
-                // ฟังก์ชันกำหนดสีปุ่ม
+                // --- กำหนดสีปุ่ม ---
                 function getCategoryColorClass(catId) {
                     const id = catId.toUpperCase();
-                    let termToCheck = id;
-                    if (id.includes("_EXTRACTED")) {
-                        const segments = id.split("_EXTRACTED")[0].split("_");
-                        termToCheck = segments[segments.length - 1];
-                    }
-                    if (termToCheck.includes("RADIO") || termToCheck.includes("CLINICAL")) return "cat-clinical";
-                    if (termToCheck.includes("ANATOMY") || termToCheck.includes("ANA")) return "cat-anatomy";
-                    if (termToCheck.includes("PARASITO") || termToCheck.includes("MICRO")) return "cat-micro";
-                    if (termToCheck.includes("PATHO")) return "cat-patho";
-                    if (termToCheck.includes("PHYSIO") || termToCheck.includes("BIOCHEM")) return "cat-physio";
-                    if (termToCheck.includes("PHARM")) return "cat-pharm";
+                    let t = id.includes("_EXTRACTED") ? id.split("_EXTRACTED")[0].split("_").pop() : id;
+                    if (t.includes("RADIO") || t.includes("CLINICAL")) return "cat-clinical";
+                    if (t.includes("ANATOMY") || t.includes("ANA")) return "cat-anatomy";
+                    if (t.includes("PARASITO") || t.includes("MICRO")) return "cat-micro";
+                    if (t.includes("PATHO")) return "cat-patho";
+                    if (t.includes("PHYSIO") || t.includes("BIOCHEM")) return "cat-physio";
+                    if (t.includes("PHARM")) return "cat-pharm";
                     return "cat-non";
                 }
 
-                const groups = {};
-                data.category.forEach(category => {
-                    const key = category.accordionGroup || 'Uncategorized';
-                    if (!groups[key]) groups[key] = [];
-                    groups[key].push(category);
-                });
+                // --- subgroup keywords สำหรับ Lecture detection ---
+                const SUBGROUPS = ["ANA", "BIOCHEM", "PHYSIO", "MICRO", "PARASITO", "PATHO", "PHARM", "RADIO", "CLINICAL"];
 
-                for (const [groupName, categories] of Object.entries(groups)) {
-                    // --- ตรวจสอบเงื่อนไขยกเว้น ---
-                    const isExcludedGroup = groupName.includes("LEC") ||
-                        groupName.includes("by AI") ||
-                        groupName.includes("(Extracted)") ||
-                        categories.some(cat => cat.categoryName.includes("MODULE")) ||
-                        categories.some(cat => cat.categoryName.includes("COMMED"));
-
-                    // สร้างปุ่ม Category ภายในกลุ่ม
-                    let categoryButtons = categories.map(t => {
-                        const stats = categoryStats[t.categoryId] || { total: 0, split: 0 };
-                        const colorClass = getCategoryColorClass(t.categoryId);
-
-                        let displayCount = "";
-                        if (isExcludedGroup) {
-                            displayCount = `(${stats.total})`;
-                        } else {
-                            const isComplete = stats.split >= stats.total && stats.total > 0;
-                            const badgeStyle = isComplete ? "color: #198754;" : "color: #dc3545; font-weight: 800;";
-                            displayCount = `(<span style="${badgeStyle}">${stats.split}</span>/${stats.total})`;
-                        }
-
-                        return `
-                    <input type="checkbox" id="cat-${t.categoryId}" 
-                           data-category-id="${t.categoryId}" 
-                           name="category" value="${t.categoryId}" hidden>
-                    <label for="cat-${t.categoryId}" class="toggle-button ${colorClass}" title="${t.categoryName}">
-                        ${t.categoryName} <span style="font-size: 0.85em; opacity: 0.8;">${displayCount}</span>
-                    </label>
-                `;
-                    }).join('');
-
-                    // --- เพิ่มคำอธิบายตรงหัวข้อ Accordion ตามสไตล์ที่ระบุ ---
-                    const helperText = !isExcludedGroup
-                        ? `
-                            <span style="margin-left: 10px; background-color: #e0e0e0; color: #333; border-radius: 12px; font-size: 0.9rem;">
-                    <span style="font-size: 1.2rem; font-weight: 700; color: #999;"> (</span>
-                    <span style="font-size: 1.2rem; font-weight: 900; color: #444;">คำถามที่แยกเลคแล้ว</span>
-                    <span style="font-size: 1.2rem; font-weight: 700; color: #999;">/คำถามทั้งหมด)</span>
-                    </span>`
-                        : "";
-
-                    let html = `
-                <details class="accordion-group" data-group-name="${groupName}">
-                    <summary class="accordion-header">
-                        <i class="fas fa-folder" style="margin-right: 10px; color: black;"></i> 
-                        <span style="white-space: nowrap;">${groupName}</span>
-                        ${helperText}
-                        <span class="selected-count-badge">0</span>
-                    </summary>
-                    <div class="button-grid">
-                        ${categoryButtons}
-                    </div>
-                </details>
-            `;
-                    $container.append(html);
+                function isLectureCategory(catId) {
+                    const upper = catId.toUpperCase();
+                    const parts = upper.split('_');
+                    // ตรวจ segment หลัง _ แรก
+                    for (let i = 1; i < parts.length; i++) {
+                        if (SUBGROUPS.some(sg => parts[i].includes(sg))) return true;
+                    }
+                    return false;
                 }
 
-                // Re-bind change events
+                // --- สร้าง button HTML ของแต่ละ category ---
+                function buildCategoryButton(category, isExcludedGroup) {
+                    const stats = categoryStats[category.categoryId] || { total: 0, split: 0 };
+                    const colorClass = getCategoryColorClass(category.categoryId);
+                    let displayCount;
+                    let badgeStyle = "";
+                    if (isExcludedGroup) {
+                        displayCount = `(${stats.total})`;
+                    } else {
+                        const isComplete = stats.split >= stats.total && stats.total > 0;
+                        badgeStyle = isComplete ? "color: #16a34a;" : "color: #dc2626; font-weight: 800;";
+                        displayCount = `(${stats.split}/${stats.total})`;
+                    }
+                    return `
+                        <label class="category-label">
+                            <input type="checkbox" name="category" id="cat-${category.categoryId}" data-category-id="${category.categoryId}" value="${category.categoryId}" style="display: none;">
+                            <span class="toggle-button ${colorClass}">${category.categoryName} <span style="${badgeStyle}">${displayCount}</span></span>
+                        </label>
+                    `;
+                }
+
+                // --- สร้าง accordion เดิม 1 กลุ่ม ---
+                function buildAccordion(groupName, categories, isExcludedGroup) {
+                    const helperText = !isExcludedGroup ? " (คำถามที่แยกเลคแล้ว/คำถามทั้งหมด)" : "";
+                    const btns = categories.map(c => buildCategoryButton(c, isExcludedGroup)).join('');
+                    return `
+                        <details class="accordion-group">
+                            <summary class="accordion-header">
+                                ${groupName} <span style="font-size: 0.85rem; font-weight: normal; margin-left: 5px; color: var(--color-text-muted);">${helperText}</span>
+                                <span class="selected-count-badge">0</span>
+                            </summary>
+                            <div class="button-grid">
+                                ${btns}
+                            </div>
+                        </details>
+                    `;
+                }
+
+                // =========================================================
+                // จัดกลุ่มจาก globalStructure
+                // =========================================================
+
+                // แยก categories ตาม subjectId ก่อน
+                const subjectCatMap = {}; // subjectId -> category[]
+                data.category.forEach(cat => {
+                    const sid = cat.subjectRef || 'Unknown';
+                    if (!subjectCatMap[sid]) subjectCatMap[sid] = [];
+                    subjectCatMap[sid].push(cat);
+                });
+
+                // --- จัดกลุ่ม accordionGroup ของแต่ละ subject ---
+                const groups = {};
+                data.category.forEach(cat => {
+                    const key = cat.accordionGroup || 'Uncategorized';
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(cat);
+                });
+
+                // =========================================================
+                // ตัดสินใจว่ากลุ่มไหนเป็น MCQ / Lecture / อื่นๆ
+                // MCQ pattern: accordionGroup มี "MCQ" + ตัวเลข (เช่น GI MCQ1)
+                // Lecture: accordionGroup มีคำว่า "LEC" หรือ category ข้างในเป็น lecture type
+                // =========================================================
+
+                const MCQ_PATTERN = /MCQ\d+/i;
+                const FMT_PATTERN = /FMT\d+/i;
+
+                // Map: "subjectId|superType" -> { label, variant, accordions: [{groupName, cats}] }
+                const superGroups = {};
+                // Standalone accordions (ไม่รวมใน super-group)
+                const standaloneAccordions = [];
+
+                Object.entries(groups).forEach(([groupName, categories]) => {
+                    // ตรวจ excluded เดิม
+                    const isExcluded = groupName.includes("LEC") ||
+                        groupName.includes("by AI") ||
+                        groupName.includes("(Extracted)") ||
+                        categories.some(c => c.categoryName.includes("MODULE")) ||
+                        categories.some(c => c.categoryName.includes("COMMED"));
+
+                    // หา subjectId หลักของกลุ่ม (เอาจาก category แรก)
+                    const firstCat = categories[0];
+                    const subjectId = firstCat ? (firstCat.subjectRef || '') : '';
+
+                    // --- ตัดสินใจ super-group ---
+                    if (MCQ_PATTERN.test(groupName)) {
+                        // MCQ super-group
+                        const key = `${subjectId}|MCQ`;
+                        if (!superGroups[key]) superGroups[key] = {
+                            label: `${subjectId} MCQ`,
+                            variant: 'mcq',
+                            subjectId,
+                            isExcluded,
+                            accordions: []
+                        };
+                        superGroups[key].accordions.push({ groupName, categories, isExcluded });
+
+                    } else if (FMT_PATTERN.test(groupName)) {
+                        // FMT super-group (สำหรับข้อสอบ FMT ด้วย)
+                        const key = `${subjectId}|FMT`;
+                        if (!superGroups[key]) superGroups[key] = {
+                            label: `${subjectId} FMT`,
+                            variant: 'mcq',
+                            subjectId,
+                            isExcluded,
+                            accordions: []
+                        };
+                        superGroups[key].accordions.push({ groupName, categories, isExcluded });
+
+                    } else if (
+                        // Lecture: ชื่อ group มี LEC หรือ categories ข้างในเป็น lecture type
+                        groupName.toUpperCase().includes("LEC") ||
+                        categories.some(c => isLectureCategory(c.categoryId))
+                    ) {
+                        const key = `${subjectId}|LEC`;
+                        if (!superGroups[key]) superGroups[key] = {
+                            label: `${subjectId} Lecture`,
+                            variant: 'lec',
+                            subjectId,
+                            isExcluded: false, // lecture group ไม่ถือว่า excluded สำหรับ helper text
+                            accordions: []
+                        };
+                        superGroups[key].accordions.push({ groupName, categories, isExcluded });
+
+                    } else {
+                        // อื่นๆ ที่ไม่ใช่ MCQ / LEC → standalone ตามเดิม
+                        standaloneAccordions.push({ groupName, categories, isExcluded });
+                    }
+                });
+
+                // =========================================================
+                // Render
+                // =========================================================
+
+                // 1. Standalone accordions ก่อน (Extracted, by AI ฯลฯ)
+                standaloneAccordions.forEach(({ groupName, categories, isExcluded }) => {
+                    $container.append(buildAccordion(groupName, categories, isExcluded));
+                });
+
+                // 2. Super-groups (MCQ / FMT / LEC)
+                Object.values(superGroups).forEach(sg => {
+                    // ถ้ามีแค่ accordion เดียวใน super-group ไม่ต้อง wrap
+                    if (sg.accordions.length === 1) {
+                        const { groupName, categories, isExcluded } = sg.accordions[0];
+                        $container.append(buildAccordion(groupName, categories, isExcluded));
+                        return;
+                    }
+
+                    // สร้าง HTML ของ accordion ย่อยทั้งหมด
+                    const innerHtml = sg.accordions
+                        .map(({ groupName, categories, isExcluded }) =>
+                            buildAccordion(groupName, categories, isExcluded))
+                        .join('');
+
+                    const icon = sg.variant === 'lec'
+                        ? '<i class="fas fa-book-open"></i>'
+                        : '<i class="fas fa-graduation-cap"></i>';
+
+                    const html = `
+                        <div class="super-group">
+                            <div class="super-group-header ${sg.variant === 'lec' ? 'lec-header' : 'mcq-header'}" onclick="toggleSuperGroup(this)">
+                                ${icon}
+                                <span>${sg.label}</span>
+                                <span class="super-group-badge" style="display: none;">0</span>
+                                <i class="fas fa-chevron-down super-group-arrow" style="margin-left: auto;"></i>
+                            </div>
+                            <div class="super-group-body">
+                                ${innerHtml}
+                            </div>
+                        </div>
+                    `;
+                    $container.append(html);
+                });
+
+                // --- Re-bind change events ---
                 $('input[type="checkbox"][name="category"]').on('change', () => {
                     updateQuestionSet();
                     updateSelectedCategoryStatus();
+                    updateSuperGroupBadges();
                 });
             }
+
+            // =========================================================
+            // Helper: toggle super-group open/close
+            // =========================================================
+            window.toggleSuperGroup = function (headerEl) {
+                const $header = $(headerEl);
+                const $body = $header.next('.super-group-body');
+                const isOpen = $body.hasClass('open');
+                $body.toggleClass('open', !isOpen);
+                $header.toggleClass('open', !isOpen);
+            };
+
+            // =========================================================
+            // Helper: อัปเดต badge ใน super-group header
+            // =========================================================
+            function updateSuperGroupBadges() {
+                $('.super-group').each(function () {
+                    const $sg = $(this);
+                    const totalChecked = $sg.find('input[type="checkbox"]:checked').length;
+                    const $badge = $sg.find('> .super-group-header .super-group-badge');
+                    if (totalChecked > 0) {
+                        $badge.text(totalChecked).show();
+                    } else {
+                        $badge.hide();
+                    }
+                });
+            }
+
             function renderCurrentCategory() {
                 const $container = $('#current-category-container');
                 $container.empty();
