@@ -1,0 +1,25 @@
+# System Files (ไฟล์ขยะของระบบปฏิบัติการ)
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs and Editors Config (ค่าคอนฟิกส่วนตัวของโปรแกรมเขียนโค้ด)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Local Backup & Temporary Files (ไฟล์สำรองในเครื่องและไฟล์ชั่วคราว)
+*.backup.html
+*.bak
+*.tmp
+*~
+
+# Log files (กรณีมีการติดตั้งเครื่องมือเสริม)
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

@@ -1,0 +1,537 @@
+// REFACTOR/js/vote.js
+
+window.isFetchingVotes = false;
+
+window.fetchPendingVotes = function (questionId) {
+    if (window.isFetchingVotes) return;
+    window.isFetchingVotes = true;
+
+    fetch(`${window.APPSCRIPT_URL}?action=getPendingVotes&qid=${questionId}`)
+        .then(res => res.json())
+        .then(data => {
+            window.APP.pendingVotesCache[questionId] = data;
+            window.renderVoteNotificationUI(questionId, data, false);
+            if ($('#vote-category-modal').is(':visible')) {
+                window.renderModalPendingVotes(data);
+            }
+        })
+        .catch(err => {
+            console.warn("Fetch Pending Votes Failed:", err);
+        })
+        .finally(() => {
+            window.isFetchingVotes = false;
+        });
+};
+
+window.renderModalPendingVotes = function (data) {
+    const $container = $('#suggested-category-container');
+    const votes = data.votes || [];
+    const thresholds = data.thresholds || { approve: 20, confirm: 50 };
+
+    $container.empty();
+
+    if (votes.length === 0) {
+        $container.html('<span class="empty-state-text">- ยังไม่มีข้อเสนอใหม่ -</span>');
+        return;
+    }
+
+    votes.forEach(item => {
+        const categoryName = window.getCategoryNameById(item.categoryId);
+        const currentCount = parseInt(item.count) || 0;
+
+        let nextTarget = thresholds.confirm;
+        let statusLabel = 'เพื่ออนุมัติ';
+
+        const votesRemaining = nextTarget - currentCount;
+        const statusText = votesRemaining > 0
+            ? `${votesRemaining} โหวต ${statusLabel}`
+            : `${currentCount} โหวตแล้ว!`;
+
+        const $badge = $(`
+            <div class="category-badge suggested" title="คลิกเพื่อโหวตเห็นด้วย">
+                ${categoryName} 
+                <span class="vote-count-badge">${currentCount} <i class="fas fa-user"></i></span>
+                <span class="votes-remaining-text" style="font-size: 0.85rem; margin-left: 5px; color: #ffeb3b; font-weight: 700;">(${statusText})</span>
+            </div>
+        `);
+
+        $badge.off('click').on('click', function () {
+            const targetQ = window.APP.modalTargetQuestion;
+
+            if (!targetQ) {
+                Swal.fire("Error", "ไม่พบข้อมูลคำถามที่กำลังโหวต", "error");
+                return;
+            }
+
+            Swal.fire({
+                title: 'คุณเห็นด้วยกับหัวข้อนี้หรือไม่?',
+                html: `หัวข้อ: <b>"${categoryName}"</b>`,
+                icon: 'question',
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'เห็นด้วย (+1)',
+                denyButtonText: 'ไม่เห็นด้วย (-1)',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#28a745',
+                denyButtonColor: '#dc3545',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.submitVoteData([item.categoryId], targetQ, true, 1);
+                } else if (result.isDenied) {
+                    window.submitVoteData([item.categoryId], targetQ, true, -1);
+                }
+            });
+        });
+
+        $container.append($badge);
+    });
+};
+
+window.submitVoteData = async function (categoryArray, q, shouldRefreshUI = false, delta = 1) {
+    if (!q || !q.questionId) return;
+
+    $('#vote-category-modal').fadeOut(200);
+
+    Swal.fire({
+        title: 'กำลังส่งข้อมูล...',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 1000,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    const payload = {
+        action: 'submitVote',
+        questionId: q.questionId,
+        questionText: q.problem,
+        suggestedCategory: categoryArray,
+        delta: delta
+    };
+
+    try {
+        await window.sendWithRetry(payload);
+
+        categoryArray.forEach(newCatId => {
+            if (!q.category.includes(newCatId)) {
+                q.category.push(newCatId);
+            }
+        });
+
+        await window.syncQuestionsToCache();
+
+        if (window.APP.current_question && q.questionId === window.APP.current_question.questionId) {
+            window.showQuestion(false);
+        }
+
+        if ($('#quick-cat-container').is(':visible')) {
+            window.renderQuickCatPanel();
+        }
+
+        Swal.fire({
+            icon: 'success',
+            title: 'บันทึกการแยกเลคเชอร์สำเร็จ!',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000
+        });
+
+        if (!window.APP.votedQuestionIds.has(q.questionId)) {
+            window.APP.sessionAutoVoteCount++;
+            window.APP.votedQuestionIds.add(q.questionId);
+        }
+
+        if (shouldRefreshUI && q.questionId === window.APP.current_question.questionId) {
+            delete window.APP.pendingVotesCache[q.questionId];
+            window.fetchPendingVotes(q.questionId);
+        }
+    } catch (err) {
+        Swal.fire("Error", "ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง", "error");
+    }
+};
+
+window.submitSingleVote = function (categoryId, q, shouldRefreshUI = false, delta = 1) {
+    window.submitVoteData([categoryId], q, shouldRefreshUI, delta);
+};
+
+window.renderVoteNotificationUI = function (questionId, data, isInitialLoad = true) {
+    if (questionId !== window.APP.current_question.questionId) return;
+    const $bar = $('#vote-notification-bar');
+    if (isInitialLoad) $bar.empty();
+
+    const votes = data.votes || [];
+    const thresholds = data.thresholds || { confirm: 2 };
+    if (votes.length === 0) {
+        if (isInitialLoad) $bar.empty();
+        return;
+    }
+
+    const incompleteVotes = votes.filter(v => (parseInt(v.count) || 0) < thresholds.confirm);
+    if (incompleteVotes.length === 0) return;
+
+    const topVote = incompleteVotes.reduce((max, current) => {
+        return (parseInt(current.count) || 0) > (parseInt(max.count) || 0) ? current : max;
+    }, { count: -1, categoryId: null, status: null });
+
+    if (!topVote.categoryId) return;
+
+    const categoryName = window.getCategoryNameById(topVote.categoryId);
+    const currentCount = parseInt(topVote.count) || 0;
+
+    let nextTarget = thresholds.confirm;
+    let statusLabel = 'เพื่ออนุมัติ';
+    let bgColor = '#fff3cd';
+    let textColor = '#856404';
+
+    const votesRemaining = nextTarget - currentCount;
+    const statusText = votesRemaining > 0
+        ? `ขาดอีก <b style="color: ${textColor};">${votesRemaining}</b> โหวต ${statusLabel}!`
+        : `<b style="color: ${textColor};">รอ Admin ตรวจสอบ</b>`;
+
+    const html = `
+        <div id="quick-vote-badge"
+            data-category-id="${topVote.categoryId}"
+            style="margin-top: -10px; margin-bottom: 10px; padding: 10px 20px; border-radius: 25px; 
+                 background-color: ${bgColor}; color: ${textColor}; font-weight: 700; 
+                 display: flex; align-items: center; justify-content: center; cursor: pointer;
+                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border: 2px solid ${textColor};
+                 transition: all 0.3s ease-in-out; z-index: 10;">
+            <i class="fas fa-tags" style="margin-right: 8px;"></i>
+            <span style="font-size: 1.2rem; margin-right: 12px;">เสนอหัวข้อ: <b>${categoryName}</b></span>
+            <span style="font-size: 1.1rem; font-weight: 600;">(${statusText})</span>
+        </div>
+    `;
+
+    $bar.html(html);
+
+    $bar.find('#quick-vote-badge').off('click').on('click', function () {
+        const categoryIdToVote = $(this).data('category-id');
+        const catName = $(this).find('b').first().text();
+        const targetQ = window.APP.current_question;
+
+        Swal.fire({
+            title: 'คุณเห็นด้วยกับหัวข้อนี้หรือไม่?',
+            html: `หัวข้อ: <b>"${catName}"</b>`,
+            icon: 'question',
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: 'เห็นด้วย (+1)',
+            denyButtonText: 'ไม่เห็นด้วย (-1)',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.submitVoteData([categoryIdToVote], targetQ, true, 1);
+            } else if (result.isDenied) {
+                window.submitVoteData([categoryIdToVote], targetQ, true, -1);
+            }
+        });
+    });
+};
+
+window.renderQuickCatPanel = function () {
+    const $content = $('#quick-cat-content');
+    $content.empty();
+
+    const currentSubject = new URLSearchParams(window.location.search).get('subject') || '';
+    const relevantCats = window.APP.globalStructure.category.filter(c =>
+        c.subjectRef === currentSubject &&
+        c.accordionGroup.toUpperCase().includes("LEC")
+    );
+
+    const groups = {
+        "ANATOMY": relevantCats.filter(c => c.categoryId.includes("_ANA_")),
+        "PHYSIO/BIOCHEM": relevantCats.filter(c => c.categoryId.includes("_PHYSIO_")),
+        "MICRO/PARASITO": relevantCats.filter(c => c.categoryId.includes("_MICRO_") || c.categoryId.includes("_PARASITO_")),
+        "PATHO": relevantCats.filter(c => c.categoryId.includes("_PATHO_")),
+        "PHARM": relevantCats.filter(c => c.categoryId.includes("_PHARM_")),
+        "CLINICAL/RADIO": relevantCats.filter(c => c.categoryId.includes("_RADIO_") || c.categoryId.includes("_CLINICAL_"))
+    };
+
+    const colorMap = {
+        "ANATOMY": "q-ana", "PHYSIO/BIOCHEM": "q-physio", "MICRO/PARASITO": "q-micro",
+        "PATHO": "q-patho", "PHARM": "q-pharm", "CLINICAL/RADIO": "q-radio"
+    };
+
+    for (const [groupName, cats] of Object.entries(groups)) {
+        if (cats.length === 0) continue;
+
+        let html = `<div class="quick-cat-group">
+                <div class="quick-cat-group-title">${groupName} <span>${cats.length} เลค</span></div>
+                <div class="quick-cat-grid">`;
+
+        cats.forEach(c => {
+            const isAlreadySelected = window.APP.current_question.category.includes(c.categoryId);
+            const btnStyle = isAlreadySelected
+                ? "opacity: 0.4; cursor: default; background: #e0e0e0; color: #888;"
+                : "cursor: pointer;";
+            const checkMark = isAlreadySelected ? " <i class='fas fa-check-circle'></i>" : "";
+            const clickEvent = isAlreadySelected ? "" : `onclick="window.handleQuickVote('${c.categoryId}', '${c.categoryName.replace(/'/g, "\\'")}')"`;
+
+            html += `<button class="btn-quick-cat ${colorMap[groupName]}" 
+                    style="${btnStyle}"
+                    ${clickEvent}
+                    title="${c.categoryName}">
+                    ${c.categoryName}${checkMark}
+                 </button>`;
+        });
+
+        html += `</div></div>`;
+        $content.append(html);
+    }
+};
+
+window.handleQuickVote = function (catId, catName) {
+    Swal.fire({
+        title: 'ยืนยันแยกหัวข้อ',
+        text: `แยกข้อนี้ไปที่: ${catName}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'ใช่ (Approve)',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1a73e8'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.submitVoteData([catId], window.APP.current_question, true, 1);
+            setTimeout(window.renderQuickCatPanel, 500);
+        }
+    });
+};
+
+window.openVoteModal = function (q, isAuto = false) {
+    const target = q || window.APP.current_question;
+
+    if (!target || !target.questionId) {
+        Swal.fire("กรุณาเลือกข้อสอบก่อน");
+        return;
+    }
+
+    window.APP.modalTargetQuestion = JSON.parse(JSON.stringify(target));
+
+    $('#vote-question-preview').text(window.APP.modalTargetQuestion.problem);
+
+    window.renderCurrentCategoryForModal(window.APP.modalTargetQuestion);
+    window.fetchPendingVotes(window.APP.modalTargetQuestion.questionId);
+
+    const $msgContainer = $('#vote-message-container');
+    $msgContainer.empty().show();
+
+    if (isAuto) {
+        const remaining = window.MAX_AUTO_VOTE - window.APP.sessionAutoVoteCount;
+        $msgContainer.css({ 'background-color': '#f8d7da', 'color': '#721c24', 'border': '1px solid #f5c6cb' });
+        $msgContainer.html(`
+            <h6 style="margin:0; font-weight:800; font-size:1.2rem;"><i class="fas fa-exclamation-circle"></i> ช่วยกันแยกเลคเชอร์หน่อยนะครับ 1 ครั้งที่ใช้เว็บจะให้ช่วยแยกแค่คนละ 2 ข้อ</h6>
+            <h1 style="margin:5px 0 0 0; font-size:1.5rem; text-align:left; color:#721c24;">เหลืออีก ${remaining} ข้อครับ 🙏</h1>
+        `);
+    } else {
+        $msgContainer.css({ 'background-color': '#d1e7dd', 'color': '#0f5132', 'border': '1px solid #badbcc' });
+        $msgContainer.html(`<h6 style="margin:0; font-weight:800; font-size:1.2rem;"><i class="fas fa-info-circle"></i> ช่วยระบุเลคเชอร์ เพื่อให้เพื่อนๆ เลือกฝึกทำเฉพาะบทเรียนได้แม่นยำขึ้น</h6>`);
+    }
+
+    $('#vote-rows-container').empty();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentSubjectId = urlParams.get('subject');
+    if (!currentSubjectId && window.APP.modalTargetQuestion.category) {
+        const firstCatId = Array.isArray(window.APP.modalTargetQuestion.category) ? window.APP.modalTargetQuestion.category[0] : window.APP.modalTargetQuestion.category;
+        const matchedCat = window.APP.globalStructure.category.find(c => c.categoryId === firstCatId);
+        if (matchedCat) currentSubjectId = matchedCat.subjectRef;
+    }
+
+    window.addVoteRow(currentSubjectId);
+    $('#vote-category-modal').fadeIn();
+};
+
+window.renderCurrentCategoryForModal = function (q) {
+    const $container = $('#current-category-container');
+    $container.empty();
+    let cats = Array.isArray(q.category) ? q.category : [q.category];
+    cats = cats.filter(c => c && c !== 'Uncategorized');
+
+    if (cats.length === 0) {
+        $container.html('<span class="empty-state-text">- ยังไม่มีหัวข้อ -</span>');
+        return;
+    }
+    cats.forEach(catId => {
+        $container.append(`<span class="category-badge approved">${window.getCategoryNameById(catId)} <i class="fas fa-check"></i></span>`);
+    });
+};
+
+window.addVoteRow = function (preSelectedSubjectId = null) {
+    const subjects = [];
+    const uniqueSubjects = {};
+
+    if (window.APP.globalStructure && window.APP.globalStructure.subjects) {
+        window.APP.globalStructure.subjects.forEach(s => {
+            if (!uniqueSubjects[s.subjectId]) {
+                uniqueSubjects[s.subjectId] = s;
+                subjects.push({ id: s.subjectId, name: s.subjectName });
+            }
+        });
+    }
+
+    let subjectOptions = `<option value="">-- เลือกวิชา --</option>`;
+    subjects.forEach(s => {
+        const selected = (preSelectedSubjectId && String(s.id) === String(preSelectedSubjectId)) ? 'selected' : '';
+        subjectOptions += `<option value="${s.id}" ${selected}>${s.id} - ${s.name}</option>`;
+    });
+
+    const rowHtml = `
+        <div class="vote-row" style="display: flex;">
+            <button class="btn-remove-row"><i class="fas fa-minus"></i></button>
+            
+            <div style="flex:1; margin-right: 5px;">
+                <select class="vote-select subject-select" style="width:100%; margin-bottom:5px;">${subjectOptions}</select>
+            </div>
+            
+            <div style="flex:1; margin-right: 5px;">
+                <select class="vote-select group-select" disabled style="width:100%; margin-bottom:5px;"><option value="">-- เลือกกลุ่ม --</option></select>
+                <span class="warning-text group-warning" style="display:none; color:#e65100; font-size:0.9rem; font-weight:bold;"><i class="fas fa-exclamation-triangle"></i> มีหลายกลุ่ม โปรดเลือก</span>
+            </div>
+
+            <div style="flex:1;">
+                <select class="vote-select category-select" disabled style="width:100%; margin-bottom:5px;"><option value="">-- เลือกหัวข้อ --</option></select>
+                <span class="warning-text category-warning" style="display:none; color:#e65100; font-size:0.9rem; font-weight:bold;"><i class="fas fa-exclamation-triangle"></i> มีหลายหัวข้อ โปรดเลือก</span>
+            </div>
+        </div>
+    `;
+
+    const $row = $(rowHtml);
+    $('#vote-rows-container').append($row);
+
+    const populateGroups = ($rowCtx, subjId) => {
+        const $groupSelect = $rowCtx.find('.group-select');
+        const $groupWarning = $rowCtx.find('.group-warning');
+
+        $groupSelect.empty().append('<option value="">-- เลือกกลุ่ม --</option>').prop('disabled', true);
+        $groupWarning.hide();
+
+        if (subjId) {
+            const relatedCategory = window.APP.globalStructure.category.filter(t => t.subjectRef === subjId);
+            const groups = [...new Set(relatedCategory
+                .map(t => t.accordionGroup)
+                .filter(g => g && g.toUpperCase().includes("LEC"))
+            )];
+
+            if (groups.length > 0) {
+                groups.forEach(g => {
+                    $groupSelect.append(`<option value="${g}">${g}</option>`);
+                });
+                $groupSelect.prop('disabled', false);
+
+                if (groups.length === 1) {
+                    $groupSelect.val(groups[0]).trigger('change');
+                } else {
+                    $groupWarning.show();
+                }
+            } else {
+                $groupSelect.append('<option value="">(ไม่มีกลุ่ม Lecture ในวิชานี้)</option>');
+            }
+        }
+    };
+
+    const populateCategories = ($rowCtx, subjId, groupName) => {
+        const $categorySelect = $rowCtx.find('.category-select');
+        const $categoryWarning = $rowCtx.find('.category-warning');
+
+        $categorySelect.empty().append('<option value="">-- เลือกหัวข้อ --</option>').prop('disabled', true);
+        $categoryWarning.hide();
+
+        if (groupName && subjId) {
+            const categoryList = window.APP.globalStructure.category.filter(t => t.subjectRef === subjId && t.accordionGroup === groupName);
+
+            const uniqueCats = [];
+            const seenCatIds = new Set();
+            categoryList.forEach(c => {
+                if (!seenCatIds.has(c.categoryId)) {
+                    seenCatIds.add(c.categoryId);
+                    uniqueCats.push(c);
+                }
+            });
+
+            uniqueCats.forEach(t => {
+                $categorySelect.append(`<option value="${t.categoryId}">${t.categoryName}</option>`);
+            });
+            $categorySelect.prop('disabled', false);
+
+            if (uniqueCats.length === 1) {
+                $categorySelect.val(uniqueCats[0].categoryId);
+            } else if (uniqueCats.length > 1) {
+                $categoryWarning.show();
+            }
+        }
+    };
+
+    $row.find('.subject-select').on('change', function () {
+        const subjId = $(this).val();
+        $row.find('.group-select').empty().append('<option value="">-- เลือกกลุ่ม --</option>').prop('disabled', true);
+        $row.find('.category-select').empty().append('<option value="">-- เลือกหัวข้อ --</option>').prop('disabled', true);
+        $row.find('.warning-text').hide();
+        populateGroups($row, subjId);
+    });
+
+    $row.find('.group-select').on('change', function () {
+        const groupName = $(this).val();
+        const subjId = $row.find('.subject-select').val();
+        populateCategories($row, subjId, groupName);
+    });
+
+    $row.find('.btn-remove-row').on('click', function () {
+        $(this).closest('.vote-row').remove();
+    });
+
+    if (preSelectedSubjectId) {
+        populateGroups($row, preSelectedSubjectId);
+    }
+};
+
+$(function () {
+    window.MAX_AUTO_VOTE = 2;
+
+    $('#btn-open-vote').on('click', () => {
+        window.openVoteModal(window.APP.currentQuestions[window.APP.questionIndex], false);
+    });
+
+    $('#btn-close-vote-modal').on('click', () => {
+        $('#vote-category-modal').fadeOut();
+    });
+
+    $('#btn-add-vote-row').on('click', function () {
+        window.addVoteRow();
+    });
+
+    $('#toggle-quick-cat').on('click', function () {
+        const $panel = $('#quick-cat-container');
+        if ($panel.is(':visible')) {
+            $panel.slideUp();
+            $(this).html('<i class="fas fa-bolt"></i> เปิดแผงแยกหัวข้อด่วน (Quick Mode)');
+        } else {
+            window.renderQuickCatPanel();
+            $panel.slideDown();
+            $(this).html('<i class="fas fa-times"></i> ปิดแผงแยกหัวข้อ');
+            $('html, body').animate({ scrollTop: $(this).offset().top - 100 }, 500);
+        }
+    });
+
+    $('#btn-submit-vote').off('click').on('click', () => {
+        const votes = [];
+        $('.vote-row').each(function () {
+            const categoryId = $(this).find('.category-select').val();
+            if (categoryId) {
+                if (!window.APP.modalTargetQuestion.category.includes(categoryId)) {
+                    votes.push(categoryId);
+                }
+            }
+        });
+
+        const uniqueVotes = [...new Set(votes)];
+
+        if (uniqueVotes.length === 0) {
+            Swal.fire("กรุณาเลือกหัวข้ออย่างน้อย 1 หัวข้อ (และต้องไม่ซ้ำกับหัวข้อเดิม)");
+            return;
+        }
+
+        window.submitVoteData(uniqueVotes, window.APP.modalTargetQuestion);
+    });
+});
