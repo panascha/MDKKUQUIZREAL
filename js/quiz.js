@@ -351,7 +351,7 @@ window.sortCurrentQuestions = function () {
     window.APP.currentQuestions = [...groupAndShuffle(answered), ...groupAndShuffle(unanswered)];
 };
 
-// 8. การกรองและเปลี่ยนชุดข้อสอบ
+// 8. การกรองและเปลี่ยนชุดข้อสอบ (Modified to support both categories and dynamic attribute filters)
 window.updateQuestionSet = function (shouldSort = true) {
     const previouslyAnswered = {};
     window.APP.currentQuestions.forEach(q => {
@@ -365,28 +365,60 @@ window.updateQuestionSet = function (shouldSort = true) {
         }
     });
 
-    const selectedCategoryIds = $('input[type="checkbox"][name="category"]:checked').map(function () {
-        return this.value;
-    }).get();
-
     window.APP.currentQuestions = [];
 
-    if (selectedCategoryIds.length === 0) {
-        window.APP.currentQuestions = window.APP.allQuestions.map(q => ({
-            ...q,
-            attemptCount: 0,
-            failCount: 0
-        }));
+    if (window.APP.filterMode === "category") {
+        // กรองแบบ Accordion Category ปกติ
+        const selectedCategoryIds = $('input[type="checkbox"][name="category"]:checked').map(function () {
+            return this.value;
+        }).get();
+
+        if (selectedCategoryIds.length === 0) {
+            window.APP.currentQuestions = window.APP.allQuestions.map(q => ({
+                ...q,
+                attemptCount: 0,
+                failCount: 0
+            }));
+        } else {
+            window.APP.currentQuestions = window.APP.allQuestions.filter(q => {
+                if (!q.category) return false;
+                let cats = Array.isArray(q.category) ? q.category : [q.category];
+                return cats.some(c => selectedCategoryIds.includes(c));
+            }).map(q => ({
+                ...q,
+                attemptCount: 0,
+                failCount: 0
+            }));
+        }
     } else {
-        window.APP.currentQuestions = window.APP.allQuestions.filter(q => {
-            if (!q.category) return false;
-            let cats = Array.isArray(q.category) ? q.category : [q.category];
-            return cats.some(c => selectedCategoryIds.includes(c));
-        }).map(q => ({
-            ...q,
-            attemptCount: 0,
-            failCount: 0
-        }));
+        // กรองแบบคุณสมบัติละเอียด (Year / ExamGroup / SubGroupSuffix)
+        const selectedYears = $('input[type="checkbox"][name="filter-year"]:checked').map(function () { return this.value; }).get();
+        const selectedGroups = $('input[type="checkbox"][name="filter-examgroup"]:checked').map(function () { return this.value; }).get();
+        const selectedSuffixes = $('input[type="checkbox"][name="filter-suffix"]:checked').map(function () { return this.value; }).get();
+
+        const totalSelectedCount = selectedYears.length + selectedGroups.length + selectedSuffixes.length;
+
+        if (totalSelectedCount === 0) {
+            window.APP.currentQuestions = window.APP.allQuestions.map(q => ({
+                ...q,
+                attemptCount: 0,
+                failCount: 0
+            }));
+        } else {
+            window.APP.currentQuestions = window.APP.allQuestions.filter(q => {
+                const meta = window.parseQuestionMetadata(q);
+
+                const matchYear = selectedYears.length === 0 || selectedYears.includes(meta.year);
+                const matchGroup = selectedGroups.length === 0 || selectedGroups.includes(meta.examGroup);
+                const matchSuffix = selectedSuffixes.length === 0 || selectedSuffixes.includes(meta.suffix);
+
+                return matchYear && matchGroup && matchSuffix;
+            }).map(q => ({
+                ...q,
+                attemptCount: 0,
+                failCount: 0
+            }));
+        }
     }
 
     window.APP.score = 0;
@@ -413,7 +445,7 @@ window.updateQuestionSet = function (shouldSort = true) {
         $('#image-container-div').hide();
         window.showQuestion(false);
     } else {
-        $('#question').html("ไม่พบข้อสอบในหมวดหมู่ที่เลือก");
+        $('#question').html("ไม่พบข้อสอบในเงื่อนไขการกรองที่เลือก");
         $('#choices').empty();
         $('#questionIndex').text("0/0");
     }

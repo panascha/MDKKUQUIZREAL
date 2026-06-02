@@ -1,4 +1,4 @@
-// js/app.js
+// REFACTOR/js/app.js
 
 // =========================================================
 // 1. ฟังก์ชันอัปเดตข้อมูลความคืบหน้าบนหัวข้อเว็บ (Progress Header)
@@ -244,13 +244,14 @@ window.initApp = async function () {
     }
 
     // 1. ตรวจค้นโครงสร้างและโจทย์วิชาจาก Cache ท้องถิ่น (IndexedDB)
-    const localVer = await window.getCacheDB(verKey);
     const localData = await window.getCacheDB(cacheKey);
+    const localVer = await window.getCacheDB(verKey);
 
     if (localData) {
         window.APP.globalStructure = localData.structure;
         window.APP.allQuestions = localData.questions;
         window.renderAccordionUI(window.APP.globalStructure);
+        window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิก
         window.buildSearchDictionary();
         window.updateSubjectUI(subjectParam);
 
@@ -316,6 +317,7 @@ window.initApp = async function () {
                 window.APP.globalStructure = newData.structure;
                 window.APP.allQuestions = newData.questions;
                 window.renderAccordionUI(window.APP.globalStructure);
+                window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิกสำหรับการรันครั้งแรก
                 window.updateQuestionSet();
                 window.buildSearchDictionary();
             }

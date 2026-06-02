@@ -23,9 +23,16 @@ window.displayAnswerContent = function (text) {
 };
 
 window.getSelectedCategoryNames = function () {
-    return window.APP.globalStructure.category
-        .filter(t => $(`input[data-category-id="${t.categoryId}"]`).is(':checked'))
-        .map(t => t.categoryName);
+    if (window.APP.filterMode === "category") {
+        return window.APP.globalStructure.category
+            .filter(t => $(`input[data-category-id="${t.categoryId}"]`).is(':checked'))
+            .map(t => t.categoryName);
+    } else {
+        const selectedYears = $('input[type="checkbox"][name="filter-year"]:checked').map(function () { return "ปี " + this.value; }).get();
+        const selectedGroups = $('input[type="checkbox"][name="filter-examgroup"]:checked').map(function () { return this.value; }).get();
+        const selectedSuffixes = $('input[type="checkbox"][name="filter-suffix"]:checked').map(function () { return this.value; }).get();
+        return [...selectedYears, ...selectedGroups, ...selectedSuffixes];
+    }
 };
 
 window.currentZoom = 100;
@@ -68,6 +75,172 @@ window.updateImageGallery = function () {
         $prevBtn.hide();
         $nextBtn.hide();
         $counter.hide();
+    }
+};
+
+// =========================================================
+// II. Metadata Parser & Dynamic Attribute Filtering UI (NEW)
+// =========================================================
+
+window.parseQuestionMetadata = function (q) {
+    const defaultCat = q.category && q.category[0] ? q.category[0] : "";
+    const standardizedCat = q.category && q.category[1] ? q.category[1] : "";
+
+    let year = "N/A";
+    let examGroup = "N/A";
+    let suffix = "CLINICAL"; // default fallback
+
+    // 1. แยก Year และ ExamGroup จาก Default_CategoryID
+    const defaultParts = defaultCat.split('_');
+    if (defaultParts.length >= 2) {
+        const yearGroupStr = defaultParts[1]; // e.g., "51MCQ1"
+        const match = yearGroupStr.match(/^(\d+)(.*)$/); // capture ตัวเลข 2 หลักแรก
+        if (match) {
+            year = match[1];      // "51"
+            examGroup = match[2]; // "MCQ1"
+        } else {
+            examGroup = yearGroupStr;
+        }
+    }
+
+    // 2. แยก SubGroupSuffix จาก Standardized_CategoryID
+    const stdParts = standardizedCat.split('_');
+    if (stdParts.length >= 3) {
+        suffix = stdParts[1]; // e.g., "ANA"
+    } else {
+        const upperStd = standardizedCat.toUpperCase();
+        const knownSuffixes = ["ANA", "BIOCHEM", "PHYSIO", "MICRO", "PARASITO", "PATHO", "PHARM", "RADIO", "CLINICAL"];
+        for (const s of knownSuffixes) {
+            if (upperStd.includes(`_${s}_`) || upperStd.includes(`_${s}`)) {
+                suffix = s;
+                break;
+            }
+        }
+    }
+
+    return { year, examGroup, suffix };
+};
+
+window.renderAttributeFilterUI = function () {
+    const $container = $('#attribute-filter-area');
+    if (!$container.length) return;
+    $container.empty();
+
+    const years = new Set();
+    const examGroups = new Set();
+    const suffixes = new Set();
+
+    window.APP.allQuestions.forEach(q => {
+        const meta = window.parseQuestionMetadata(q);
+        if (meta.year !== "N/A") years.add(meta.year);
+        if (meta.examGroup !== "N/A") examGroups.add(meta.examGroup);
+        if (meta.suffix !== "N/A") suffixes.add(meta.suffix);
+    });
+
+    const sortedYears = Array.from(years).sort();
+    const sortedExamGroups = Array.from(examGroups).sort();
+    const sortedSuffixes = Array.from(suffixes).sort();
+
+    function getSuffixColorClass(suffix) {
+        const s = suffix.toUpperCase();
+        if (s.includes("RADIO") || s.includes("CLINICAL")) return "cat-clinical";
+        if (s.includes("ANATOMY") || s.includes("ANA")) return "cat-anatomy";
+        if (s.includes("PARASITO") || s.includes("MICRO")) return "cat-micro";
+        if (s.includes("PATHO")) return "cat-patho";
+        if (s.includes("PHYSIO") || s.includes("BIOCHEM")) return "cat-physio";
+        if (s.includes("PHARM")) return "cat-pharm";
+        return "cat-non";
+    }
+
+    let html = `
+        <div class="filter-group-container" style="display: flex; flex-direction: column; gap: 14px; text-align: left; background: var(--color-surface-2); padding: 18px; border-radius: var(--border-radius); border: 1px solid var(--color-border); box-sizing: border-box; width:100%;">
+            
+            <!-- 1. เลือกปีข้อสอบ -->
+            <div>
+                <h4 style="margin: 0 0 10px 0; font-size: 1.15rem; font-weight: 700; color: var(--color-primary); border-left: 4px solid var(--color-primary); padding-left: 8px;">1. เลือกปีข้อสอบ (Year)</h4>
+                <div class="button-grid" id="attr-year-grid">
+                    ${sortedYears.map(y => `
+                        <label class="category-label">
+                            <input type="checkbox" name="filter-year" id="filter-year-${y}" value="${y}" style="display: none;">
+                            <span class="toggle-button cat-non">ปี ${y}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- 2. เลือกประเภทข้อสอบ -->
+            <div>
+                <h4 style="margin: 14px 0 10px 0; font-size: 1.15rem; font-weight: 700; color: var(--color-primary); border-left: 4px solid var(--color-primary); padding-left: 8px;">2. เลือกประเภทข้อสอบ (Exam Group)</h4>
+                <div class="button-grid" id="attr-group-grid">
+                    ${sortedExamGroups.map(eg => `
+                        <label class="category-label">
+                            <input type="checkbox" name="filter-examgroup" id="filter-examgroup-${eg}" value="${eg}" style="display: none;">
+                            <span class="toggle-button cat-non">${eg}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- 3. เลือกรายวิชาเฉพาะทาง -->
+            <div>
+                <h4 style="margin: 14px 0 10px 0; font-size: 1.15rem; font-weight: 700; color: var(--color-primary); border-left: 4px solid var(--color-primary); padding-left: 8px;">3. เลือกหัวข้อวิชาเฉพาะทาง (SubGroup Suffix)</h4>
+                <div class="button-grid" id="attr-suffix-grid">
+                    ${sortedSuffixes.map(s => {
+        const colorClass = getSuffixColorClass(s);
+        return `
+                            <label class="category-label">
+                                <input type="checkbox" name="filter-suffix" id="filter-suffix-${s}" value="${s}" style="display: none;">
+                                <span class="toggle-button ${colorClass}">${s}</span>
+                            </label>
+                        `;
+    }).join('')}
+                </div>
+            </div>
+
+        </div>
+    `;
+
+    $container.html(html);
+
+    // ตรวจสอบการกดติ๊กช่องตัวเลือก ยิงคำสั่งอัปเดตเซตคำถามทันที
+    $('input[type="checkbox"][name^="filter-"]').on('change', function () {
+        window.updateQuestionSet();
+        window.updateSelectedCategoryStatus();
+    });
+};
+
+window.setFilterMode = function (mode) {
+    window.APP.filterMode = mode;
+    if (mode === "category") {
+        $('#btn-mode-category').addClass('btn-dark').removeClass('btn-light').css('background-color', '');
+        $('#btn-mode-filter').addClass('btn-light').removeClass('btn-dark').css('background-color', '#4b5563');
+        $('#dynamic-accordion-area').show();
+        $('#attribute-filter-area').hide();
+    } else {
+        $('#btn-mode-filter').addClass('btn-dark').removeClass('btn-light').css('background-color', '');
+        $('#btn-mode-category').addClass('btn-light').removeClass('btn-dark').css('background-color', '#4b5563');
+        $('#dynamic-accordion-area').hide();
+        $('#attribute-filter-area').show();
+
+        // ถ้าแผง UI ตัวกรองละเอียดยังว่างอยู่ ให้ทำการสร้างมันขึ้นมา
+        if (!$('#attribute-filter-area').children().length) {
+            window.renderAttributeFilterUI();
+        }
+    }
+    window.updateQuestionSet();
+    window.updateSelectedCategoryStatus();
+};
+
+window.clearAllAttributeFilters = function () {
+    $('input[type="checkbox"][name^="filter-"]').prop('checked', false);
+    window.updateQuestionSet();
+    window.updateSelectedCategoryStatus();
+};
+
+window.uncheckAttributeFilter = function (type, value) {
+    const el = document.getElementById(`filter-${type}-${value}`);
+    if (el) {
+        $(el).prop('checked', false).trigger('change');
     }
 };
 
@@ -275,43 +448,70 @@ window.updateSuperGroupBadges = function () {
 
 window.updateSelectedCategoryStatus = function () {
     const $status = $('#selected-category-status');
-    const selected = $('input[type="checkbox"][name="category"]:checked');
-
     $status.empty();
 
-    if (selected.length === 0) {
-        $status.html('<p class="small-text" style="color: #999; margin:0;">ยังไม่ได้เลือกหัวข้อ</p>');
-    } else {
-        $status.append(`<button class="btn-clear-all" onclick="window.clearAllCategories()"><i class="fas fa-trash-alt"></i> ล้างทั้งหมด (${selected.length})</button>`);
-
-        selected.each(function () {
-            const categoryId = $(this).data('category-id');
-            const categoryObj = window.APP.globalStructure.category.find(c => c.categoryId === categoryId);
-            const labelName = categoryObj ? categoryObj.categoryName : categoryId;
-
-            $status.append(`
-                <button class="status-category-button" title="คลิกเพื่อเอาออก" 
-                        onclick="window.uncheckCategory('${categoryId.replace(/'/g, "\\'")}')">
-                    ${labelName} <i class="fas fa-times"></i>
-                </button>
-            `);
-        });
-    }
-
-    $('.accordion-group').each(function () {
-        const $group = $(this);
-        const totalInGroup = $group.find('input[type="checkbox"]').length;
-        const checkedInGroup = $group.find('input[type="checkbox"]:checked').length;
-        const $badge = $group.find('.selected-count-badge');
-
-        if (checkedInGroup > 0) {
-            $badge.text(`${checkedInGroup}/${totalInGroup}`).fadeIn(200);
-            $group.css('border-color', 'var(--color-primary)');
+    if (window.APP.filterMode === "category") {
+        const selected = $('input[type="checkbox"][name="category"]:checked');
+        if (selected.length === 0) {
+            $status.html('<p class="small-text" style="color: #999; margin:0;">ยังไม่ได้เลือกหัวข้อ</p>');
         } else {
-            $badge.hide();
-            $group.css('border-color', '#ddd');
+            $status.append(`<button class="btn-clear-all" onclick="window.clearAllCategories()"><i class="fas fa-trash-alt"></i> ล้างทั้งหมด (${selected.length})</button>`);
+
+            selected.each(function () {
+                const categoryId = $(this).data('category-id');
+                const categoryObj = window.APP.globalStructure.category.find(c => c.categoryId === categoryId);
+                const labelName = categoryObj ? categoryObj.categoryName : categoryId;
+
+                $status.append(`
+                    <button class="status-category-button" title="คลิกเพื่อเอาออก" 
+                            onclick="window.uncheckCategory('${categoryId.replace(/'/g, "\\'")}')">
+                        ${labelName} <i class="fas fa-times"></i>
+                    </button>
+                `);
+            });
         }
-    });
+
+        $('.accordion-group').each(function () {
+            const $group = $(this);
+            const totalInGroup = $group.find('input[type="checkbox"]').length;
+            const checkedInGroup = $group.find('input[type="checkbox"]:checked').length;
+            const $badge = $group.find('.selected-count-badge');
+
+            if (checkedInGroup > 0) {
+                $badge.text(`${checkedInGroup}/${totalInGroup}`).fadeIn(200);
+                $group.css('border-color', 'var(--color-primary)');
+            } else {
+                $badge.hide();
+                $group.css('border-color', '#ddd');
+            }
+        });
+    } else {
+        // โหมดสุมเลือกคัดแยกละเอียด Year, Group, Suffix Status display
+        const selectedYears = $('input[type="checkbox"][name="filter-year"]:checked');
+        const selectedGroups = $('input[type="checkbox"][name="filter-examgroup"]:checked');
+        const selectedSuffixes = $('input[type="checkbox"][name="filter-suffix"]:checked');
+
+        const totalSelected = selectedYears.length + selectedGroups.length + selectedSuffixes.length;
+
+        if (totalSelected === 0) {
+            $status.html('<p class="small-text" style="color: #999; margin:0;">ยังไม่ได้เลือกตัวกรองละเอียด</p>');
+        } else {
+            $status.append(`<button class="btn-clear-all" onclick="window.clearAllAttributeFilters()"><i class="fas fa-trash-alt"></i> ล้างตัวกรองทั้งหมด (${totalSelected})</button>`);
+
+            selectedYears.each(function () {
+                const val = this.value;
+                $status.append(`<button class="status-category-button" onclick="window.uncheckAttributeFilter('year', '${val}')">ปี: ${val} <i class="fas fa-times"></i></button>`);
+            });
+            selectedGroups.each(function () {
+                const val = this.value;
+                $status.append(`<button class="status-category-button" onclick="window.uncheckAttributeFilter('examgroup', '${val}')">กลุ่ม: ${val} <i class="fas fa-times"></i></button>`);
+            });
+            selectedSuffixes.each(function () {
+                const val = this.value;
+                $status.append(`<button class="status-category-button" onclick="window.uncheckAttributeFilter('suffix', '${val}')">วิชา: ${val} <i class="fas fa-times"></i></button>`);
+            });
+        }
+    }
 
     window.updateProgressHeader();
 };
@@ -557,14 +757,24 @@ $(function () {
                 answeredStates[q.questionId] = { select: q.select };
             }
         });
-        const selectedCategory = window.APP.globalStructure.category
-            .filter(t => {
-                const el = document.getElementById(`cat-${t.categoryId}`);
-                return el ? el.checked : false;
-            })
-            .map(t => t.categoryId);
+
         const state = {
-            category: selectedCategory,
+            filterMode: window.APP.filterMode || "category",
+            category: window.APP.globalStructure.category
+                .filter(t => {
+                    const el = document.getElementById(`cat-${t.categoryId}`);
+                    return el ? el.checked : false;
+                })
+                .map(t => t.categoryId),
+            selectedYears: $('input[type="checkbox"][name="filter-year"]:checked').map(function () {
+                return this.value;
+            }).get(),
+            selectedGroups: $('input[type="checkbox"][name="filter-examgroup"]:checked').map(function () {
+                return this.value;
+            }).get(),
+            selectedSuffixes: $('input[type="checkbox"][name="filter-suffix"]:checked').map(function () {
+                return this.value;
+            }).get(),
             answered: answeredStates,
             index: window.APP.questionIndex,
             isRandom: window.APP.isRandomized,
@@ -578,11 +788,41 @@ $(function () {
             const stateJSON = atob(encodedString);
             const state = JSON.parse(stateJSON);
 
+            window.APP.filterMode = state.filterMode || "category";
+
             $('input[type="checkbox"]').prop('checked', false);
-            state.category.forEach(categoryId => {
-                const el = document.getElementById(`cat-${categoryId}`);
-                if (el) el.checked = true;
-            });
+
+            if (state.category) {
+                state.category.forEach(categoryId => {
+                    const el = document.getElementById(`cat-${categoryId}`);
+                    if (el) el.checked = true;
+                });
+            }
+
+            if (window.APP.filterMode === "attribute") {
+                window.renderAttributeFilterUI();
+            }
+
+            if (state.selectedYears) {
+                state.selectedYears.forEach(val => {
+                    const target = document.getElementById(`filter-year-${val}`);
+                    if (target) target.checked = true;
+                });
+            }
+            if (state.selectedGroups) {
+                state.selectedGroups.forEach(val => {
+                    const target = document.getElementById(`filter-examgroup-${val}`);
+                    if (target) target.checked = true;
+                });
+            }
+            if (state.selectedSuffixes) {
+                state.selectedSuffixes.forEach(val => {
+                    const target = document.getElementById(`filter-suffix-${val}`);
+                    if (target) target.checked = true;
+                });
+            }
+
+            window.setFilterMode(window.APP.filterMode);
 
             window.APP.isRandomized = state.isRandom;
             $('#toggle-random-btn').text(window.APP.isRandomized ? 'โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : 'โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)');
@@ -636,6 +876,7 @@ $(function () {
         $('#feedback-save').text('ไฟล์ .txt ได้ถูกดาวน์โหลดแล้ว').show().fadeOut(2000);
     });
 
+    // Rest of ui.js events intact...
     $('#modal-export-copy-btn').on('click', function () {
         const code = window.generateExportCode();
         if (!code) return;

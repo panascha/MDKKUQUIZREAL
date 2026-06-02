@@ -286,6 +286,21 @@
         <div class="selection-container">
             <h2>✅ เลือกหัวข้อได้เลยย</h2>
 
+            <!-- แถบสลับหมวดหมู่ตัวกรองอัจฉริยะ (Year, Group, Suffix Selection Tabs) -->
+            <div
+                style="display: flex; gap: 10px; margin-bottom: 12px; width: 100%; justify-content: center; box-sizing: border-box;">
+                <button id="btn-mode-category" class="quiz-button btn-dark"
+                    style="flex: 1; max-width: 240px; font-size: 0.95rem; padding: 8px 12px;"
+                    onclick="window.setFilterMode('category')">
+                    <i class="fas fa-folder"></i> ตามเลคเชอร์ / หมวดหมู่
+                </button>
+                <button id="btn-mode-filter" class="quiz-button btn-light"
+                    style="flex: 1; max-width: 240px; font-size: 0.95rem; padding: 8px 12px; background-color: #4b5563;"
+                    onclick="window.setFilterMode('attribute')">
+                    <i class="fas fa-filter"></i> ตัวกรองละเอียด (ปี / ประเภท / วิชา)
+                </button>
+            </div>
+
             <div id="report-notification-container" style="display:none; margin-bottom: 16px;">
                 <div
                     style="background-color: #FEE2E2; color: #7F1D1D; border: 1px solid #FCA5A5; border-radius: 8px; padding: 13px; position: relative;">
@@ -313,6 +328,9 @@
                 <div class="loading-spinner"></div>
                 <p style="text-align:center; color: var(--color-text-muted);">กำลังดึงข้อมูลจาก Server...</p>
             </div>
+
+            <!-- หน้าจอแสดงการกรองคุณสมบัติแยกตามปี, กลุ่มข้อสอบ และรายวิชาย่อย (Attribute Selection Panel) -->
+            <div id="attribute-filter-area" style="display: none; width: 100%; box-sizing: border-box;"></div>
 
             <div class="controls-container">
                 <button id="save" class="quiz-button">Save to PDF</button>

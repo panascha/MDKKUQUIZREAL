@@ -72,6 +72,7 @@ window.APP = {
     isRandomized: true,
     isShowingAllAnswers: false,
     isReviewMode: false,
+    filterMode: "category",
     pendingVotesCache: {},
     sessionAutoVoteCount: 0,
     votedQuestionIds: new Set(),

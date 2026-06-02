@@ -49,6 +49,7 @@ window.saveProgressToCache = async function () {
         score: window.APP.score,
         isRandomized: window.APP.isRandomized,
         isReviewMode: window.APP.isReviewMode,
+        filterMode: window.APP.filterMode || "category", // บันทึกสถานะโหมดตัวกรอง
         currentQuestionsState: window.APP.currentQuestions.map(q => ({
             questionId: q.questionId,
             state: q.state,
@@ -57,6 +58,16 @@ window.saveProgressToCache = async function () {
             failCount: q.failCount
         })),
         selectedCategories: $('input[type="checkbox"][name="category"]:checked').map(function () {
+            return this.value;
+        }).get(),
+        // บันทึกตัวเลือกการกรองละเอียดเพิ่มเติม
+        selectedYears: $('input[type="checkbox"][name="filter-year"]:checked').map(function () {
+            return this.value;
+        }).get(),
+        selectedGroups: $('input[type="checkbox"][name="filter-examgroup"]:checked').map(function () {
+            return this.value;
+        }).get(),
+        selectedSuffixes: $('input[type="checkbox"][name="filter-suffix"]:checked').map(function () {
             return this.value;
         }).get(),
         timestamp: Date.now()
@@ -75,6 +86,9 @@ window.loadProgressFromCache = async function () {
     if (!savedState) return false;
 
     try {
+        window.APP.filterMode = savedState.filterMode || "category";
+
+        // คืนค่าเช็คบ็อกซ์แบบตามวิชา/ตามบทเรียนปกติ
         $('input[type="checkbox"][name="category"]').prop('checked', false);
         if (savedState.selectedCategories) {
             savedState.selectedCategories.forEach(catId => {
@@ -84,6 +98,34 @@ window.loadProgressFromCache = async function () {
                 }
             });
         }
+
+        // คืนค่าเช็คบ็อกซ์ตัวเลือกละเอียด (Year / ExamGroup / Suffix)
+        if (window.APP.filterMode === "attribute") {
+            window.renderAttributeFilterUI();
+        }
+
+        $('input[type="checkbox"][name^="filter-"]').prop('checked', false);
+        if (savedState.selectedYears) {
+            savedState.selectedYears.forEach(val => {
+                const target = document.getElementById(`filter-year-${val}`);
+                if (target) $(target).prop('checked', true);
+            });
+        }
+        if (savedState.selectedGroups) {
+            savedState.selectedGroups.forEach(val => {
+                const target = document.getElementById(`filter-examgroup-${val}`);
+                if (target) $(target).prop('checked', true);
+            });
+        }
+        if (savedState.selectedSuffixes) {
+            savedState.selectedSuffixes.forEach(val => {
+                const target = document.getElementById(`filter-suffix-${val}`);
+                if (target) $(target).prop('checked', true);
+            });
+        }
+
+        // ซิงค์ UI การแสดงผลของโหมดตัวเลือก
+        window.setFilterMode(window.APP.filterMode);
 
         const reorderedQuestions = [];
         savedState.currentQuestionsState.forEach(savedQ => {
