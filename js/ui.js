@@ -365,8 +365,9 @@ window.renderAccordionUI = function (data) {
             };
             superGroups[key].accordions.push({ groupName, categories, isExcluded });
         } else if (
-            groupName.toUpperCase().includes("LEC") ||
-            categories.some(c => isLectureCategory(c.categoryId))
+            (groupName.toUpperCase().includes("LEC") ||
+            categories.some(c => isLectureCategory(c.categoryId))) &&
+            !groupName.toUpperCase().includes("BY AI")
         ) {
             const key = `${subjectId}|LEC`;
             if (!superGroups[key]) superGroups[key] = {
