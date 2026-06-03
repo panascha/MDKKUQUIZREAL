@@ -3,11 +3,14 @@
 window.searchDictionary = new Set();
 const colors = ['#FFECB3', '#FFCDD2', '#C8E6C9', '#BBDEFB', '#D1C4E9', '#FFE0B2', '#F0F4C3', '#DCEDC8', '#FFCCBC', '#D7CCC8'];
 
+// LRU Cache ขนาด 100 รายการสำหรับเก็บผลลัพธ์คำแนะนำการสะกดคำ
+const _fuzzyCache = new Map();
+const _FUZZY_CACHE_MAX = 100;
+
 window.buildSearchDictionary = function () {
     window.searchDictionary.clear();
     console.log("Building Search Dictionary...");
 
-    // คลังคำศัพท์หลักภาษาไทยสืบค้นบ่อยในควิซสรีรวิทยา กายวิภาคศาสตร์ และพยาธิวิทยา
     const commonThaiWords = [
         "กระเพาะ", "อาหาร", "หัวใจ", "ปอด", "ตับ", "ไต", "สมอง", "กระดูก", "กล้ามเนื้อ",
         "เส้นประสาท", "หลอดเลือด", "เซลล์", "อักเสบ", "มะเร็ง", "ติดเชื้อ", "รักษา",
@@ -23,14 +26,12 @@ window.buildSearchDictionary = function () {
         const text = `${q.problem || ''} ${q.choices || ''} ${q.explain || ''}`;
         const lowerText = text.toLowerCase();
 
-        // 1. ตรวจสอบและดึงคำศัพท์ไทยสำคัญที่พบบ่อยเข้ามาในพจนานุกรมเพื่อประยุกต์ทำ Fuzzy Search
         commonThaiWords.forEach(word => {
             if (lowerText.includes(word)) {
                 window.searchDictionary.add(word);
             }
         });
 
-        // 2. การสกัดคำเดี่ยวภาษาอังกฤษหรือคำที่มีช่องว่างตามแนวทางปกติ
         const tokens = text.split(/[\s\n\r\t\(\)\[\]\{\}"'\/\\,\.\-\?\!]+/);
         tokens.forEach(t => {
             const cleanT = t.trim().toLowerCase();
@@ -40,6 +41,7 @@ window.buildSearchDictionary = function () {
         });
     });
     console.log(`Dictionary built with ${window.searchDictionary.size} words.`);
+    _fuzzyCache.clear();
 };
 
 window.levenshtein = function (a, b) {
@@ -72,6 +74,13 @@ window.findSuggestions = function (term) {
     term = term.toLowerCase().replace(/["“”]/g, '');
     if (term.length < 2) return [];
 
+    if (_fuzzyCache.has(term)) {
+        const cachedVal = _fuzzyCache.get(term);
+        _fuzzyCache.delete(term);
+        _fuzzyCache.set(term, cachedVal);
+        return cachedVal;
+    }
+
     const suggestions = [];
     const maxDistance = Math.floor(term.length * 0.4);
 
@@ -87,7 +96,14 @@ window.findSuggestions = function (term) {
     }
 
     suggestions.sort((a, b) => a.score - b.score);
-    return suggestions.slice(0, 5).map(s => s.word);
+    const result = suggestions.slice(0, 5).map(s => s.word);
+
+    if (_fuzzyCache.size >= _FUZZY_CACHE_MAX) {
+        _fuzzyCache.delete(_fuzzyCache.keys().next().value);
+    }
+    _fuzzyCache.set(term, result);
+
+    return result;
 };
 
 window.highlight = function (text) {
@@ -119,27 +135,53 @@ window.performSearch = function () {
 
     const rawTerms = searchTerm.match(/(?:[^\s"Standard]+|"[^"]*"|“[^”]*”)+/g) || [];
     const terms = rawTerms.map(term => term.replace(/^["“”]|["“”]$/g, ''));
+
+    // ตัวดำเนินการมาตรฐานสำหรับคัดกรอง
     const operators = ['and', 'or', 'not'];
 
+    // [ขั้นตอนที่ 1] สร้าง fuzzyMap ข้ามตัวดำเนินการ (Case-Insensitive)
+    const fuzzyMap = {};
     terms.forEach(term => {
         const lowerTerm = term.toLowerCase();
         if (!operators.includes(lowerTerm) && lowerTerm.length > 1) {
-            window.APP.termColors[lowerTerm] = colors[window.APP.colorIndex % colors.length];
-            window.APP.colorIndex++;
+            const suggestions = window.findSuggestions(lowerTerm);
+            fuzzyMap[lowerTerm] = [lowerTerm, ...suggestions];
         }
     });
 
+    // [ขั้นตอนที่ 2] กำหนดสีไฮไลต์ ข้ามตัวดำเนินการ (Case-Insensitive)
+    terms.forEach(term => {
+        const lowerTerm = term.toLowerCase();
+        if (operators.includes(lowerTerm) || lowerTerm.length <= 1) return;
+
+        const color = colors[window.APP.colorIndex % colors.length];
+        window.APP.termColors[lowerTerm] = color;
+        window.APP.colorIndex++;
+
+        const variations = fuzzyMap[lowerTerm] || [];
+        variations.forEach(v => {
+            if (!window.APP.termColors[v]) {
+                window.APP.termColors[v] = color;
+            }
+        });
+    });
+
+    // [ขั้นตอนที่ 3] คัดกรองข้อสอบ (ตัวดำเนินการรองรับ Case-Insensitive)
     let searchResults = window.APP.allQuestions.filter(q => {
         let includeQuestion = false;
-        let currentOperator = 'or';
+        let currentOperator = 'and';
         if (terms.length === 0) return false;
+
+        const searchableText = ((q.answer || '') + (q.problem || '') + (q.choices || '') + (q.explain || '')).toLowerCase();
 
         for (let i = 0; i < terms.length; i++) {
             const term = terms[i].toLowerCase();
             if (operators.includes(term)) {
                 currentOperator = term;
             } else {
-                const termInAny = (q.answer + q.problem + q.choices + (q.explain || "")).toLowerCase().includes(term);
+                const variations = fuzzyMap[term] || [term];
+                const termInAny = variations.some(v => searchableText.includes(v));
+
                 if (i === 0 || (i === 1 && operators.includes(terms[0].toLowerCase()))) {
                     includeQuestion = (currentOperator === 'not') ? !termInAny : termInAny;
                 } else {
@@ -147,21 +189,33 @@ window.performSearch = function () {
                     else if (currentOperator === 'or') includeQuestion = includeQuestion || termInAny;
                     else if (currentOperator === 'not') includeQuestion = includeQuestion && !termInAny;
                 }
-                currentOperator = 'or';
+                currentOperator = 'and';
             }
         }
         return includeQuestion;
     });
 
+    // [ขั้นตอนที่ 4] จัดอันดับความเกี่ยวข้อง (คัดแยกตัวดำเนินการออกจากการคำนวณ)
     searchResults.sort((a, b) => {
         const getScore = (q) => {
             let score = 0;
+            const searchableText = ((q.answer || '') + (q.problem || '') + (q.choices || '') + (q.explain || '')).toLowerCase();
+
             terms.filter(t => !operators.includes(t.toLowerCase())).forEach(t => {
                 const term = t.toLowerCase();
-                if (q.answer && q.answer.toLowerCase().includes(term)) score = Math.max(score, 100);
-                else if (q.problem && q.problem.toLowerCase().includes(term)) score = Math.max(score, 50);
-                else if (q.choices && q.choices.toLowerCase().includes(term)) score = Math.max(score, 20);
-                else if (q.explain && q.explain.toLowerCase().includes(term)) score = Math.max(score, 10);
+                const variations = fuzzyMap[term] || [term];
+
+                variations.forEach((v, idx) => {
+                    const weight = idx === 0 ? 1.0 : 0.3;
+
+                    let baseScore = 0;
+                    if (q.answer && q.answer.toLowerCase().includes(v)) baseScore = 100;
+                    else if (q.problem && q.problem.toLowerCase().includes(v)) baseScore = 50;
+                    else if (q.choices && q.choices.toLowerCase().includes(v)) baseScore = 20;
+                    else if (q.explain && q.explain.toLowerCase().includes(v)) baseScore = 10;
+
+                    score = Math.max(score, baseScore * weight);
+                });
             });
             return score;
         };
@@ -181,8 +235,29 @@ window.performSearch = function () {
         return;
     }
 
-    let cardsHtml = `<p class="small-text" style="color: #28a745; font-weight: bold; width: 100%;">พบ ${searchResults.length} ข้อ</p>
-                     <div class="search-results-grid">`;
+    const expandedTerms = [];
+    for (const key in fuzzyMap) {
+        const variations = fuzzyMap[key] || [];
+        variations.slice(1).forEach(v => {
+            if (v !== key && !expandedTerms.includes(v)) {
+                expandedTerms.push(v);
+            }
+        });
+    }
+
+    let fuzzyNoticeHtml = '';
+    if (expandedTerms.length > 0) {
+        fuzzyNoticeHtml = `
+            <p class="small-text" style="color: var(--color-text-muted); font-size: 1rem; text-align: center; margin-top: -8px; margin-bottom: 12px; width: 100%;">
+                <i class="fas fa-info-circle"></i> รวมผลลัพธ์จากคำสะกดใกล้เคียง: 
+                ${expandedTerms.map(t => `<b style="color: var(--color-primary);">${t}</b>`).join(', ')}
+            </p>`;
+    }
+
+    let cardsHtml = `
+        <p class="small-text" style="color: #28a745; font-weight: bold; width: 100%; margin-bottom: 8px;">พบ ${searchResults.length} ข้อ</p>
+        ${fuzzyNoticeHtml}
+        <div class="search-results-grid">`;
 
     searchResults.forEach((q, index) => {
         let categoryLabel = 'Unknown';
@@ -302,51 +377,76 @@ window.performSearch = function () {
     window.renderAllMath();
 };
 
-// ระบบแสดงคำแนะนำคำค้นหาเมื่อมีการพิมพ์ในช่องค้นหา
+// ─── OPTIMIZATION: ปรับปรุงการวิเคราะห์คำและสกัดคำแนะนำแบบพิกัดเคอร์เซอร์ (Caret-Aware Suggestions) ───
+let _suggestDebounceTimer = null;
 $('#search-input').on('input', function () {
-    const query = $(this).val().trim();
-    const $suggContainer = $('#search-suggestions-container');
-    const $chips = $('#suggestion-chips');
+    const $input = $(this);
+    const inputEl = $input[0];
 
-    if (query.length < 2) {
-        $suggContainer.hide();
-        return;
-    }
+    clearTimeout(_suggestDebounceTimer);
+    _suggestDebounceTimer = setTimeout(function () {
+        const query = $input.val();
+        const caretPos = inputEl.selectionStart || 0;
+        const $suggContainer = $('#search-suggestions-container');
+        const $chips = $('#suggestion-chips');
 
-    const terms = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-    if (terms.length === 0) {
-        $suggContainer.hide();
-        return;
-    }
-    const lastTerm = terms[terms.length - 1];
-    if (lastTerm.startsWith('"') || lastTerm.startsWith('“')) {
-        $suggContainer.hide();
-        return;
-    }
+        if (!query.trim() || query.length < 2) {
+            $suggContainer.hide();
+            return;
+        }
 
-    const suggs = window.findSuggestions(lastTerm);
-    if (suggs.length === 0) {
-        $suggContainer.hide();
-    } else {
-        $chips.empty();
-        suggs.forEach(s => {
-            $chips.append(`<span class="suggestion-chip" data-word="${s}">
-                    <span class="original-term">${lastTerm}</span> <i class="fas fa-arrow-right"></i> <b>${s}</b>
-                </span>`);
-        });
-        $suggContainer.show();
-    }
+        // หาตำแหน่งและขอบเขตคำที่เคอร์เซอร์อยู่
+        const start = query.lastIndexOf(' ', caretPos - 1) + 1;
+        let end = query.indexOf(' ', caretPos);
+        if (end === -1) end = query.length;
+
+        const currentWord = query.substring(start, end).trim();
+        const upperWord = currentWord.toUpperCase();
+
+        // [ความต้องการ] ตัวเชื่อม Operators (AND, OR, NOT) จะไม่แสดงคำแนะนำสะกดคำ
+        if (upperWord === 'AND' || upperWord === 'OR' || upperWord === 'NOT' || currentWord.length < 2) {
+            $suggContainer.hide();
+            return;
+        }
+
+        // หลีกเลี่ยงการสะกิดเมื่ออยู่ในเครื่องหมายคำพูด
+        if (currentWord.startsWith('"') || currentWord.startsWith('“')) {
+            $suggContainer.hide();
+            return;
+        }
+
+        const suggs = window.findSuggestions(currentWord);
+        if (suggs.length === 0) {
+            $suggContainer.hide();
+        } else {
+            $input.data('replace-range', { start: start, end: end });
+
+            $chips.empty();
+            suggs.forEach(s => {
+                $chips.append(`<span class="suggestion-chip" data-word="${s}">
+                        <span class="original-term">${currentWord}</span> <i class="fas fa-arrow-right"></i> <b>${s}</b>
+                    </span>`);
+            });
+            $suggContainer.show();
+        }
+    }, 250);
 });
 
-// เมื่อผู้ใช้คลิกเลือกคำแนะนำอัจฉริยะ (Suggestion Chips)
 $(document).on('click', '.suggestion-chip', function () {
     const word = $(this).data('word');
-    const currentVal = $('#search-input').val();
-    const terms = currentVal.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-    if (terms.length > 0) {
-        terms[terms.length - 1] = word;
-        $('#search-input').val(terms.join(' ') + ' ');
+    const $input = $('#search-input');
+    const range = $input.data('replace-range');
+
+    if (range) {
+        const val = $input.val();
+        const newVal = val.substring(0, range.start) + word + val.substring(range.end);
+        $input.val(newVal);
+
+        const newCaretPos = range.start + word.length;
+        $input[0].setSelectionRange(newCaretPos, newCaretPos);
+
         window.performSearch();
-        $('#search-input').focus();
+        $('#search-suggestions-container').hide();
+        $input.focus();
     }
 });
