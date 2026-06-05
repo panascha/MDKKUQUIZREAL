@@ -391,12 +391,13 @@ window.updateQuestionSet = function (shouldSort = true) {
             }));
         }
     } else {
-        // กรองแบบคุณสมบัติละเอียด (Year / ExamGroup / SubGroupSuffix)
+        // กรองแบบคุณสมบัติละเอียด (Year / ExamGroup / SubGroupSuffix / Topic)
         const selectedYears = $('input[type="checkbox"][name="filter-year"]:checked').map(function () { return this.value; }).get();
         const selectedGroups = $('input[type="checkbox"][name="filter-examgroup"]:checked').map(function () { return this.value; }).get();
         const selectedSuffixes = $('input[type="checkbox"][name="filter-suffix"]:checked').map(function () { return this.value; }).get();
+        const selectedTopics = $('input[type="checkbox"][name="filter-topic"]:checked').map(function () { return this.value; }).get();
 
-        const totalSelectedCount = selectedYears.length + selectedGroups.length + selectedSuffixes.length;
+        const totalSelectedCount = selectedYears.length + selectedGroups.length + selectedSuffixes.length + selectedTopics.length;
 
         if (totalSelectedCount === 0) {
             window.APP.currentQuestions = window.APP.allQuestions.map(q => ({
@@ -411,8 +412,9 @@ window.updateQuestionSet = function (shouldSort = true) {
                 const matchYear = selectedYears.length === 0 || selectedYears.includes(meta.year);
                 const matchGroup = selectedGroups.length === 0 || selectedGroups.includes(meta.examGroup);
                 const matchSuffix = selectedSuffixes.length === 0 || selectedSuffixes.includes(meta.suffix);
+                const matchTopic = selectedTopics.length === 0 || selectedTopics.includes(meta.topic);
 
-                return matchYear && matchGroup && matchSuffix;
+                return matchYear && matchGroup && matchSuffix && matchTopic;
             }).map(q => ({
                 ...q,
                 attemptCount: 0,

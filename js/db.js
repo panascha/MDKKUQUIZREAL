@@ -70,6 +70,9 @@ window.saveProgressToCache = async function () {
         selectedSuffixes: $('input[type="checkbox"][name="filter-suffix"]:checked').map(function () {
             return this.value;
         }).get(),
+        selectedTopics: $('input[type="checkbox"][name="filter-topic"]:checked').map(function () {
+            return this.value;
+        }).get(),
         timestamp: Date.now()
     };
 
@@ -120,6 +123,12 @@ window.loadProgressFromCache = async function () {
         if (savedState.selectedSuffixes) {
             savedState.selectedSuffixes.forEach(val => {
                 const target = document.getElementById(`filter-suffix-${val}`);
+                if (target) $(target).prop('checked', true);
+            });
+        }
+        if (savedState.selectedTopics) {
+            savedState.selectedTopics.forEach(val => {
+                const target = document.getElementById(`filter-topic-${val}`);
                 if (target) $(target).prop('checked', true);
             });
         }
