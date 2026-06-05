@@ -33,6 +33,14 @@ window.updateProgressHeader = function () {
             ข้อนี้ทำไป: ${window.APP.current_question.attemptCount || 0} | ผิด: ${window.APP.current_question.failCount || 0}${statusSuffix}
         </div>
     `);
+
+    // อัปเดตคะแนนในส่วนของ Header ภาพรวมข้อสอบให้ตรงกับปัจจุบันเสมอ
+    $('#index-score-badge-header').text(`${window.APP.score} / ${window.APP.currentQuestions.length}`);
+
+    // อัปเดต Dot Grid ทันทีหากผู้ใช้เปิดแผงทิ้งไว้ (โดยตรงและเสถียรกว่าการใช้ MutationObserver)
+    if ($('#index-grid-container').hasClass('open')) {
+        window.renderIndexPanel();
+    }
 };
 
 // =========================================================

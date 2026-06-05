@@ -603,16 +603,6 @@ $(function () {
         }
     });
 
-    const questionIndexEl = document.getElementById('questionIndex');
-    if (questionIndexEl) {
-        const observer = new MutationObserver(() => {
-            if ($('#index-grid-container').hasClass('open')) {
-                window.renderIndexPanel();
-            }
-        });
-        observer.observe(questionIndexEl, { childList: true, characterData: true, subtree: true });
-    }
-
     // --- ควบคุมหน้าต่างป๊อปอัปย่อย (Modals UI Controls) ---
     $('#save').on('click', function () {
         $('#pdf-choice-modal').fadeIn();
