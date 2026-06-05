@@ -249,7 +249,10 @@ window.initApp = async function () {
 
     if (localData) {
         window.APP.globalStructure = localData.structure;
-        window.APP.allQuestions = localData.questions;
+        window.APP.allQuestions = localData.questions.map(q => ({
+            ...q,
+            category: Array.isArray(q.category) ? q.category : (q.category ? [q.category] : [])
+        }));
         window.renderAccordionUI(window.APP.globalStructure);
         window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิก
         window.buildSearchDictionary();
