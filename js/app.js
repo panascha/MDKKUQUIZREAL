@@ -310,7 +310,11 @@ window.initApp = async function () {
 
             const newData = {
                 structure: resStruct,
-                questions: resQues.map((q, index) => ({ ...q, _originalIndex: index }))
+                questions: resQues.map((q, index) => ({
+                    ...q,
+                    _originalIndex: index,
+                    category: Array.isArray(q.category) ? q.category : (q.category ? [q.category] : [])
+                }))
             };
 
             await window.setCacheDB(cacheKey, newData);
