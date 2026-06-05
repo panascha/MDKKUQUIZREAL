@@ -214,10 +214,10 @@ window.showSubmission = function (filter = 'all') {
                 </div>
                 ${q.explain ? `<div class="search-card-footer"><b>อธิบาย:</b><br>${q.explain}</div>` : ''}
                 <div class="search-card-actions">
-                    <button class="btn-search-action btn-search-report" onclick="event.stopPropagation(); window.openReportModal(window.currentQuestions[${realIdx}])">
+                    <button class="btn-search-action btn-search-report" onclick="event.stopPropagation(); window.openReportModal(window.APP.currentQuestions[${realIdx}])">
                         <i class="fas fa-exclamation-triangle"></i> แจ้งปัญหา
                     </button>
-                    <button class="btn-search-action btn-search-vote" onclick="event.stopPropagation(); window.openVoteModal(window.currentQuestions[realIdx], false)">
+                    <button class="btn-search-action btn-search-vote" onclick="event.stopPropagation(); window.openVoteModal(window.APP.currentQuestions[${realIdx}], false)">
                         <i class="fas fa-tags"></i> แยกเลค
                     </button>
                 </div>
