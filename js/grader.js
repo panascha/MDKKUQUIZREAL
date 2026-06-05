@@ -38,7 +38,7 @@ $(function () {
                 const textContent = await page.getTextContent();
                 const textStr = textContent.items.map(item => item.str).join('');
 
-                const match = textStr.match(/\[MDKKU_OMR_DATA\](.*?)\[\/MDKKU_OMR_DATA\]/);
+                const match = textStr.match(/\[MDKKU_OMR_DATA\]([\s\S]*?)\[\/MDKKU_OMR_DATA\]/);
                 if (match) {
                     try {
                         omrPages.push({
