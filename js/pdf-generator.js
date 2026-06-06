@@ -294,11 +294,7 @@ window.saveResultsToPdf = async function () {
 
         doc.setTextColor(100, 100, 100);
         doc.setFontSize(14);
-        const explainText = `คำอธิบาย: ${q.explain || 'ไม่มี'}`;
-        const splitExplain = doc.splitTextToSize(explainText, contentWidth);
-        checkPageBreak(splitExplain.length * (lineHeight - 2));
-        doc.text(splitExplain, pageMargin, y);
-        y += (splitExplain.length * (lineHeight - 2)) + blockSpacing;
+        y = await window.drawExplanationInPdf(doc, q.explain, pageMargin, pageHeight, contentWidth, lineHeight, blockSpacing, y);
 
         doc.setDrawColor(220);
         doc.line(pageMargin, y - (blockSpacing / 2), pageWidth - pageMargin, y - (blockSpacing / 2));
@@ -638,15 +634,10 @@ window.savePracticeSheetToPdf = async function () {
 
                 y += lineHeight;
 
-                const splitExplain = doc.splitTextToSize(`คำอธิบาย: ${explainText}`, contentWidth - 5);
-                checkPageBreak(splitExplain.length * lineHeight + 8);
-
                 doc.setFontSize(14);
                 doc.setTextColor(80, 80, 80);
-                doc.text(splitExplain, pageMargin + 5, y);
+                y = await window.drawExplanationInPdf(doc, q.explain, pageMargin, pageHeight, contentWidth - 5, lineHeight, 8, y);
                 doc.setTextColor(0);
-
-                y += (splitExplain.length * lineHeight) + 8;
             }
         }
     }
@@ -713,4 +704,64 @@ window.generatePNGOverlays = function () {
         link.href = canvas.toDataURL('image/png');
         link.click();
     });
+};
+
+window.drawExplanationInPdf = async function (doc, explainRaw, pageMargin, pageHeight, contentWidth, lineHeight, blockSpacing, initY) {
+    let currentY = initY;
+    const parsed = window.parseExplain(explainRaw);
+
+    const checkLocalPageBreak = (requiredHeight) => {
+        if (currentY + requiredHeight > pageHeight - pageMargin) {
+            doc.addPage();
+            currentY = pageMargin;
+        }
+    };
+
+    // 1. Text explanation
+    const explainText = `คำอธิบาย: ${parsed.text || 'ไม่มี'}`;
+    const splitExplain = doc.splitTextToSize(explainText, contentWidth);
+    const calculatedLineHeight = lineHeight - 2 > 4 ? lineHeight - 2 : 5;
+    checkLocalPageBreak(splitExplain.length * calculatedLineHeight);
+    doc.text(splitExplain, pageMargin, currentY);
+    currentY += (splitExplain.length * calculatedLineHeight) + 4;
+
+    // 2. Media rendering
+    if (parsed.media && parsed.media.length > 0) {
+        for (const url of parsed.media) {
+            const type = window.getMediaType(url);
+
+            if (type === 'pdf') {
+                // Hyperlink
+                checkLocalPageBreak(8);
+                doc.setTextColor(0, 0, 238); // Blue color for link
+                const linkText = "[เปิดดูไฟล์เอกสารประกอบ PDF บนบราวเซอร์]";
+                doc.text(linkText, pageMargin + 5, currentY);
+                const textWidth = doc.getTextWidth(linkText);
+                doc.link(pageMargin + 5, currentY - 4, textWidth, 6, { url: window.transformUrl(url) });
+                doc.setTextColor(0);
+                currentY += 8;
+            } else if (type === 'svg') {
+                try {
+                    checkLocalPageBreak(44);
+                    const svgB64 = await window.svgToPngBase64(url, 150, 150);
+                    doc.addImage(svgB64, 'PNG', pageMargin + 5, currentY, 40, 40);
+                    currentY += 44;
+                } catch (e) {
+                    console.error("Error drawing explain SVG inside PDF", e);
+                }
+            } else { // image
+                try {
+                    checkLocalPageBreak(64);
+                    const base64Img = await window.convertImgToBase64(window.transformUrl(url));
+                    doc.addImage(base64Img, 'JPEG', pageMargin + 5, currentY, 80, 60);
+                    currentY += 64;
+                } catch (e) {
+                    console.error("Error drawing explain Image inside PDF", e);
+                }
+            }
+        }
+    }
+
+    currentY += blockSpacing - 4;
+    return currentY;
 };

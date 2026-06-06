@@ -219,7 +219,7 @@ window.showSubmission = function (filter = 'all') {
                     <div class="result-ans-box user-ans"><small>คุณตอบ:</small><br><b>${renderContent(q.select)}</b></div>
                     ${!isCorrect ? `<div class="result-ans-box correct-ans"><small>เฉลยที่ถูก:</small><br><b>${renderContent(q.answer)}</b></div>` : ''}
                 </div>
-                ${q.explain ? `<div class="search-card-footer"><b>อธิบาย:</b><br>${q.explain}</div>` : ''}
+                ${q.explain ? `<div class="search-card-footer">${window.renderExplainHtmlForCard(q.explain)}</div>` : ''}
                 <div class="search-card-actions">
                     <button class="btn-search-action btn-search-jump" onclick="event.stopPropagation(); jumpToQuestion(${realIdx})">
                         <i class="fas fa-arrow-right"></i> ไปที่ข้อนี้
@@ -559,6 +559,52 @@ window.startIncrementalPolling = function () {
         window.runIncrementalSync();
     }, 30000);
     console.log('[Sync] Incremental polling started (30s interval)');
+};
+
+window.renderExplainHtmlForCard = function (explainRaw) {
+    if (!explainRaw) return '';
+    const parsed = window.parseExplain(explainRaw);
+    let html = `<b>อธิบาย:</b><br>${parsed.text || 'ไม่มีคำอธิบาย'}`;
+
+    if (parsed.media && parsed.media.length > 0) {
+        html += `<div class="explain-media-group" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; width: 100%;">`;
+
+        let images = [];
+        let pdfs = [];
+        let svgs = [];
+
+        parsed.media.forEach(url => {
+            const type = window.getMediaType(url);
+            if (type === 'pdf') pdfs.push(url);
+            else if (type === 'svg') svgs.push(url);
+            else images.push(url);
+        });
+
+        svgs.forEach(svg => {
+            html += `<div class="svg-render-area" onclick="viewFullImageSVG(this, event)" style="cursor: pointer; max-height: 100px; width: auto; background: white; border: 1px solid var(--color-border); border-radius: 4px;">${svg}</div>`;
+        });
+
+        if (images.length > 0) {
+            html += `<div class="explain-image-gallery">`;
+            images.forEach(img => {
+                const transformed = window.transformUrl(img);
+                html += `<img src="${transformed}" class="explain-img-thumb" onclick="viewFullImage('${transformed}', event)">`;
+            });
+            html += `</div>`;
+        }
+
+        pdfs.forEach(pdf => {
+            const transformed = window.transformUrl(pdf);
+            html += `
+                <a href="${transformed}" target="_blank" class="btn btn-outline-primary btn-sm" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; font-size: 0.95rem; padding: 6px 12px; border-radius: 6px; text-decoration: none; border: 1.5px solid var(--color-primary); color: var(--color-primary); background: var(--color-primary-pale); transition: all 0.15s;">
+                    <i class="fas fa-file-pdf text-danger" style="font-size: 1.1rem;"></i> เปิดดู PDF แนบ
+                </a>
+            `;
+        });
+
+        html += `</div>`;
+    }
+    return html;
 };
 
 // สั่งรันคำสั่งเมื่อ DOM พร้อมทำงาน

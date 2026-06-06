@@ -73,6 +73,20 @@ window.preloadQuizImages = function (questions) {
                 }
             });
         }
+
+        if (q.explain) {
+            const parsedExp = window.parseExplain(q.explain);
+            parsedExp.media.forEach(url => {
+                if (window.getMediaType(url) === 'image') {
+                    const trans = window.transformUrl(url);
+                    if (!window.APP.preloadedImages[trans]) {
+                        const img = new Image();
+                        img.src = trans;
+                        window.APP.preloadedImages[trans] = img;
+                    }
+                }
+            });
+        }
     });
     console.log("Preloading started for " + questions.length + " questions...");
 };
@@ -95,7 +109,11 @@ window.showQuestion = function (shouldFocus = true) {
         statusSuffix = " | สถานะ: ทำถูกแล้ว ✅";
     }
 
+    // ==========================================
+    // 1. สั่งล้างคำอธิบายเฉลยและ Feedback เก่าทิ้งทันทีเมื่อเปลี่ยนข้อ
+    // ==========================================
     $('#feedback').empty().removeClass();
+    $('#quiz-explain-container').empty();
     $('#choices').empty();
 
     $('#vote-notification-bar').empty();
@@ -144,11 +162,18 @@ window.showQuestion = function (shouldFocus = true) {
         $('#choices').append($btn);
     });
 
+    // ==========================================
+    // 2. ตรวจสอบสถานะเพื่อแสดงคำอธิบายเฉลยเฉพาะของข้อปัจจุบัน
+    // ==========================================
     if (window.APP.current_question.state) {
+        // หากผู้เรียนเคยทำข้อนี้ไปแล้ว -> แสดงเฉลย และดึงคำอธิบายเฉลยของข้อนี้ขึ้นมาวาดใหม่
         window.checkAnswerUI(window.APP.current_question.select, false);
+        window.renderExplainMediaInQuiz(window.APP.current_question.explain, '#quiz-explain-container');
     } else if (window.APP.isShowingAllAnswers) {
+        // หากเปิดโหมดแสดงเฉลยล่วงหน้า -> บังคับแสดงเฉลย และคำอธิบายเฉลยของข้อนี้ทันที
         $('#choices').find(`button[data-answer="${window.APP.current_question.answer}"]`).addClass('correct');
         $('#feedback').addClass('correct').html(`เฉลย: ${window.displayAnswerContent(window.APP.current_question.answer)}`);
+        window.renderExplainMediaInQuiz(window.APP.current_question.explain, '#quiz-explain-container');
     }
 
     $('#questionIndex').text(`${window.APP.questionIndex + 1}/${window.APP.currentQuestions.length}`);
@@ -234,6 +259,7 @@ window.submitQuestion = function () {
     $('#score').text(`${window.APP.score}/${window.APP.currentQuestions.length}`);
     $('#questionIndex').text(`${window.APP.questionIndex + 1}/${window.APP.currentQuestions.length}`);
     window.highlightAnswers();
+    window.renderExplainMediaInQuiz(window.APP.current_question.explain, '#quiz-explain-container');
     window.showSubmission($('#submission-filter').val());
     window.updateProgressHeader();
     setTimeout(window.renderAllMath, 50);
@@ -458,4 +484,60 @@ window.updateQuestionSet = function (shouldSort = true) {
 
     window.updateSelectedCategoryStatus();
     window.saveProgressToCache();
+};
+
+window.renderExplainMediaInQuiz = function (explainRaw, containerSelector) {
+    const $container = $(containerSelector);
+    $container.empty();
+    if (!explainRaw) return;
+
+    const parsed = window.parseExplain(explainRaw);
+
+    // 1. Text Explanation
+    if (parsed.text) {
+        $container.append(`<div class="explain-text-content" style="margin-top: 10px; font-weight: 500; font-size: 1.15rem; line-height: 1.6; color: var(--color-text);">${parsed.text}</div>`);
+    }
+
+    // 2. Media container
+    if (parsed.media && parsed.media.length > 0) {
+        const $mediaDiv = $('<div class="explain-media-group" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px; width: 100%;"></div>');
+
+        let images = [];
+        let pdfs = [];
+        let svgs = [];
+
+        parsed.media.forEach(url => {
+            const type = window.getMediaType(url);
+            if (type === 'pdf') pdfs.push(url);
+            else if (type === 'svg') svgs.push(url);
+            else images.push(url);
+        });
+
+        // SVG rendering
+        svgs.forEach(svg => {
+            $mediaDiv.append(`<div class="svg-render-area" onclick="viewFullImageSVG(this, event)" style="cursor: pointer; max-height: 200px; width: auto; background: white; border: 1px solid var(--color-border); border-radius: 8px;">${svg}</div>`);
+        });
+
+        // Images as simple list/gallery
+        if (images.length > 0) {
+            const $imgGallery = $('<div class="explain-image-gallery"></div>');
+            images.forEach(img => {
+                const transformed = window.transformUrl(img);
+                $imgGallery.append(`<img src="${transformed}" class="explain-img-thumb" onclick="viewFullImage('${transformed}', event)">`);
+            });
+            $mediaDiv.append($imgGallery);
+        }
+
+        // PDFs as prominent buttons
+        pdfs.forEach(pdf => {
+            const transformed = window.transformUrl(pdf);
+            $mediaDiv.append(`
+                <a href="${transformed}" target="_blank" class="btn btn-outline-primary btn-sm" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 1.1rem; padding: 8px 16px; border-radius: 8px; text-decoration: none; border: 1.5px solid var(--color-primary); color: var(--color-primary); background: var(--color-primary-pale); transition: all 0.15s;">
+                    <i class="fas fa-file-pdf text-danger" style="font-size: 1.4rem;"></i> 📄 เปิดดูเอกสาร PDF ประกอบคำอธิบาย
+                </a>
+            `);
+        });
+
+        $container.append($mediaDiv);
+    }
 };

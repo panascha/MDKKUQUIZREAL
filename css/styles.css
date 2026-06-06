@@ -1649,6 +1649,35 @@
         position: relative;
     }
 
+    .explain-image-gallery {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .explain-img-thumb {
+        max-width: 100%;
+        max-height: 200px; /* ขยายขนาดความสูงสูงสุดเป็น 200px */
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 6px;
+        border: 1.5px solid var(--color-border);
+        cursor: pointer;
+        transition: transform 0.15s ease-in-out, border-color 0.15s;
+        padding: 4px;
+        background: #ffffff;
+    }
+
+    .explain-img-thumb:hover {
+        transform: scale(1.03);
+        border-color: var(--color-primary);
+        box-shadow: var(--shadow-sm);
+    }
+
     table td img.answer-img {
         max-height: 72px;
         width: auto;

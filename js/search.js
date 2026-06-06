@@ -347,8 +347,7 @@ window.performSearch = function () {
                 </div>
                 ${q.explain ? `
                 <div class="search-card-footer">
-                    <b>คำอธิบาย:</b><br>
-                    ${window.highlight(q.explain).replace(/\n/g, '<br>')}
+                    ${window.renderExplainHtmlForSearchCard(q.explain)}
                 </div>` : ''}
                 <div class="search-card-actions">
                     <button class="btn-search-action btn-search-report" data-idx="${index}">
@@ -450,3 +449,49 @@ $(document).on('click', '.suggestion-chip', function () {
         $input.focus();
     }
 });
+
+window.renderExplainHtmlForSearchCard = function (explainRaw) {
+    if (!explainRaw) return '';
+    const parsed = window.parseExplain(explainRaw);
+    let html = `<b>คำอธิบาย:</b><br>${window.highlight(parsed.text) || 'ไม่มีคำอธิบาย'}`;
+
+    if (parsed.media && parsed.media.length > 0) {
+        html += `<div class="explain-media-group" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; width: 100%;">`;
+
+        let images = [];
+        let pdfs = [];
+        let svgs = [];
+
+        parsed.media.forEach(url => {
+            const type = window.getMediaType(url);
+            if (type === 'pdf') pdfs.push(url);
+            else if (type === 'svg') svgs.push(url);
+            else images.push(url);
+        });
+
+        svgs.forEach(svg => {
+            html += `<div class="svg-render-area" onclick="viewFullImageSVG(this, event)" style="cursor: pointer; max-height: 100px; width: auto; background: white; border: 1px solid var(--color-border); border-radius: 4px;">${svg}</div>`;
+        });
+
+        if (images.length > 0) {
+            html += `<div class="explain-image-gallery">`;
+            images.forEach(img => {
+                const transformed = window.transformUrl(img);
+                html += `<img src="${transformed}" class="explain-img-thumb" onclick="viewFullImage('${transformed}', event)">`;
+            });
+            html += `</div>`;
+        }
+
+        pdfs.forEach(pdf => {
+            const transformed = window.transformUrl(pdf);
+            html += `
+                <a href="${transformed}" target="_blank" class="btn btn-outline-primary btn-sm" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; font-size: 0.95rem; padding: 6px 12px; border-radius: 6px; text-decoration: none; border: 1.5px solid var(--color-primary); color: var(--color-primary); background: var(--color-primary-pale); transition: all 0.15s;">
+                    <i class="fas fa-file-pdf text-danger" style="font-size: 1.1rem;"></i> เปิดดู PDF แนบ
+                </a>
+            `;
+        });
+
+        html += `</div>`;
+    }
+    return html;
+};
