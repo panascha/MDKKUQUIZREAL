@@ -207,8 +207,7 @@ window.showSubmission = function (filter = 'all') {
         const isFirstInList = topRowQ && q.questionId === topRowQ.questionId;
 
         cardsHtml += `
-            <div class="result-card ${isCorrect ? 'is-correct' : 'is-incorrect'} ${isFirstInList ? 'current-active' : ''}" data-search-idx="${realIdx}"
-                 onclick="jumpToQuestion(${realIdx})">
+            <div class="result-card ${isCorrect ? 'is-correct' : 'is-incorrect'} ${isFirstInList ? 'current-active' : ''}" data-search-idx="${realIdx}">
                 <div class="search-card-header">
                     <span class="search-card-category"><i class="fas fa-folder"></i> ${categoryLabel}</span>
                     <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">ข้อที่ ${realIdx + 1} ${isThisCurrent ? '(ปัจจุบัน)' : ''}</span>
@@ -222,6 +221,9 @@ window.showSubmission = function (filter = 'all') {
                 </div>
                 ${q.explain ? `<div class="search-card-footer"><b>อธิบาย:</b><br>${q.explain}</div>` : ''}
                 <div class="search-card-actions">
+                    <button class="btn-search-action btn-search-jump" onclick="event.stopPropagation(); jumpToQuestion(${realIdx})">
+                        <i class="fas fa-arrow-right"></i> ไปที่ข้อนี้
+                    </button>
                     <button class="btn-search-action btn-search-report" onclick="event.stopPropagation(); window.openReportModal(window.APP.currentQuestions[${realIdx}])">
                         <i class="fas fa-exclamation-triangle"></i> แจ้งปัญหา
                     </button>

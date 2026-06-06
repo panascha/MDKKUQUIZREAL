@@ -1690,7 +1690,6 @@
         display: flex;
         flex-direction: column;
         text-align: left;
-        cursor: pointer;
         transition: transform 0.15s, box-shadow 0.15s;
     }
 
@@ -1982,6 +1981,15 @@
 
     .btn-search-vote:hover {
         filter: brightness(1.08);
+    }
+
+    .btn-search-jump {
+        background: var(--color-primary);
+        color: white;
+    }
+
+    .btn-search-jump:hover {
+        background: var(--color-primary-hover);
     }
 
     /* Search Suggestions */
