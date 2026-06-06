@@ -330,6 +330,9 @@ window.initApp = async function () {
             await window.setCacheDB(cacheKey, newData);
             await window.setCacheDB(verKey, serverVersion);
 
+            // บันทึก Last Sync Time เฉพาะเมื่อมีการ Fetch ข้อมูลสำเร็จจริงเท่านั้น
+            await window.saveLastSyncTime(subjectParam, Date.now());
+
             if (!localData) {
                 window.APP.globalStructure = newData.structure;
                 window.APP.allQuestions = newData.questions;
@@ -342,12 +345,223 @@ window.initApp = async function () {
     } catch (err) {
         console.error("Init Error:", err);
     } finally {
+        // บูตระบบ Incremental Sync ทำงานในฝั่งผู้ใช้งาน
+        window.startPendingUpdateWatcher();   // ตัวคอยตรวจสิทธิ์ว่างทุกๆ 5 วินาที
+        window.startIncrementalPolling();      // บูตลูปตรวจสอบเซิร์ฟเวอร์ทุกๆ 30 วินาที
+
+        window.checkPendingReports();
         window.finishLoading();
     }
+};
+
+// =========================================================
+// INCREMENTAL SYNC SYSTEM
+// =========================================================
+
+window._pendingQuestionUpdates = [];
+window._syncInterval = null;
+window._isSyncing = false;
+
+window.isUserBusy = function () {
+    if ($('#report-card').is(':visible')) return true;
+    if ($('#vote-category-modal').is(':visible')) return true;
+    if ($('#pdf-choice-modal').is(':visible')) return true;
+    if ($('#progress-modal-card').is(':visible')) return true;
+    if ($('#donate-modal-card').is(':visible')) return true;
+    if ($('#auto-grader-modal').is(':visible')) return true;
+
+    var currentQ = window.APP.currentQuestions[window.APP.questionIndex];
+    if (currentQ && !currentQ.state) return true;
+
+    return false;
+};
+
+window.applyPendingUpdates = function () {
+    if (window._pendingQuestionUpdates.length === 0) return;
+
+    var updates = window._pendingQuestionUpdates.splice(0);
+    var applied = 0;
+
+    updates.forEach(function (newQ) {
+        if (!Array.isArray(newQ.category)) {
+            newQ.category = newQ.category ? [newQ.category] : [];
+        }
+
+        var allIdx = window.APP.allQuestions.findIndex(function (q) {
+            return q.questionId === newQ.questionId;
+        });
+
+        if (allIdx !== -1) {
+            // อัปเดตข้อมูลเก่า โดยรักษาสถานะคำตอบเดิม
+            var preserved = {
+                state: window.APP.allQuestions[allIdx].state,
+                select: window.APP.allQuestions[allIdx].select,
+                attemptCount: window.APP.allQuestions[allIdx].attemptCount,
+                failCount: window.APP.allQuestions[allIdx].failCount,
+                _originalIndex: window.APP.allQuestions[allIdx]._originalIndex
+            };
+            window.APP.allQuestions[allIdx] = Object.assign({}, newQ, preserved);
+            applied++;
+        } else {
+            // เพิ่มข้อมูลข้อสอบใหม่ และตั้ง _originalIndex ป้องกันระบบ Sorting พัง
+            var newOriginalIndex = window.APP.allQuestions.length;
+            window.APP.allQuestions.push(Object.assign({
+                state: false, select: '', attemptCount: 0, failCount: 0,
+                _originalIndex: newOriginalIndex
+            }, newQ));
+            applied++;
+        }
+    });
+
+    if (applied > 0) {
+        // บันทึกคำถามที่ผู้ใช้งานกำลังเปิดค้างไว้เพื่อนำกลับมาแสดงหลังประมวลชุดข้อมูลใหม่
+        var currentActiveQId = window.APP.currentQuestions[window.APP.questionIndex] ? window.APP.currentQuestions[window.APP.questionIndex].questionId : null;
+
+        // สั่งรวบรวมและประกอบชุดคำถามคัดกรองใหม่ (ใช้การ rebuild ที่ปลอดภัยของระบบเดิม)
+        window.updateQuestionSet(false);
+
+        // ย้ายตำแหน่ง Index กลับมาที่ข้อเดิมที่ผู้ใช้กำลังเปิดอยู่
+        if (currentActiveQId) {
+            var newActiveIdx = window.APP.currentQuestions.findIndex(function (q) {
+                return q.questionId === currentActiveQId;
+            });
+            if (newActiveIdx !== -1) {
+                window.APP.questionIndex = newActiveIdx;
+            }
+        }
+
+        window.bgToast.fire({
+            icon: 'info',
+            title: 'อัปเดตข้อมูล ' + applied + ' ข้อเรียบร้อย',
+            timer: 2000
+        });
+
+        // แสดงคำถามและอัปเดตแผนภาพ Index Dots
+        window.showQuestion(false);
+        window.renderIndexPanel();
+
+        console.log('[Sync] Applied ' + applied + ' updates and preserved active question state');
+    }
+};
+
+window.startPendingUpdateWatcher = function () {
+    setInterval(function () {
+        if (!window.isUserBusy() && window._pendingQuestionUpdates.length > 0) {
+            console.log('[Sync] User is free, applying ' + window._pendingQuestionUpdates.length + ' pending updates...');
+            window.applyPendingUpdates();
+        }
+    }, 5000);
+};
+
+window.runIncrementalSync = async function () {
+    if (window._isSyncing) return;
+    window._isSyncing = true;
+
+    var urlParams = new URLSearchParams(window.location.search);
+    var subjectParam = urlParams.get('subject') || '';
+    var verKey = 'ver_' + subjectParam;
+    var cacheKey = 'data_' + subjectParam;
+
+    try {
+        var resVer = await fetch(
+            window.APPSCRIPT_URL + '?action=checkVersion'
+        ).then(function (r) { return r.json(); });
+
+        var localVer = await window.getCacheDB(verKey);
+        if (localVer === resVer.v) {
+            console.log('[Sync] No changes (version match)');
+            return;
+        }
+
+        var lastSync = await window.getLastSyncTime(subjectParam);
+        var url = window.APPSCRIPT_URL
+            + '?action=getChangedSince'
+            + '&since=' + lastSync
+            + (subjectParam ? '&subject=' + subjectParam : '');
+
+        var res = await fetch(url).then(function (r) { return r.json(); });
+
+        // กรณีโครงสร้างวิชา หรือชื่อบทเรียนเปลี่ยน (แต่คำถามไม่ได้แก้)
+        if (!res.changed || res.changed.length === 0) {
+            // ดึง Structure และ Category ล่าสุดมาอัปเดต
+            var structUrl = window.APPSCRIPT_URL + '?action=getStructure' + (subjectParam ? '&subject=' + subjectParam : '');
+            var structRes = await fetch(structUrl).then(function (r) { return r.json(); });
+
+            if (structRes && structRes.subjects) {
+                var existingCache = await window.getCacheDB(cacheKey);
+                if (existingCache) {
+                    existingCache.structure = structRes;
+                    await window.setCacheDB(cacheKey, existingCache);
+                    window.APP.globalStructure = structRes;
+                    window.renderAccordionUI(window.APP.globalStructure); // วาด Sidebar ใหม่
+                    console.log('[Sync] Structure & Categories updated successfully');
+                }
+            }
+
+            await window.setCacheDB(verKey, resVer.v);
+            await window.saveLastSyncTime(subjectParam, res.serverTime || Date.now());
+            return;
+        }
+
+        console.log('[Sync] Got ' + res.changed.length + ' changed questions');
+
+        // Merge เข้า IndexedDB
+        await window.mergeChangedQuestionsToCache(res.changed, subjectParam);
+        await window.setCacheDB(verKey, resVer.v);
+        await window.saveLastSyncTime(subjectParam, res.serverTime || Date.now());
+
+        res.changed.forEach(function (q) {
+            // เช็คซ้ำเพื่อป้องกันข้อมูลใน queue ทับกัน
+            if (!window._pendingQuestionUpdates.some(function (pq) { return pq.questionId === q.questionId; })) {
+                window._pendingQuestionUpdates.push(q);
+            }
+        });
+
+        if (!window.isUserBusy()) {
+            window.applyPendingUpdates();
+        } else {
+            console.log('[Sync] User busy, queued ' + res.changed.length + ' updates');
+            window._showPendingBadge(window._pendingQuestionUpdates.length);
+        }
+
+    } catch (err) {
+        console.warn('[Sync] Incremental sync failed:', err.message);
+    } finally {
+        window._isSyncing = false;
+    }
+};
+
+window._showPendingBadge = function (count) {
+    var $badge = $('#sync-pending-badge');
+    if ($badge.length === 0) {
+        $badge = $('<div id="sync-pending-badge"></div>').css({
+            position: 'fixed', bottom: '20px', left: '20px',
+            background: 'var(--color-primary)', color: 'white', // สอดคล้องตาม Theme ปัจจุบัน
+            padding: '8px 14px', borderRadius: '20px',
+            fontSize: '0.9rem', fontWeight: '700',
+            zIndex: 500, cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            fontFamily: 'var(--font-primary)'
+        }).on('click', function () {
+            if (!window.isUserBusy()) {
+                window.applyPendingUpdates();
+                $badge.fadeOut(300, function () { $(this).remove(); });
+            }
+        });
+        $('body').append($badge);
+    }
+    $badge.html('<i class="fas fa-sync-alt"></i> มีข้อมูลใหม่ ' + count + ' ข้อ (คลิกอัปเดต)').fadeIn();
+};
+
+window.startIncrementalPolling = function () {
+    if (window._syncInterval) clearInterval(window._syncInterval);
+    window._syncInterval = setInterval(function () {
+        window.runIncrementalSync();
+    }, 30000);
+    console.log('[Sync] Incremental polling started (30s interval)');
 };
 
 // สั่งรันคำสั่งเมื่อ DOM พร้อมทำงาน
 $(function () {
     window.initApp();
-    window.checkPendingReports();
 });

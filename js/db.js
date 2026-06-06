@@ -188,3 +188,74 @@ window.syncQuestionsToCache = async function () {
     await window.setCacheDB(cacheKey, dataToSave);
     console.log("Local cache updated with new categories.");
 };
+
+// ─────────────────────────────────────────────────────
+// INCREMENTAL SYNC HELPERS
+// ─────────────────────────────────────────────────────
+
+/**
+ * Merge เฉพาะคำถามที่เปลี่ยนแปลงเข้า IndexedDB cache
+ * โดยไม่แทนทั้งหมด เพื่อลด write overhead
+ *
+ * @param {Array}  changedQuestions  array of question objects จาก getChangedSince
+ * @param {string} subject           subject param สำหรับ cache key
+ * @returns {{ added: number, updated: number } | undefined}
+ */
+window.mergeChangedQuestionsToCache = async function (changedQuestions, subject) {
+    if (!changedQuestions || changedQuestions.length === 0) return;
+
+    var cacheKey = 'data_' + (subject || '');
+    var existingCache = await window.getCacheDB(cacheKey);
+
+    // ถ้าไม่มี cache เดิมเลย ไม่ต้อง merge
+    if (!existingCache) return;
+
+    var questions = existingCache.questions || [];
+
+    // สร้าง lookup map: questionId → index ใน array
+    var qMap = {};
+    for (var i = 0; i < questions.length; i++) {
+        qMap[questions[i].questionId] = i;
+    }
+
+    var added = 0, updated = 0;
+
+    changedQuestions.forEach(function (newQ) {
+        // normalize category ให้เป็น array เสมอ
+        if (!Array.isArray(newQ.category)) {
+            newQ.category = newQ.category ? [newQ.category] : [];
+        }
+
+        if (qMap[newQ.questionId] !== undefined) {
+            // อัปเดต: เขียนทับข้อมูลเดิม
+            questions[qMap[newQ.questionId]] = newQ;
+            updated++;
+        } else {
+            // เพิ่มใหม่: push เข้า array และอัปเดต map
+            qMap[newQ.questionId] = questions.length;
+            questions.push(newQ);
+            added++;
+        }
+    });
+
+    existingCache.questions = questions;
+    await window.setCacheDB(cacheKey, existingCache);
+
+    console.log('[Sync] Cache merged: +' + added + ' new, ~' + updated + ' updated');
+    return { added: added, updated: updated };
+};
+
+/**
+ * บันทึก timestamp (epoch ms) ของการ sync ล่าสุดที่สำเร็จ
+ */
+window.saveLastSyncTime = async function (subject, timestamp) {
+    await window.setCacheDB('last_sync_' + (subject || ''), timestamp);
+};
+
+/**
+ * ดึง timestamp ของการ sync ล่าสุด
+ */
+window.getLastSyncTime = async function (subject) {
+    var t = await window.getCacheDB('last_sync_' + (subject || ''));
+    return t || 0;
+};
