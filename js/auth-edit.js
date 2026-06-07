@@ -10,6 +10,83 @@ window.EDIT_SESSION = {
 
 window.GOOGLE_CLIENT_ID = "409421225331-envq9b2dg6d2tbq2681c097j4h1qinv4.apps.googleusercontent.com"; // OAuth 2.0 Web Application Client ID
 
+// ฟังก์ชันตรวจสอบความถูกต้องของ Google ID Token บนฝั่ง Client (lightweight Base64 JWT parser)
+window.isTokenExpired = function (token) {
+    if (!token) return true;
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const payload = JSON.parse(jsonPayload);
+        const exp = payload.exp;
+        if (!exp) return true;
+        // ลบออก 300 วินาที เพื่อเพิ่มเกราะป้องกันกรณีนาฬิกาบนอุปกรณ์ผู้ใช้เดินไม่ตรงกับเซิร์ฟเวอร์
+        return (Date.now() / 1000) >= (exp - 300);
+    } catch (e) {
+        return true;
+    }
+};
+
+// ฟังก์ชันตรวจสอบและอัปเดตสิทธิ์ก่อนเรียกใช้งาน API สำคัญ
+window.ensureActiveSession = function () {
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn) {
+        Swal.fire({
+            icon: "error",
+            title: "กรุณาเข้าสู่ระบบ",
+            text: "กรุณาเข้าสู่ระบบแก้ไขข้อสอบก่อนดำเนินการ"
+        });
+        return false;
+    }
+    if (window.isTokenExpired(window.EDIT_SESSION.idToken)) {
+        Swal.fire({
+            icon: "warning",
+            title: "Session หมดอายุการใช้งาน",
+            text: "เซสชันของคุณหมดอายุการใช้งานเนื่องจากมาตรการความปลอดภัยของ Google กรุณาคลิกเพื่ออัปเดตสิทธิ์และล็อกอินใหม่อีกครั้ง",
+            showCancelButton: true,
+            confirmButtonText: "เข้าสู่ระบบใหม่ (Re-Login)",
+            cancelButtonText: "ยกเลิก"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.logoutEditModeSilent();
+                try {
+                    google.accounts.id.prompt();
+                } catch (e) {
+                    Swal.fire("ข้อผิดพลาด", "ไม่สามารถเรียกหน้าต่างล็อกอินได้ทันที กรุณากดที่โลโก้ขวาบนเพื่ออัปเดตสิทธิ์", "error");
+                }
+            }
+        });
+        return false;
+    }
+    return true;
+};
+
+// การออกจากระบบแบบเงียบเมื่อเซสชันหมดอายุ ป้องกัน UI ขัดแย้ง
+window.logoutEditModeSilent = function () {
+    window.EDIT_SESSION = {
+        isLoggedIn: false,
+        email: '',
+        displayName: '',
+        fullName: '',
+        studentId: '',
+        idToken: '',
+        role: ''
+    };
+    sessionStorage.removeItem("mdkku_edit_session");
+    $("body").removeClass("edit-mode-active");
+    $("#edit-mode-badge").hide();
+    $("#btn-edit-current-q").fadeOut(200);
+    $("#toggle-edit-mode-btn")
+        .css({ "background": "#1e293b", "border": "1px solid #475569" })
+        .html('<img src="https://www.kku.ac.th/wp-content/uploads/2021/07/KKU-Logo-PNG.png" alt="KKU Logo" style="width: 24px; height: 24px; object-fit: contain;">');
+
+    // สั่งปิดหน้าต่างย่อย (Modal) ทันทีหลังถูกถอดสิทธิ์ เพื่อป้องกันการทำงานต่อบนฟิลด์แบบค้างสถานะ
+    if (typeof window.closeEditModal === 'function') {
+        window.closeEditModal();
+    }
+};
+
 // Initialize Google One Tap Globally exactly ONCE
 window.setupGoogleSSO = function () {
     try {
@@ -148,19 +225,23 @@ window.logoutEditMode = function () {
 // Show Google One Tap login prompt manually when edit FAB is clicked
 window.initiateGoogleLogin = function () {
     if (window.EDIT_SESSION.isLoggedIn) {
-        Swal.fire({
-            title: "คุณอยู่ในระบบแก้ไขแล้ว",
-            text: `ล็อกอินในชื่อ: ${window.EDIT_SESSION.displayName}`,
-            icon: "info",
-            showCancelButton: true,
-            confirmButtonText: "ออกจากระบบ (Logout)",
-            cancelButtonText: "ปิดหน้าต่าง"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.logoutEditMode();
-            }
-        });
-        return;
+        if (window.isTokenExpired(window.EDIT_SESSION.idToken)) {
+            window.logoutEditModeSilent();
+        } else {
+            Swal.fire({
+                title: "คุณอยู่ในระบบแก้ไขแล้ว",
+                text: `ล็อกอินในชื่อ: ${window.EDIT_SESSION.displayName}`,
+                icon: "info",
+                showCancelButton: true,
+                confirmButtonText: "ออกจากระบบ (Logout)",
+                cancelButtonText: "ปิดหน้าต่าง"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.logoutEditMode();
+                }
+            });
+            return;
+        }
     }
 
     try {

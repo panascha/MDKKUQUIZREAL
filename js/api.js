@@ -11,7 +11,20 @@ window.sendWithRetry = async function (payload, retries = 3) {
                 body: JSON.stringify(payload)
             });
             if (!response.ok) throw new Error('Server Busy');
-            return await response.json();
+            const resJson = await response.json();
+
+            // ตรวจสอบความถูกต้องของสิทธิ์จากทางหลังบ้านแบบเรียลไทม์ (Global Interceptor)
+            if (resJson && resJson.result === 'error' &&
+                (resJson.message === 'token_expired' ||
+                    resJson.message === 'Session หมดอายุ กรุณาล็อกอินใหม่' ||
+                    (typeof resJson.message === 'string' && resJson.message.indexOf('หมดอายุ') !== -1))) {
+
+                if (typeof window.logoutEditModeSilent === 'function') {
+                    window.logoutEditModeSilent();
+                }
+            }
+
+            return resJson;
         } catch (err) {
             console.warn(`Attempt ${i + 1} failed. Retrying...`);
             if (i === retries - 1) throw err;

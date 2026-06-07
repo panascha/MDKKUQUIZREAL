@@ -7,15 +7,8 @@ window.choiceImagesData = {}; // Stores pending base64/blob for choice images
 window.currentLibTarget = { type: 'main', rowId: null };
 
 window.openEditModal = function () {
-    // Auth Guard: หากผู้ใช้ยังไม่ได้ล็อกอินแก้ไข จะไม่แสดงและแจ้งเตือนทันที
-    if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn) {
-        Swal.fire({
-            icon: "error",
-            title: "สิทธิ์ไม่ถูกต้อง",
-            text: "กรุณาเข้าสู่ระบบก่อนดำเนินการแก้ไขข้อสอบ"
-        });
-        return;
-    }
+    // Auth Guard: หากเซสชันยังไม่ถูกต้องหรือหมดอายุ ให้ตรวจสอบก่อน
+    if (!window.ensureActiveSession()) return;
 
     const q = window.APP.current_question;
     if (!q || !q.questionId) return;
@@ -88,12 +81,13 @@ window.renderCategoriesUI = function (categoryArray) {
     if (validCats.length === 0) {
         window._renderNewCategoryRow();
     } else {
-        validCats.forEach(catId => window._renderNewCategoryRow(catId));
+        // ส่งพารามิเตอร์เพื่อระบุว่าหมวดหมู่แรกสุด (index === 0) คือหมวดหมู่เริ่มต้น (Default)
+        validCats.forEach((catId, index) => window._renderNewCategoryRow(catId, index === 0));
     }
     window.syncCategoriesToHiddenInput();
 };
 
-window._renderNewCategoryRow = function (selectedCategoryID = null) {
+window._renderNewCategoryRow = function (selectedCategoryID = null, isDefault = false) {
     const $container = $('#dynamic-categories-container');
     const subjects = [...new Set(window.APP.globalStructure.category.map(c => c.subjectRef))].filter(Boolean).sort();
 
@@ -115,8 +109,15 @@ window._renderNewCategoryRow = function (selectedCategoryID = null) {
     }
 
     const rowId = "category-row-" + Date.now() + Math.floor(Math.random() * 100);
+
+    // แสดงปุ่มล็อค (Lock) แทนปุ่มลบสำหรับหมวดหมู่เริ่มต้น
+    const actionBtn = isDefault
+        ? `<button class="btn-icon btn-delete" type="button" disabled style="opacity: 0.55; cursor: not-allowed; background: #e2e8f0; color: #64748b;" title="หมวดหมู่เริ่มต้น (Default) ไม่สามารถแก้ไขหรือลบได้"><i class="fas fa-lock" aria-hidden="true"></i></button>`
+        : `<button class="btn-icon btn-delete" type="button" onclick="window.removeCategoryRow(this)"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>`;
+
+    // ใส่พื้นหลังสีฟ้าพาสเทลเพื่อบ่งชี้ว่าเป็นหมวดหมู่เริ่มต้น
     const rowHtml = `
-        <div class="cat-row" id="${rowId}">
+        <div class="cat-row ${isDefault ? 'default-cat-row' : ''}" id="${rowId}" style="${isDefault ? 'border-left: 4px solid #0284c7; background: #f0f9ff;' : ''}">
             <select class="field-input category-subject-select" onchange="window.updateGroupSelect(this)">
                 ${subjectOptions}
             </select>
@@ -127,7 +128,7 @@ window._renderNewCategoryRow = function (selectedCategoryID = null) {
                 <option value="">-- หัวข้อ/Category --</option>
                 ${(selectedCategoryID && !selectedSubject) ? `<option value="${selectedCategoryID}" selected>${selectedCategoryID}</option>` : ''}
             </select>
-            <button class="btn-icon btn-delete" type="button" onclick="window.removeCategoryRow(this)"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
+            ${actionBtn}
         </div>
     `;
 
@@ -143,6 +144,15 @@ window._renderNewCategoryRow = function (selectedCategoryID = null) {
             if (selectedCategoryID) {
                 $row.find('.category-id-select').val(selectedCategoryID);
             }
+        }
+    }
+
+    // ล็อคอินพุตตัวเลือกทั้งหมดของหมวดหมู่เริ่มต้น
+    if (isDefault) {
+        $row.find('select').prop('disabled', true);
+        // ตกแต่งพื้นหลังเพิ่มเติมในกรณีสกิน Dark Theme
+        if (document.documentElement.getAttribute('data-theme') === 'dark') {
+            $row.css({ 'background': '#0c1e35', 'border-left': '4px solid #38bdf8' });
         }
     }
 };
@@ -604,6 +614,7 @@ window.getBase64 = (file) => new Promise((res, rej) => {
 // --- AI Assistant ---
 
 window.askAIForEdit = async function () {
+    if (!window.ensureActiveSession()) return;
     const prob = $("#edit-problem").val().trim();
     if (!prob) return Swal.fire("กรุณากรอกโจทย์", "", "warning");
 
@@ -628,9 +639,12 @@ window.askAIForEdit = async function () {
         const res = await window.sendWithRetry(payload);
         if (res.result === 'success') {
             $("#edit-explanation").val(res.answer);
+        } else {
+            Swal.fire("เกิดข้อผิดพลาดจากระบบหลังบ้าน", res.message || "ไม่สามารถเขียนคำอธิบายได้ขณะนี้", "error");
         }
     } catch (e) {
         console.error(e);
+        Swal.fire("ข้อผิดพลาด", "ไม่สามารถเชื่อมต่อกับระบบ AI ได้", "error");
     } finally {
         $btn.prop('disabled', false).html('<i class="fas fa-robot"></i> ใช้ AI ช่วยเขียน');
         $("#ai-status-text").hide();
@@ -638,6 +652,7 @@ window.askAIForEdit = async function () {
 };
 
 window.askAIForChoices = async function () {
+    if (!window.ensureActiveSession()) return;
     const prob = $("#edit-problem").val().trim();
     if (!prob) return Swal.fire("กรุณากรอกโจทย์ก่อน", "", "warning");
 
@@ -689,11 +704,15 @@ window.askAIForChoices = async function () {
                     timer: 1500,
                     showConfirmButton: false
                 });
+            } else {
+                Swal.fire("ไม่สามารถแปลงข้อมูลตัวเลือกได้", "รูปแบบคำตอบจาก AI ไม่ถูกต้อง", "warning");
             }
+        } else {
+            Swal.fire("เกิดข้อผิดพลาดจากระบบหลังบ้าน", res.message || "ไม่สามารถแต่งตัวเลือกได้ขณะนี้", "error");
         }
     } catch (err) {
         console.error(err);
-        Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถแต่งตัวเลือกได้ขณะนี้", "error");
+        Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถเชื่อมต่อกับระบบ AI ได้ขณะนี้", "error");
     } finally {
         $btn.prop('disabled', false).html('<i class="fas fa-magic"></i> ให้ AI ช่วยเติมตัวเลือก');
     }
@@ -702,6 +721,7 @@ window.askAIForChoices = async function () {
 // --- Save Action ---
 
 window.saveEditChanges = async function () {
+    if (!window.ensureActiveSession()) return;
     const qId = $("#edit-q-id").val();
     const problem = $("#edit-problem").val().trim();
     const explainText = $("#edit-explanation").val().trim();
