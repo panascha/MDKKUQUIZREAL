@@ -22,6 +22,13 @@ window.displayAnswerContent = function (text) {
     return trimmed;
 };
 
+window.getSubjectFromCategory = function (category) {
+    if (!category) return "";
+    const catId = Array.isArray(category) ? category[0] : category;
+    const catObj = window.APP.globalStructure.category.find(c => c.categoryId === catId);
+    return catObj ? catObj.subjectRef : "";
+};
+
 window.getSelectedCategoryNames = function () {
     if (window.APP.filterMode === "category") {
         return window.APP.globalStructure.category

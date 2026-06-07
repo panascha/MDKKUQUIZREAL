@@ -183,6 +183,13 @@ window.showQuestion = function (shouldFocus = true) {
     }
     window.fetchPendingVotes(window.APP.current_question.questionId);
 
+    // Sync Edit Mode button status
+    if (window.EDIT_SESSION && window.EDIT_SESSION.isLoggedIn) {
+        $('#btn-edit-current-q').show();
+    } else {
+        $('#btn-edit-current-q').hide();
+    }
+
     if (shouldFocus) {
         $('#choices').find('button').first().trigger('focus', { preventScroll: true });
     }

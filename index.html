@@ -30,6 +30,9 @@
         gtag('config', 'G-CXPE1MX3HS');
     </script>
 
+    <!-- Google Identity Services Library for SSO -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <!-- Link to Modular CSS File -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -37,10 +40,243 @@
 <body>
     <div class="container">
 
+        <!-- Edit Mode Status Badge -->
+        <div id="edit-mode-badge"
+            style="display: none; width: 100%; background: #1e293b; color: #f8fafc; border: 1px solid #475569; padding: 10px 18px; border-radius: var(--border-radius); text-align: center; font-weight: bold; margin-bottom: 15px; justify-content: space-between; align-items: center; box-sizing: border-box; font-family: var(--font-primary);">
+            <span style="font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-edit" style="color: #38bdf8;"></i> EDIT MODE ACTIVE <span style="color: #475569;">|</span>
+                <span id="edit-mode-username" style="font-weight: 600; color: #f1f5f9;">Guest</span>
+            </span>
+            <button class="btn-clear-all" onclick="logoutEditMode()"
+                style="background: rgba(255,255,255,0.08); border: 1px solid #94a3b8; color: #f1f5f9; padding: 4px 14px; font-size: 0.95rem; font-weight: bold; cursor: pointer; border-radius: 8px; transition: all 0.2s; font-family: var(--font-primary);">ออกจากระบบ</button>
+        </div>
+
         <!-- =========================================
          I. Modal Cards
          ========================================= -->
 
+
+        <!-- 1.1 Edit Question Modal (Advanced Parity Mode) -->
+        <div id="quiz-edit-modal" class="modal-card"
+            style="display:none; max-width:860px; max-height:92vh; overflow:hidden; flex-direction:column;">
+        
+            <!-- ── Modal Header ── -->
+            <div class="edit-modal-header">
+                <div class="edit-modal-title-row">
+                    <div class="edit-modal-icon"><i class="fas fa-edit" aria-hidden="true"></i></div>
+                    <div>
+                        <h5 class="edit-modal-title">แก้ไขข้อสอบ</h5>
+                        <span id="edit-q-id-display" class="edit-modal-qid-badge">ID: —</span>
+                    </div>
+                </div>
+                <button class="edit-modal-close-btn" onclick="window.closeEditModal()" aria-label="ปิด">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+        
+            <!-- ── Tab Bar ── -->
+            <div class="edit-modal-tabs" role="tablist">
+                <button class="tab-btn active" id="tab-btn-question" role="tab" aria-selected="true"
+                    onclick="window.switchEditModalTab(this, 't-question')">
+                    <i class="fas fa-question-circle" aria-hidden="true"></i>
+                    <span>โจทย์ &amp; หมวดหมู่</span>
+                </button>
+                <button class="tab-btn" id="tab-btn-choices" role="tab" aria-selected="false"
+                    onclick="window.switchEditModalTab(this, 't-choices')">
+                    <i class="fas fa-list-ul" aria-hidden="true"></i>
+                    <span>ตัวเลือก</span>
+                </button>
+                <button class="tab-btn" id="tab-btn-explanation" role="tab" aria-selected="false"
+                    onclick="window.switchEditModalTab(this, 't-explanation')">
+                    <i class="fas fa-book-open" aria-hidden="true"></i>
+                    <span>คำอธิบาย</span>
+                </button>
+            </div>
+        
+            <!-- ── Scrollable body ── -->
+            <div class="edit-modal-body">
+        
+                <!-- ════════════════════════════════════
+                     TAB: โจทย์ & หมวดหมู่
+                     ════════════════════════════════════ -->
+                <div id="t-question" class="tab-panel active">
+        
+                    <!-- Problem textarea -->
+                    <div class="edit-field-group">
+                        <label class="edit-field-label" for="edit-problem">
+                            <i class="fas fa-align-left" aria-hidden="true"></i> โจทย์ / คำถาม
+                        </label>
+                        <textarea id="edit-problem" class="edit-textarea" rows="5" placeholder="พิมพ์โจทย์ที่นี่..."></textarea>
+                    </div>
+        
+                    <!-- Main image gallery -->
+                    <div class="edit-field-group">
+                        <label class="edit-field-label">
+                            <i class="fas fa-image" aria-hidden="true"></i> รูปภาพประกอบโจทย์
+                        </label>
+        
+                        <div id="edit-image-gallery-container" style="display:none;" class="edit-gallery-wrap">
+                            <div class="edit-gallery-stage">
+                                <button id="edit-prev-img" class="edit-gallery-nav edit-gallery-nav-left" type="button"
+                                    aria-label="ก่อนหน้า">
+                                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                                </button>
+                                <img id="edit-gallery-img" src="" alt="Main Image" class="edit-gallery-img"
+                                    onclick="viewFullImage(this.src, event)">
+                                <div id="edit-gallery-svg-render" class="edit-gallery-svg"></div>
+                                <button id="edit-next-img" class="edit-gallery-nav edit-gallery-nav-right" type="button"
+                                    aria-label="ถัดไป">
+                                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                                </button>
+                                <span id="image-counter" class="edit-gallery-counter">1/1</span>
+                            </div>
+                            <button type="button" class="btn-xs red edit-gallery-delete-btn"
+                                onclick="window.removeCurrentImageFromGallery()">
+                                <i class="fas fa-trash-alt" aria-hidden="true"></i> ลบรูปนี้
+                            </button>
+                        </div>
+        
+                        <div class="edit-upload-row">
+                            <label class="btn-xs purple edit-upload-btn" style="cursor:pointer;">
+                                <i class="fas fa-upload" aria-hidden="true"></i> อัปโหลดรูป
+                                <input type="file" accept="image/*" multiple style="display:none;"
+                                    onchange="window.handleMainImagesSelection(this)">
+                            </label>
+                            <button type="button" class="btn-xs teal" onclick="window.openImageLibrary('main')">
+                                <i class="fas fa-images" aria-hidden="true"></i> คลังรูป
+                            </button>
+                            <span class="edit-upload-hint">วางรูปได้ด้วย Ctrl+V</span>
+                        </div>
+                    </div>
+        
+                    <!-- Categories -->
+                    <div class="edit-field-group">
+                        <div class="edit-field-label-row">
+                            <label class="edit-field-label">
+                                <i class="fas fa-tags" aria-hidden="true"></i> หมวดหมู่ / Category
+                            </label>
+                            <button type="button" class="btn-xs teal" onclick="window.addNewCategoryRow()">
+                                <i class="fas fa-plus" aria-hidden="true"></i> เพิ่มหมวดหมู่
+                            </button>
+                        </div>
+                        <div id="dynamic-categories-container" class="edit-categories-container"></div>
+                    </div>
+                </div>
+        
+                <!-- ════════════════════════════════════
+                                     TAB: ตัวเลือก
+                                     ════════════════════════════════════ -->
+                <div id="t-choices" class="tab-panel">
+                
+                    <div class="edit-choices-header">
+                        <p class="edit-choices-hint">
+                            <i class="fas fa-info-circle" aria-hidden="true"></i>
+                            คลิก <span class="hint-circle"></span> เพื่อตั้งเฉลย — ตัวเลือกที่มีวงกลมสีเขียวคือคำตอบที่ถูกต้อง
+                        </p>
+                    </div>
+                
+                    <div id="dynamic-choices-container" class="edit-choices-list"></div>
+                
+                    <div style="display: flex; gap: 10px; width: 100%; margin-top: 4px;">
+                        <button type="button" class="edit-add-choice-btn" style="flex: 1;" onclick="window.addNewChoiceRow()">
+                            <i class="fas fa-plus-circle" aria-hidden="true"></i> เพิ่มตัวเลือก
+                        </button>
+                        <button type="button" id="btn-ask-ai-choices" class="edit-add-choice-btn"
+                            style="flex: 1; border-color: #0d9488; color: #0d9488;" onclick="window.askAIForChoices()">
+                            <i class="fas fa-magic" aria-hidden="true"></i> ให้ AI ช่วยเติมตัวเลือก
+                        </button>
+                    </div>
+                </div>
+        
+                <!-- ════════════════════════════════════
+                     TAB: คำอธิบาย
+                     ════════════════════════════════════ -->
+                <div id="t-explanation" class="tab-panel">
+        
+                    <!-- AI assist -->
+                    <div class="edit-ai-bar">
+                        <button id="btn-ask-ai" type="button" class="edit-ai-btn" onclick="window.askAIForEdit()">
+                            <i class="fas fa-robot" aria-hidden="true"></i> ใช้ AI ช่วยเขียน
+                        </button>
+                        <span id="ai-status-text" class="edit-ai-status" style="display:none;">
+                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i> กำลังประมวลผล...
+                        </span>
+                    </div>
+        
+                    <div class="edit-field-group">
+                        <label class="edit-field-label" for="edit-explanation">
+                            <i class="fas fa-book" aria-hidden="true"></i> คำอธิบายเฉลย
+                        </label>
+                        <textarea id="edit-explanation" class="edit-textarea" rows="6"
+                            placeholder="พิมพ์คำอธิบายเฉลยที่นี่..."></textarea>
+                    </div>
+        
+                    <!-- Explanation media gallery -->
+                    <div class="edit-field-group">
+                        <label class="edit-field-label">
+                            <i class="fas fa-photo-video" aria-hidden="true"></i> สื่อประกอบคำอธิบาย
+                        </label>
+        
+                        <div id="explain-media-gallery-container" style="display:none;" class="edit-gallery-wrap">
+                            <div class="edit-gallery-stage">
+                                <button id="prev-explain-media-btn" class="edit-gallery-nav edit-gallery-nav-left" type="button"
+                                    aria-label="ก่อนหน้า">
+                                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                                </button>
+                                <img id="explain-gallery-img" src="" alt="Explain Media" class="edit-gallery-img"
+                                    style="display:none;">
+                                <div id="explain-gallery-svg-render" class="edit-gallery-svg" style="display:none;"></div>
+                                <div id="explain-gallery-pdf-render" class="edit-gallery-pdf" style="display:none;">
+                                    <i class="fas fa-file-pdf edit-pdf-icon" aria-hidden="true"></i>
+                                    <a id="explain-pdf-preview-link" href="#" target="_blank" class="edit-pdf-link">เปิดดู
+                                        PDF</a>
+                                </div>
+                                <button id="next-explain-media-btn" class="edit-gallery-nav edit-gallery-nav-right"
+                                    type="button" aria-label="ถัดไป">
+                                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                                </button>
+                                <span id="explain-media-counter" class="edit-gallery-counter">1/1</span>
+                            </div>
+                            <button type="button" class="btn-xs red edit-gallery-delete-btn"
+                                onclick="window.removeCurrentExplainMediaFromGallery()">
+                                <i class="fas fa-trash-alt" aria-hidden="true"></i> ลบสื่อนี้
+                            </button>
+                        </div>
+        
+                        <div class="edit-upload-row">
+                            <label class="btn-xs purple edit-upload-btn" style="cursor:pointer;">
+                                <i class="fas fa-upload" aria-hidden="true"></i> อัปโหลดรูป/PDF
+                                <input type="file" accept="image/*,application/pdf" multiple style="display:none;"
+                                    onchange="window.handleExplainMediaSelection(this)">
+                            </label>
+                            <button type="button" class="btn-xs teal" onclick="window.openImageLibrary('explain')">
+                                <i class="fas fa-images" aria-hidden="true"></i> คลังรูป
+                            </button>
+                        </div>
+                    </div>
+                </div>
+        
+            </div><!-- /edit-modal-body -->
+        
+            <!-- ── Footer Actions ── -->
+            <div class="edit-modal-footer">
+                <button type="button" class="edit-btn-cancel" onclick="window.closeEditModal()">
+                    <i class="fas fa-times" aria-hidden="true"></i> ยกเลิก
+                </button>
+                <button type="button" class="edit-btn-save" onclick="window.saveEditChanges()">
+                    <i class="fas fa-save" aria-hidden="true"></i> บันทึกการแก้ไข
+                </button>
+            </div>
+        
+            <!-- ── Hidden Inputs ── -->
+            <input type="hidden" id="edit-q-id">
+            <input type="hidden" id="edit-img">
+            <input type="hidden" id="edit-choices">
+            <input type="hidden" id="edit-answer">
+            <input type="hidden" id="edit-category-hidden" value="[]">
+            <input type="hidden" id="edit-explain-media">
+        </div>
+        
         <!-- 1. Report Modal -->
         <div id="report-card" class="modal-card">
             <div class="modal-body">
@@ -235,6 +471,25 @@
             </div>
         </div>
 
+        <!-- 1.2 Image Library Modal (Shared with Database Center) -->
+        <div id="quiz-image-library-modal" class="modal-card" style="z-index: 2100;">
+            <div class="modal-body" style="max-width: 1000px; width: 95vw;">
+                <h5 class="modal-title"><i class="fas fa-images"></i> คลังรูปภาพวิชา: <span id="lib-subject-name"
+                        class="badge bg-info">Subject</span></h5>
+                <div
+                    style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 15px; width: 100%; box-sizing: border-box;">
+                    <p style="font-size: 0.95rem; color: #666; margin: 0;">คลิกที่รูปเพื่อนำมาใช้ในข้อที่กำลังแก้ไข</p>
+                </div>
+                <div id="lib-grid-container"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; width: 100%; max-height: 520px; overflow-y: auto; padding: 5px; box-sizing: border-box;">
+                    <!-- Items populated by JS -->
+                </div>
+                <div class="controls-container" style="width: 100%; margin-top: 15px;">
+                    <button class="quiz-button btn-light" onclick="$('#quiz-image-library-modal').fadeOut()">ปิดคลัง</button>
+                </div>
+            </div>
+        </div>
+        
         <!-- 6. Auto-Grader Modal -->
         <div id="auto-grader-modal" class="modal-card">
             <div class="modal-body" style="text-align: center;">
@@ -350,10 +605,13 @@
                 หมายเหตุ : ถ้าเจอโจทย์มีปัญหาพิมพ์เข้ามาใน report ได้เลย | คีย์ลัด: ← (ก่อนหน้า), → (ถัดไป), Enter
                 (ส่งคำตอบ)
             </div>
-            <div class="info-banner">
-                <strong style="color: var(--color-wrong);">⭐</strong> <span>NEW FEATURE!!!</span>
-                <strong style="color: var(--color-wrong);">โหมดทบทวนข้อผิด</strong>
-                <strong> → จะเอาข้อที่ทำผิดไป Random ไว้ด้านหลังจนกว่าจะตอบถูก</strong>
+            <div class="info-banner" style="display: flex; flex-direction: column; gap: 6px; text-align: left;">
+                <div style="background-color: var(--color-primary-pale); border: 1px solid #F6C29B; padding: 12px; border-radius: 8px;">
+                    <strong style="color: var(--color-wrong);"><i class="fas fa-star"></i> NEW FEATURE!!!</strong>
+                    <strong style="color: var(--color-wrong);">ระบบแก้ไขข้อสอบ &amp; Rich Explanation</strong>
+                    <strong>→ ผู้มีสิทธิ์สามารถแก้ไขโจทย์/ตัวเลือก พร้อมอัปโหลดไฟล์รูปภาพประกอบ หรือไฟล์เอกสาร PDF
+                        แนบท้ายคำอธิบายเฉลยได้ทันที!</strong>
+                </div>
             </div>
         </div>
 
@@ -445,6 +703,10 @@
                     style="background: linear-gradient(to right, #EA580C, #B91C1C); color: #fff;">
                     <i class="fas fa-tags"></i> แยกเลคข้อสอบ
                 </button>
+                <button id="btn-edit-current-q" class="quiz-button edit-mode-only"
+                    style="background: #1e293b; border: 1.5px solid #475569; color: #f8fafc; display: none;">
+                    <i class="fas fa-edit"></i> แก้ไขข้อนี้ (Edit)
+                </button>
                 <div style="margin-top: 8px; width: 100%;">
                     <button id="toggle-quick-cat" class="quiz-button" style="width: 100%; font-size: 1.05rem;">
                         <i class="fas fa-bolt"></i> เปิดแผงแยกหัวข้อด่วน (Quick Mode)
@@ -507,9 +769,14 @@
     </div>
 
     <!-- =========================================
-     VI. Floating Action Buttons
-     ========================================= -->
+         VI. Floating Action Buttons
+         ========================================= -->
     <div class="fab-container">
+        <button id="toggle-edit-mode-btn" class="fab" title="เข้าสู่ระบบแก้ไขข้อสอบ (KKU Login)"
+            style="background: #1e293b; border: 1px solid #475569;" onclick="initiateGoogleLogin()">
+            <img src="https://www.kku.ac.th/wp-content/uploads/2022/01/1.-official-logo-2022-26-500x465.png" alt="KKU Logo"
+                style="width: 24px; height: 24px; object-fit: contain;">
+        </button>
         <button id="theme-toggle-btn" class="fab" title="เปลี่ยนธีม"><i class="fas fa-palette"></i></button>
         <button id="zoom-in-btn" class="fab" title="ขยายหน้าจอ"><i class="fas fa-search-plus"></i></button>
         <button id="zoom-out-btn" class="fab" title="ลดขนาด"><i class="fas fa-search-minus"></i></button>
@@ -517,7 +784,7 @@
                 class="fas fa-search"></i></button>
         <button id="scroll-to-quiz-btn" class="fab" title="ไปส่วนคำถาม"><i class="fas fa-arrow-up"></i></button>
     </div>
-
+    
     <div id="pdf-progress-widget">
         <div class="progress-title">
             <span><i class="fas fa-file-pdf"></i> สร้างไฟล์ PDF...</span>
@@ -528,10 +795,10 @@
         </div>
         <div id="pdf-status-text" class="progress-status">กำลังเตรียมข้อมูล...</div>
     </div>
-
+    
     <!-- =========================================
-     VII. Modular Scripts Import
-     ========================================= -->
+         VII. Modular Scripts Import
+         ========================================= -->
     <script src="js/config.js"></script>
     <script src="js/db.js"></script>
     <script src="js/api.js"></script>
@@ -542,6 +809,8 @@
     <script src="js/vote.js"></script>
     <script src="js/report.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/auth-edit.js"></script>
+    <script src="js/edit-modal.js"></script>
     <script src="js/app.js"></script>
 
 </body>

@@ -142,7 +142,7 @@ window.showSubmission = function (filter = 'all') {
             if (!val) return '';
             const trimmed = val.trim();
             if (trimmed.startsWith('<svg')) return `<div class="svg-render-area" onclick="viewFullImageSVG(this, event)">${trimmed}</div>`;
-            if (window.isUrl(trimmed)) return `<img src="${window.transformUrl(trimmed)}" class="search-card-img" onclick="viewFullImage('${window.transformUrl(trimmed)}', event)">`;
+            if (window.isUrl(trimmed)) return `<img src="${window.transformUrl(trimmed)}" class="search-card-img" referrerpolicy="no-referrer" onclick="viewFullImage('${window.transformUrl(trimmed)}', event)">`;
             return trimmed;
         };
 
@@ -153,7 +153,7 @@ window.showSubmission = function (filter = 'all') {
                 problemMedia = `
                     <div class="search-card-images" style="margin: 10px 0;">
                         <div class="search-image-gallery" style="position: relative; display: flex; align-items: center; justify-content: center; background: #f5f5f5; border-radius: 8px; padding: 10px; min-height: 250px;">
-                            <img src="${window.transformUrl(imgArray[0])}" class="search-gallery-main-img" style="max-width: 100%; max-height: 400px; object-fit: contain; cursor: pointer;" data-img-index="0">
+                            <img src="${window.transformUrl(imgArray[0])}" class="search-gallery-main-img" referrerpolicy="no-referrer" style="max-width: 100%; max-height: 400px; object-fit: contain; cursor: pointer;" data-img-index="0">
                             ${imgArray.length > 1 ? `
                             <button class="search-gallery-prev" style="position: absolute; left: 5px; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px 12px; border-radius: 4px; cursor: pointer; z-index: 10;">
                                 <i class="fas fa-chevron-left"></i>
@@ -241,6 +241,41 @@ window.showSubmission = function (filter = 'all') {
 // =========================================================
 // 5. ฟังก์ชันบูตระบบเริ่มต้นแอปพลิเคชัน (App Initialization)
 // =========================================================
+window.checkAndPromptRestoreProgress = async function (sessionKey) {
+    const savedState = await window.getCacheDB(sessionKey);
+    if (savedState && savedState.currentQuestionsState && savedState.currentQuestionsState.length > 0) {
+        $('#loading-overlay').hide();
+        const result = await Swal.fire({
+            title: 'พบข้อมูลการทำค้างไว้',
+            text: `คุณต้องการทำต่อจากข้อที่ ${savedState.questionIndex + 1} หรือไม่?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ทำต่อจากเดิม',
+            cancelButtonText: 'เริ่มใหม่ทั้งหมด',
+            confirmButtonColor: '#1a73e8',
+            cancelButtonColor: '#d33',
+            allowOutsideClick: false
+        });
+
+        if (result.isConfirmed) {
+            const success = await window.loadProgressFromCache();
+            if (success) {
+                window.showQuestion();
+                window.updateProgressHeader();
+                window.showSubmission($('#submission-filter').val());
+                window.bgToast.fire({ icon: 'success', title: 'โหลดข้อมูลเดิมสำเร็จ' });
+            }
+        } else {
+            const db = await window.openDB();
+            const transaction = db.transaction("quiz_cache", "readwrite");
+            transaction.objectStore("quiz_cache").delete(sessionKey);
+            window.updateQuestionSet(true);
+        }
+    } else {
+        window.updateQuestionSet(true);
+    }
+};
+
 window.initApp = async function () {
     const urlParams = new URLSearchParams(window.location.search);
     const subjectParam = urlParams.get('subject') || '';
@@ -256,6 +291,7 @@ window.initApp = async function () {
     // 1. ตรวจค้นโครงสร้างและโจทย์วิชาจาก Cache ท้องถิ่น (IndexedDB)
     const localData = await window.getCacheDB(cacheKey);
     const localVer = await window.getCacheDB(verKey);
+    let loadedSuccessfully = false;
 
     if (localData) {
         window.APP.globalStructure = localData.structure;
@@ -267,42 +303,7 @@ window.initApp = async function () {
         window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิก
         window.buildSearchDictionary();
         window.updateSubjectUI(subjectParam);
-
-        // ตรวจเช็คความคืบหน้าที่เซฟค้างไว้และถามผู้ใช้
-        const savedState = await window.getCacheDB(sessionKey);
-        if (savedState && savedState.currentQuestionsState && savedState.currentQuestionsState.length > 0) {
-            $('#loading-overlay').hide();
-            const result = await Swal.fire({
-                title: 'พบข้อมูลการทำค้างไว้',
-                text: `คุณต้องการทำต่อจากข้อที่ ${savedState.questionIndex + 1} หรือไม่?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'ทำต่อจากเดิม',
-                cancelButtonText: 'เริ่มใหม่ทั้งหมด',
-                confirmButtonColor: '#1a73e8',
-                cancelButtonColor: '#d33',
-                allowOutsideClick: false
-            });
-
-            if (result.isConfirmed) {
-                const success = await window.loadProgressFromCache();
-                if (success) {
-                    window.showQuestion();
-                    window.updateProgressHeader();
-                    window.showSubmission($('#submission-filter').val());
-                    window.bgToast.fire({ icon: 'success', title: 'โหลดข้อมูลเดิมสำเร็จ' });
-                }
-            } else {
-                const db = await window.openDB();
-                const transaction = db.transaction("quiz_cache", "readwrite");
-                transaction.objectStore("quiz_cache").delete(sessionKey);
-                window.updateQuestionSet(true);
-            }
-        } else {
-            window.updateQuestionSet(true);
-        }
-
-        $('#loading-overlay').hide();
+        loadedSuccessfully = true;
     } else {
         $('#loading-overlay').css('display', 'flex');
     }
@@ -338,13 +339,17 @@ window.initApp = async function () {
                 window.APP.allQuestions = newData.questions;
                 window.renderAccordionUI(window.APP.globalStructure);
                 window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิกสำหรับการรันครั้งแรก
-                window.updateQuestionSet();
                 window.buildSearchDictionary();
+                loadedSuccessfully = true;
             }
         }
     } catch (err) {
         console.error("Init Error:", err);
     } finally {
+        if (loadedSuccessfully) {
+            await window.checkAndPromptRestoreProgress(sessionKey);
+        }
+
         // บูตระบบ Incremental Sync ทำงานในฝั่งผู้ใช้งาน
         window.startPendingUpdateWatcher();   // ตัวคอยตรวจสิทธิ์ว่างทุกๆ 5 วินาที
         window.startIncrementalPolling();      // บูตลูปตรวจสอบเซิร์ฟเวอร์ทุกๆ 30 วินาที
@@ -544,21 +549,16 @@ window._showPendingBadge = function (count) {
             fontFamily: 'var(--font-primary)'
         }).on('click', function () {
             if (!window.isUserBusy()) {
-                window.applyPendingUpdates();
-                $badge.fadeOut(300, function () { $(this).remove(); });
+                $badge.html('<i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...').css('pointer-events', 'none');
+                setTimeout(function () {
+                    window.applyPendingUpdates();
+                    $badge.fadeOut(300, function () { $(this).remove(); });
+                }, 100);
             }
         });
         $('body').append($badge);
     }
     $badge.html('<i class="fas fa-sync-alt"></i> มีข้อมูลใหม่ ' + count + ' ข้อ (คลิกอัปเดต)').fadeIn();
-};
-
-window.startIncrementalPolling = function () {
-    if (window._syncInterval) clearInterval(window._syncInterval);
-    window._syncInterval = setInterval(function () {
-        window.runIncrementalSync();
-    }, 30000);
-    console.log('[Sync] Incremental polling started (30s interval)');
 };
 
 window.renderExplainHtmlForCard = function (explainRaw) {
@@ -588,7 +588,7 @@ window.renderExplainHtmlForCard = function (explainRaw) {
             html += `<div class="explain-image-gallery">`;
             images.forEach(img => {
                 const transformed = window.transformUrl(img);
-                html += `<img src="${transformed}" class="explain-img-thumb" onclick="viewFullImage('${transformed}', event)">`;
+                html += `<img src="${transformed}" class="explain-img-thumb" referrerpolicy="no-referrer" onclick="viewFullImage('${transformed}', event)">`;
             });
             html += `</div>`;
         }

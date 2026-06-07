@@ -1,5 +1,3 @@
-// REFACTOR/js/api.js
-
 window.SESSION_ID = 'sess_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
 window.questionStartTime = Date.now();
 
@@ -8,6 +6,7 @@ window.sendWithRetry = async function (payload, retries = 3) {
         try {
             const response = await fetch(window.APPSCRIPT_URL, {
                 method: 'POST',
+                redirect: 'follow', // บังคับสิทธิ์ตามพิกัด 302 Redirect ของกูเกิลอย่างน่าเชื่อถือ
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload)
             });
@@ -37,7 +36,7 @@ window.sendActivityLog = function (action, target, result = "", meta = "") {
     };
 
     fetch(window.APPSCRIPT_URL, {
-    method: 'POST',
+        method: 'POST',
         redirect: "follow",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
