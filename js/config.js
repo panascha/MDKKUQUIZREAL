@@ -1,7 +1,7 @@
 // REFACTOR/js/config.js
 
 // 1. ตั้งค่าการเชื่อมต่อ Server API และตั้งค่าพื้นฐาน
-window.APPSCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxP4r0u3RuUNeFleqkmeHf7kzTh2-aADJbVYKPDOHgmEFLlyerAslBZel9h566VWFUP/exec';
+window.APPSCRIPT_URL = 'https://script.google.com/macros/s/AKfycbydHwB_26y0FPK7iWIAtJ4-qp6K6DbZ-ihui38Hg0mpjjicn86WodJh7wQsOOix-SZJ/exec';
 window.thSarabunBase64 = '';
 
 window.zoomStep = 10;

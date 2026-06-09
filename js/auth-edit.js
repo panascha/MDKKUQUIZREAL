@@ -1,3 +1,5 @@
+// js/auth-edit.js
+
 window.EDIT_SESSION = {
     isLoggedIn: false,
     email: '',
@@ -29,34 +31,46 @@ window.isTokenExpired = function (token) {
     }
 };
 
+// ฟังก์ชันเปิดป๊อปอัปให้ล็อกอินด้วย Google Sign-In Button แบบเสถียร (ป้องกัน One Tap Cooldown)
+window.showGoogleSignInModal = function (titleText = 'เข้าสู่ระบบแก้ไขข้อสอบ') {
+    Swal.fire({
+        title: titleText,
+        html: `
+            <p style="font-size: 1.1rem; color: var(--color-text-muted); margin-bottom: 15px;">
+                กรุณาลงชื่อเข้าใช้ด้วยบัญชี Google ของทางมหาวิทยาลัยขอนแก่น (@kkumail.com หรือ @kku.ac.th) เพื่อรับสิทธิ์การแก้ไขและเข้าถึงระบบ AI Assistant
+            </p>
+            <div id="google-signin-button-swal" style="display: flex; justify-content: center; margin: 20px 0; min-height: 44px;"></div>
+            <p style="font-size: 0.9rem; color: var(--color-text-muted);">
+                *ระบบจะตรวจสอบสิทธิ์แอดมิน (Whitelist) ในระบบหลังบ้านโดยอัตโนมัติ
+            </p>
+        `,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: 'ยกเลิก',
+        didOpen: () => {
+            const container = document.getElementById("google-signin-button-swal");
+            if (container) {
+                // เรนเดอร์ปุ่ม Google Sign-In อย่างเป็นทางการเพื่อ bypass cooldown ของ One Tap
+                google.accounts.id.renderButton(container, {
+                    theme: "filled_blue",
+                    size: "large",
+                    width: 250,
+                    shape: "pill"
+                });
+            }
+        }
+    });
+};
+
 // ฟังก์ชันตรวจสอบและอัปเดตสิทธิ์ก่อนเรียกใช้งาน API สำคัญ
 window.ensureActiveSession = function () {
     if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn) {
-        Swal.fire({
-            icon: "error",
-            title: "กรุณาเข้าสู่ระบบ",
-            text: "กรุณาเข้าสู่ระบบแก้ไขข้อสอบก่อนดำเนินการ"
-        });
+        window.showGoogleSignInModal('กรุณาเข้าสู่ระบบก่อนดำเนินการ');
         return false;
     }
     if (window.isTokenExpired(window.EDIT_SESSION.idToken)) {
-        Swal.fire({
-            icon: "warning",
-            title: "Session หมดอายุการใช้งาน",
-            text: "เซสชันของคุณหมดอายุการใช้งานเนื่องจากมาตรการความปลอดภัยของ Google กรุณาคลิกเพื่ออัปเดตสิทธิ์และล็อกอินใหม่อีกครั้ง",
-            showCancelButton: true,
-            confirmButtonText: "เข้าสู่ระบบใหม่ (Re-Login)",
-            cancelButtonText: "ยกเลิก"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.logoutEditModeSilent();
-                try {
-                    google.accounts.id.prompt();
-                } catch (e) {
-                    Swal.fire("ข้อผิดพลาด", "ไม่สามารถเรียกหน้าต่างล็อกอินได้ทันที กรุณากดที่โลโก้ขวาบนเพื่ออัปเดตสิทธิ์", "error");
-                }
-            }
-        });
+        window.logoutEditModeSilent();
+        window.showGoogleSignInModal('เซสชันแก้ไขข้อสอบหมดอายุการใช้งาน');
         return false;
     }
     return true;
@@ -96,28 +110,35 @@ window.setupGoogleSSO = function () {
             use_fedcm_for_prompt: false // Disable FedCM to prevent Chrome-specific AbortError conflicts
         });
 
-        // Instant UI Restoration: ตรวจสอบเซสชันเก่าและกู้คืนหน้าแก้ไขทันทีเพื่อข้ามข้อจำกัด Cooldown ของกูเกิล
+        // Instant UI Restoration: ตรวจสอบและสแตนบายเซสชันเดิม
         const saved = sessionStorage.getItem("mdkku_edit_session");
         if (saved) {
             const data = JSON.parse(saved);
             if (data.isLoggedIn) {
-                window.EDIT_SESSION = {
-                    isLoggedIn: true,
-                    email: data.email,
-                    displayName: data.displayName,
-                    fullName: data.fullName,
-                    studentId: data.studentId,
-                    idToken: data.idToken || '', // ดึงโทเค็นเดิมมาสแตนด์บายใช้งานทันที
-                    role: data.role
-                };
-                window.enableEditModeUI();
-            }
-            // เรียกพรอมต์ในพื้นหลังเพื่ออัปเดต Token ให้เป็นเวอร์ชันใหม่แบบเงียบ ๆ
-            google.accounts.id.prompt((notification) => {
-                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                    console.log("One Tap silent prompt skipped by Google. Maintaining cached session state.");
+                // เพิ่มการตรวจสอบ Token ตั้งแต่โหลดหน้าเว็บ
+                if (window.isTokenExpired(data.idToken)) {
+                    console.log("Cached session token has already expired. Performing silent logout.");
+                    window.logoutEditModeSilent();
+                } else {
+                    window.EDIT_SESSION = {
+                        isLoggedIn: true,
+                        email: data.email,
+                        displayName: data.displayName,
+                        fullName: data.fullName,
+                        studentId: data.studentId,
+                        idToken: data.idToken || '',
+                        role: data.role
+                    };
+                    window.enableEditModeUI();
+
+                    // เรียกพรอมต์ในพื้นหลังเพื่ออัปเดต Token ให้เป็นเวอร์ชันใหม่แบบเงียบ ๆ
+                    google.accounts.id.prompt((notification) => {
+                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                            console.log("One Tap silent prompt skipped by Google. Maintaining verified session.");
+                        }
+                    });
                 }
-            });
+            }
         }
     } catch (err) {
         console.warn("Failed to initialize Google SSO:", err);
@@ -162,7 +183,7 @@ window.handleCredentialResponse = async function (response) {
                 role: res.user.role
             };
 
-            // บันทึกสถานะรวมถึง idToken ลงใน sessionStorage เพื่อป้องกันการหลุดเมื่อกดรีเฟรชหน้าเว็บ
+            // บันทึกสถานะรวมถึง idToken ลงใน sessionStorage
             sessionStorage.setItem("mdkku_edit_session", JSON.stringify({
                 isLoggedIn: true,
                 email: res.user.email,
@@ -206,7 +227,6 @@ window.logoutEditMode = function () {
     $("#edit-mode-badge").hide();
     $("#btn-edit-current-q").fadeOut(200);
 
-    // คืนค่าปุ่มแก้ไขกลับเป็นโลโก้ KKU สีสุภาพเป็นทางการ
     $("#toggle-edit-mode-btn")
         .css({ "background": "#1e293b", "border": "1px solid #475569" })
         .html('<img src="https://www.kku.ac.th/wp-content/uploads/2021/07/KKU-Logo-PNG.png" alt="KKU Logo" style="width: 24px; height: 24px; object-fit: contain;">');
@@ -222,11 +242,13 @@ window.logoutEditMode = function () {
         showConfirmButton: false
     });
 };
-// Show Google One Tap login prompt manually when edit FAB is clicked
+
+// จัดการเมื่อกดปุ่มล็อกอินที่ FAB ขวาบน
 window.initiateGoogleLogin = function () {
     if (window.EDIT_SESSION.isLoggedIn) {
         if (window.isTokenExpired(window.EDIT_SESSION.idToken)) {
             window.logoutEditModeSilent();
+            window.showGoogleSignInModal('Session หมดอายุการใช้งาน');
         } else {
             Swal.fire({
                 title: "คุณอยู่ในระบบแก้ไขแล้ว",
@@ -240,23 +262,18 @@ window.initiateGoogleLogin = function () {
                     window.logoutEditMode();
                 }
             });
-            return;
         }
+        return;
     }
 
-    try {
-        google.accounts.id.prompt(); // Trigger One Tap prompt safely without multiple initializations
-    } catch (err) {
-        console.error("Google login initiation error:", err);
-        Swal.fire("ข้อผิดพลาด", "ไม่สามารถเปิดระบบล็อกอินของ Google ได้ขณะนี้", "error");
-    }
+    // หากไม่ได้เข้าสู่ระบบ ให้แสดงกล่อง Google Sign-In Button ทันที
+    window.showGoogleSignInModal();
 };
 
 window.enableEditModeUI = function () {
     $("body").addClass("edit-mode-active");
     $("#edit-mode-badge").css("display", "flex");
 
-    // ดึงชื่อจริง นามสกุล และรหัสนักศึกษามาแสดงผลในสไตล์ที่เป็นทางการ
     const nameDisplay = window.EDIT_SESSION.fullName || window.EDIT_SESSION.displayName || window.EDIT_SESSION.email;
     const infoText = window.EDIT_SESSION.studentId
         ? `${nameDisplay} (รหัสนักศึกษา: ${window.EDIT_SESSION.studentId})`
@@ -268,6 +285,5 @@ window.enableEditModeUI = function () {
 };
 
 $(function () {
-    // Setup and initialize Google SSO on load
     setTimeout(window.setupGoogleSSO, 1200);
 });
