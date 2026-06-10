@@ -71,8 +71,38 @@ window.levenshtein = function (a, b) {
 };
 
 window.findSuggestions = function (term) {
-    term = term.toLowerCase().replace(/["“”]/g, '');
+    term = term.toLowerCase().replace(/["“”]/g, '').trim();
     if (term.length < 2) return [];
+
+    // ตรวจสอบความสอดคล้องว่าตรงตามตัวอักษรแบบเป๊ะๆ หรือไม่ ทั้งในพจนานุกรมหลักและเนื้อหาข้อสอบทั้งหมด
+    const isExactMatch = window.searchDictionary.has(term) || window.APP.allQuestions.some(q => {
+        const fullText = `${q.problem || ''} ${q.choices || ''} ${q.explain || ''} ${q.answer || ''}`.toLowerCase();
+        return fullText.includes(term);
+    });
+
+    // หากพบคำตรงตัวแล้ว จะไม่เสนอคำอื่นเพิ่มเติมเพื่อจำกัดขอบเขตการค้นหาให้ตรงจุดที่สุด
+    if (isExactMatch) {
+        return [];
+    }
+
+    // หากคำค้นหามีหลายคำ (มีช่องว่างระหว่างคำ) และไม่มีการจับคู่ตรงตัวเป๊ะ
+    // ให้ดึงคำแนะนำสะกดคำสำหรับทุกๆ คำในวลีนั้นออกมารวมกันแทนการดูแค่คำเดี่ยวๆ
+    if (term.includes(' ')) {
+        const words = term.split(/\s+/).filter(w => w.length > 1);
+        let combinedSuggestions = [];
+        const seen = new Set();
+
+        words.forEach(word => {
+            const wordSuggs = window.findSuggestions(word);
+            wordSuggs.forEach(s => {
+                if (!seen.has(s)) {
+                    seen.add(s);
+                    combinedSuggestions.push(s);
+                }
+            });
+        });
+        return combinedSuggestions.slice(0, 5);
+    }
 
     if (_fuzzyCache.has(term)) {
         const cachedVal = _fuzzyCache.get(term);
@@ -195,8 +225,20 @@ window.performSearch = function () {
         return includeQuestion;
     });
 
-    // [ขั้นตอนที่ 4] จัดอันดับความเกี่ยวข้อง (คัดแยกตัวดำเนินการออกจากการคำนวณ)
+    // [ขั้นตอนที่ 4] จัดอันดับปีข้อสอบและระดับความเกี่ยวข้อง (เรียงตามปีจากใหม่ไปเก่าเป็นหลัก หากปีเท่ากันให้เรียงตามความเกี่ยวข้อง)
     searchResults.sort((a, b) => {
+        const metaA = typeof window.parseQuestionMetadata === 'function' ? window.parseQuestionMetadata(a) : { year: "N/A" };
+        const metaB = typeof window.parseQuestionMetadata === 'function' ? window.parseQuestionMetadata(b) : { year: "N/A" };
+
+        const yearA = parseInt(metaA.year) || 0;
+        const yearB = parseInt(metaB.year) || 0;
+
+        // 1. เรียงตามปีจากใหม่ไปเก่า (ตัวเลขมากไปหาตัวเลขน้อย)
+        if (yearA !== yearB) {
+            return yearB - yearA;
+        }
+
+        // 2. หากปีเท่ากัน ให้จัดอันดับตามระดับความเกี่ยวข้อง (Relevance Score)
         const getScore = (q) => {
             let score = 0;
             const searchableText = ((q.answer || '') + (q.problem || '') + (q.choices || '') + (q.explain || '')).toLowerCase();
@@ -219,6 +261,7 @@ window.performSearch = function () {
             });
             return score;
         };
+
         return getScore(b) - getScore(a);
     });
 
@@ -394,27 +437,43 @@ $('#search-input').on('input', function () {
             return;
         }
 
-        // หาตำแหน่งและขอบเขตคำที่เคอร์เซอร์อยู่
-        const start = query.lastIndexOf(' ', caretPos - 1) + 1;
-        let end = query.indexOf(' ', caretPos);
-        if (end === -1) end = query.length;
+        let searchWord = '';
+        let isQuoted = false;
 
-        const currentWord = query.substring(start, end).trim();
-        const upperWord = currentWord.toUpperCase();
+        // ตรวจสอบว่ามีกลุ่มคำที่อยู่ภายในอัญประกาศคู่ " " หรือไม่
+        const quoteMatch = query.match(/["“]([^"”]*)["”]/);
+        if (quoteMatch) {
+            const insideQuotes = quoteMatch[1].trim();
+            if (insideQuotes.length >= 2) {
+                searchWord = insideQuotes;
+                isQuoted = true;
+            }
+        }
+
+        let start = 0, end = 0;
+        if (!isQuoted) {
+            // หาตำแหน่งและขอบเขตคำเดี่ยวตามตำแหน่งเคอร์เซอร์ปกติ
+            start = query.lastIndexOf(' ', caretPos - 1) + 1;
+            end = query.indexOf(' ', caretPos);
+            if (end === -1) end = query.length;
+            searchWord = query.substring(start, end).trim();
+        }
+
+        const upperWord = searchWord.toUpperCase();
 
         // [ความต้องการ] ตัวเชื่อม Operators (AND, OR, NOT) จะไม่แสดงคำแนะนำสะกดคำ
-        if (upperWord === 'AND' || upperWord === 'OR' || upperWord === 'NOT' || currentWord.length < 2) {
+        if (upperWord === 'AND' || upperWord === 'OR' || upperWord === 'NOT' || searchWord.length < 2) {
             $suggContainer.hide();
             return;
         }
 
-        // หลีกเลี่ยงการสะกิดเมื่ออยู่ในเครื่องหมายคำพูด
-        if (currentWord.startsWith('"') || currentWord.startsWith('“')) {
+        // หลีกเลี่ยงการสะกิดเมื่ออยู่ในเครื่องหมายคำพูดเดี่ยวๆ หรือเปิดค้างไว้
+        if (!isQuoted && (searchWord.startsWith('"') || searchWord.startsWith('“'))) {
             $suggContainer.hide();
             return;
         }
 
-        const suggs = window.findSuggestions(currentWord);
+        const suggs = window.findSuggestions(searchWord);
         if (suggs.length === 0) {
             $suggContainer.hide();
         } else {
@@ -422,8 +481,24 @@ $('#search-input').on('input', function () {
 
             $chips.empty();
             suggs.forEach(s => {
+                // หาคำต้นฉบับในช่องป้อนข้อมูลที่สอดคล้อง/สะกดผิดใกล้เคียงกับคำแนะนำนี้ที่สุดเพื่อความเข้าใจง่าย
+                const wordsInQuery = query.split(/[\s"“‘”’\(\)\[\]\{\}]+/);
+                let originalWord = searchWord;
+                let minD = 999;
+
+                wordsInQuery.forEach(w => {
+                    const cleanW = w.replace(/[^a-zA-Z0-9ก-๙]/g, '').trim();
+                    if (cleanW.length >= 2) {
+                        const d = window.levenshtein(s, cleanW.toLowerCase());
+                        if (d < minD) {
+                            minD = d;
+                            originalWord = cleanW;
+                        }
+                    }
+                });
+
                 $chips.append(`<span class="suggestion-chip" data-word="${s}">
-                        <span class="original-term">${currentWord}</span> <i class="fas fa-arrow-right"></i> <b>${s}</b>
+                        <span class="original-term">${originalWord}</span> <i class="fas fa-arrow-right"></i> <b>${s}</b>
                     </span>`);
             });
             $suggContainer.show();
@@ -434,19 +509,40 @@ $('#search-input').on('input', function () {
 $(document).on('click', '.suggestion-chip', function () {
     const word = $(this).data('word');
     const $input = $('#search-input');
-    const range = $input.data('replace-range');
+    const val = $input.val();
 
-    if (range) {
-        const val = $input.val();
-        const newVal = val.substring(0, range.start) + word + val.substring(range.end);
-        $input.val(newVal);
+    // ค้นหาคำในช่องค้นหาที่มีความคล้ายกับคำแนะนำมากที่สุดเพื่อเขียนทับแบบเจาะจงเฉพาะจุดที่สะกดผิด
+    const words = val.split(/([\s"“‘”’\(\)\[\]\{\}]+)/);
+    let bestIdx = -1;
+    let minDistance = 999;
 
-        const newCaretPos = range.start + word.length;
-        $input[0].setSelectionRange(newCaretPos, newCaretPos);
+    for (let i = 0; i < words.length; i++) {
+        const cleanW = words[i].replace(/[^a-zA-Z0-9ก-๙]/g, '').trim();
+        if (cleanW.length >= 2) {
+            const dist = window.levenshtein(word, cleanW.toLowerCase());
+            if (dist < minDistance) {
+                minDistance = dist;
+                bestIdx = i;
+            }
+        }
+    }
 
+    if (bestIdx !== -1 && minDistance <= 3) {
+        words[bestIdx] = word;
+        $input.val(words.join(''));
         window.performSearch();
         $('#search-suggestions-container').hide();
         $input.focus();
+    } else {
+        // แผนสำรองกรณีค้นหาเพื่อสลับจุดสะกดผิดดั้งเดิมไม่สำเร็จ
+        const range = $input.data('replace-range');
+        if (range) {
+            const newVal = val.substring(0, range.start) + word + val.substring(range.end);
+            $input.val(newVal);
+            window.performSearch();
+            $('#search-suggestions-container').hide();
+            $input.focus();
+        }
     }
 });
 
