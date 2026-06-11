@@ -141,5 +141,6 @@ window.APP = {
     currentImageArray: [],
     currentImageIndex: 0,
     preloadedImages: {},
-    answerKeyMap: []
+    answerKeyMap: [],
+    allSubjectsList: []
 };

@@ -46,8 +46,67 @@ window.updateProgressHeader = function () {
 
 window.updateSubjectUI = function (subjectParam) {
     if (subjectParam) {
-        const subjectName = window.APP.globalStructure.subjects.find(s => s.subjectId === subjectParam)?.subjectName || subjectParam;
-        $('.selection-container h2').html(`✅ เลือกหัวข้อ (วิชา: <span style="color:var(--color-primary)">${subjectName}</span>)`);
+        const subjObj = window.APP.globalStructure.subjects.find(s => s.subjectId === subjectParam);
+        const subjectName = subjObj?.subjectName || subjectParam;
+        const yearLabel = subjObj?.year ? `[ปี ${subjObj.year}] ` : '';
+        $('.selection-container h2').html(`✅ เลือกหัวข้อ (วิชา: <span style="color:var(--color-primary)">${yearLabel}${subjectName}</span>)`);
+    }
+};
+
+window.populateSubjectSelector = async function (subjectParam) {
+    let allSubjects = await window.getCacheDB('all_subjects_list_v2');
+    if (!allSubjects) {
+        try {
+            const resAllStruct = await fetch(`${window.APPSCRIPT_URL}?action=getStructure`).then(r => r.json());
+            if (resAllStruct && resAllStruct.subjects) {
+                const uniqueSubjs = [];
+                const seen = new Set();
+                resAllStruct.subjects.forEach(s => {
+                    if (s.subjectId && !seen.has(s.subjectId)) {
+                        seen.add(s.subjectId);
+                        uniqueSubjs.push({ id: s.subjectId, name: s.subjectName, year: s.year });
+                    }
+                });
+                allSubjects = uniqueSubjs;
+                await window.setCacheDB('all_subjects_list_v2', allSubjects);
+            }
+        } catch (err) {
+            console.warn("Failed to fetch all subjects:", err);
+        }
+    }
+
+    window.APP.allSubjectsList = allSubjects;
+
+    let currentYear = "";
+    if (subjectParam && allSubjects) {
+        const currentSubj = allSubjects.find(s => String(s.id) === String(subjectParam));
+        if (currentSubj && currentSubj.year) {
+            currentYear = String(currentSubj.year);
+        }
+    }
+
+    const $yearSelect = $('#year-select');
+    if ($yearSelect.length) {
+        $yearSelect.val(currentYear);
+    }
+
+    window.filterSubjectOptions(currentYear, subjectParam);
+};
+
+window.filterSubjectOptions = function (selectedYear, activeSubjectId) {
+    const $select = $('#subject-select');
+    const allSubjects = window.APP.allSubjectsList;
+
+    if ($select.length && allSubjects) {
+        $select.empty().append('<option value="">-- แสดงทั้งหมด (All Subjects) --</option>');
+        allSubjects.forEach(s => {
+            if (selectedYear && String(s.year) !== String(selectedYear)) {
+                return;
+            }
+            const selected = (String(s.id) === String(activeSubjectId)) ? 'selected' : '';
+            const yearLabel = s.year ? `[ปี ${s.year}] ` : '';
+            $select.append(`<option value="${s.id}" ${selected}>${yearLabel}${s.id} - ${s.name}</option>`);
+        });
     }
 };
 
@@ -659,6 +718,9 @@ window.initApp = async function () {
     } catch (err) {
         console.error("Init Error:", err);
     } finally {
+        // โหลดรายชื่อวิชาทั้งหมดใส่ Dropdown
+        await window.populateSubjectSelector(subjectParam);
+
         if (loadedSuccessfully) {
             await window.checkAndPromptRestoreProgress(sessionKey);
         }
@@ -675,4 +737,19 @@ window.initApp = async function () {
 // สั่งรันคำสั่งเมื่อ DOM พร้อมทำงานสมบูรณ์
 $(function () {
     window.initApp();
+
+    $(document).on('change', '#year-select', function () {
+        const selectedYear = $(this).val();
+        const activeSubjectId = $('#subject-select').val();
+        window.filterSubjectOptions(selectedYear, activeSubjectId);
+    });
+
+    $(document).on('change', '#subject-select', function () {
+        const selectedSubj = $(this).val();
+        if (selectedSubj) {
+            window.location.search = '?subject=' + encodeURIComponent(selectedSubj);
+        } else {
+            window.location.search = '';
+        }
+    });
 });
