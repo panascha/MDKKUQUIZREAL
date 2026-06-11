@@ -5,22 +5,22 @@
 
 const CACHE_NAME = 'mdkkuquiz-v1';
 const STATIC_ASSETS = [
-    '/',
-    '/index.html',
-    '/css/styles.css',
-    '/js/config.js',
-    '/js/db.js',
-    '/js/api.js',
-    '/js/search.js',
-    '/js/quiz.js',
-    '/js/vote.js',
-    '/js/report.js',
-    '/js/ui.js',
-    '/js/auth-edit.js',
-    '/js/edit-modal.js',
-    '/js/app.js',
-    '/js/pdf-generator.js',
-    '/js/grader.js'
+    './',
+    'index.html',
+    'css/styles.css',
+    'js/config.js',
+    'js/db.js',
+    'js/api.js',
+    'js/search.js',
+    'js/quiz.js',
+    'js/vote.js',
+    'js/report.js',
+    'js/ui.js',
+    'js/auth-edit.js',
+    'js/edit-modal.js',
+    'js/app.js',
+    'js/pdf-generator.js',
+    'js/grader.js'
 ];
 
 // ติดตั้ง: cache ไฟล์ static
