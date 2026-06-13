@@ -638,7 +638,14 @@ window.askAIForEdit = async function () {
     try {
         const res = await window.sendWithRetry(payload);
         if (res.result === 'success') {
-            $("#edit-explanation").val(res.answer);
+            if (!res.answer) {
+                Swal.fire("AI ไม่ส่งคำตอบกลับมา", "Gemini อาจกรองเนื้อหาออก โปรดลองใหม่หรือปรับโจทย์", "warning");
+            } else {
+                $("#edit-explanation").val(res.answer);
+                // Switch to explanation tab so user sees the result
+                const tabBtn = document.getElementById('tab-btn-explanation');
+                if (tabBtn) window.switchEditModalTab(tabBtn, 't-explanation');
+            }
         } else {
             Swal.fire("เกิดข้อผิดพลาดจากระบบหลังบ้าน", res.message || "ไม่สามารถเขียนคำอธิบายได้ขณะนี้", "error");
         }
@@ -656,6 +663,7 @@ window.askAIForChoices = async function () {
     const prob = $("#edit-problem").val().trim();
     if (!prob) return Swal.fire("กรุณากรอกโจทย์ก่อน", "", "warning");
 
+    const maxChoices = Math.max(2, parseInt($('#ai-choice-count').val()) || 5);
     const $btn = $("#btn-ask-ai-choices");
     $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> AI กำลังแต่งตัวเลือก...');
 
@@ -665,16 +673,25 @@ window.askAIForChoices = async function () {
         if (txt && txt !== '[IMAGE_PENDING]') filledChoices.push(txt);
     });
 
+    const needCount = Math.max(0, maxChoices - filledChoices.length);
+    if (needCount === 0) {
+        $btn.prop('disabled', false).html('<i class="fas fa-magic"></i> AI เติมตัวเลือก');
+        return Swal.fire("ตัวเลือกครบแล้ว", `มีตัวเลือกครบ ${maxChoices} ข้อแล้ว เพิ่มจำนวนในช่อง "ครบ X ข้อ" หากต้องการมากกว่านี้`, "info");
+    }
+
     const payload = {
         action: 'askAIExpert',
         googleIdToken: window.EDIT_SESSION.idToken,
-        prompt: `คุณคืออาจารย์แพทย์ ช่วยแต่งตัวเลือก (Distractors/Choices) เพิ่มเติมให้ครบ 5 ตัวเลือก สำหรับโจทย์ทางการแพทย์นี้: "${prob}"\nตัวเลือกที่มีอยู่แล้วคือ: ${filledChoices.join(', ')}\nโปรดส่งตัวเลือกใหม่กลับมาโดยเรียงลำดับให้เข้ากันในรูปแบบ JSON Array ของสตริงเท่านั้น (ไม่มีคำนำ คั่น หรือ markdown เช่น \`\`\`json) ตัวอย่างเช่น: ["ตัวเลือกเพิ่มเติม 1", "ตัวเลือกเพิ่มเติม 2"]`,
+        prompt: `คุณคืออาจารย์แพทย์ ช่วยแต่งตัวเลือก (Distractors) เพิ่มอีก ${needCount} ตัวเลือก (รวมเป็น ${maxChoices} ตัวเลือก) สำหรับโจทย์ทางการแพทย์นี้: "${prob}"\nตัวเลือกที่มีอยู่แล้วคือ: ${filledChoices.join(', ')}\nโปรดส่งเฉพาะตัวเลือกใหม่ ${needCount} ข้อกลับมาในรูปแบบ JSON Array ของสตริงเท่านั้น (ไม่มีคำนำ คั่น หรือ markdown เช่น \`\`\`json) ตัวอย่างเช่น: ["ตัวเลือก 1", "ตัวเลือก 2"]`,
         images: window.editImageArray.filter(i => i.startsWith('http'))
     };
 
     try {
         const res = await window.sendWithRetry(payload);
         if (res.result === 'success') {
+            if (!res.answer) {
+                return Swal.fire("AI ไม่ส่งคำตอบกลับมา", "โปรดลองใหม่อีกครั้ง", "warning");
+            }
             let aiChoices = [];
             try {
                 const cleanJson = res.answer.replace(/```json|```/g, '').trim();
@@ -682,6 +699,7 @@ window.askAIForChoices = async function () {
             } catch (e) {
                 aiChoices = res.answer.split('\n').map(s => s.replace(/^[-*\d\.\s]+/g, '').trim()).filter(Boolean);
             }
+            aiChoices = aiChoices.slice(0, needCount);
 
             if (Array.isArray(aiChoices) && aiChoices.length > 0) {
                 let aiIdx = 0;

@@ -180,14 +180,20 @@
                 
                     <div id="dynamic-choices-container" class="edit-choices-list"></div>
                 
-                    <div style="display: flex; gap: 10px; width: 100%; margin-top: 4px;">
+                    <div style="display: flex; gap: 10px; width: 100%; margin-top: 4px; align-items: center;">
                         <button type="button" class="edit-add-choice-btn" style="flex: 1;" onclick="window.addNewChoiceRow()">
                             <i class="fas fa-plus-circle" aria-hidden="true"></i> เพิ่มตัวเลือก
                         </button>
                         <button type="button" id="btn-ask-ai-choices" class="edit-add-choice-btn"
                             style="flex: 1; border-color: #0d9488; color: #0d9488;" onclick="window.askAIForChoices()">
-                            <i class="fas fa-magic" aria-hidden="true"></i> ให้ AI ช่วยเติมตัวเลือก
+                            <i class="fas fa-magic" aria-hidden="true"></i> AI เติมตัวเลือก
                         </button>
+                        <div style="display:flex; align-items:center; gap:4px; white-space:nowrap; font-size:0.85rem; color:#0d9488;">
+                            <span>ครบ</span>
+                            <input type="number" id="ai-choice-count" value="5" min="2" max="10"
+                                style="width:46px; padding:3px 6px; border:1px solid #0d9488; border-radius:6px; text-align:center; font-size:0.9rem; color:#0d9488; background:var(--bg-card,#fff);">
+                            <span>ข้อ</span>
+                        </div>
                     </div>
                 </div>
         
