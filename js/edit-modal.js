@@ -630,7 +630,7 @@ window.askAIForEdit = async function () {
 
     const payload = {
         action: 'askAIExpert',
-        googleIdToken: window.EDIT_SESSION.idToken,
+        sessionToken: window.EDIT_SESSION.sessionToken,
         prompt: `คุณคืออาจารย์แพทย์ ช่วยเขียนคำอธิบายเฉลย (Explanation) 1 ย่อหน้าสั้นๆ สำหรับโจทย์: "${prob}" ตัวเลือก: ${choices.join(', ')}`,
         images: window.editImageArray.filter(i => i.startsWith('http'))
     };
@@ -681,7 +681,7 @@ window.askAIForChoices = async function () {
 
     const payload = {
         action: 'askAIExpert',
-        googleIdToken: window.EDIT_SESSION.idToken,
+        sessionToken: window.EDIT_SESSION.sessionToken,
         prompt: `คุณคืออาจารย์แพทย์ ช่วยแต่งตัวเลือก (Distractors) เพิ่มอีก ${needCount} ตัวเลือก (รวมเป็น ${maxChoices} ตัวเลือก) สำหรับโจทย์ทางการแพทย์นี้: "${prob}"\nตัวเลือกที่มีอยู่แล้วคือ: ${filledChoices.join(', ')}\nโปรดส่งเฉพาะตัวเลือกใหม่ ${needCount} ข้อกลับมาในรูปแบบ JSON Array ของสตริงเท่านั้น (ไม่มีคำนำ คั่น หรือ markdown เช่น \`\`\`json) ตัวอย่างเช่น: ["ตัวเลือก 1", "ตัวเลือก 2"]`,
         images: window.editImageArray.filter(i => i.startsWith('http'))
     };
@@ -778,7 +778,7 @@ window.saveEditChanges = async function () {
             if (window.choiceImagesData[rowId]) {
                 const res = await window.sendWithRetry({
                     action: 'uploadImage',
-                    googleIdToken: window.EDIT_SESSION.idToken,
+                    sessionToken: window.EDIT_SESSION.sessionToken,
                     data: { base64: window.choiceImagesData[rowId].data, questionId: qId, type: 'Choice' }
                 });
                 val = res.url;
@@ -796,7 +796,7 @@ window.saveEditChanges = async function () {
             if (img.startsWith('data:')) {
                 const res = await window.sendWithRetry({
                     action: 'uploadImage',
-                    googleIdToken: window.EDIT_SESSION.idToken,
+                    sessionToken: window.EDIT_SESSION.sessionToken,
                     data: { base64: img, questionId: qId, type: 'Main' }
                 });
                 finalMainImgs.push(res.url);
@@ -812,7 +812,7 @@ window.saveEditChanges = async function () {
                 const isPdf = media.includes('application/pdf');
                 const res = await window.sendWithRetry({
                     action: 'uploadImage',
-                    googleIdToken: window.EDIT_SESSION.idToken,
+                    sessionToken: window.EDIT_SESSION.sessionToken,
                     data: { base64: media, questionId: qId, type: isPdf ? 'Explain' : 'Explain' }
                 });
                 finalExplainMedia.push(res.url);
@@ -826,7 +826,7 @@ window.saveEditChanges = async function () {
         // 4. Submit Question Edit Payload
         const res = await window.sendWithRetry({
             action: 'editQuestion',
-            googleIdToken: window.EDIT_SESSION.idToken,
+            sessionToken: window.EDIT_SESSION.sessionToken,
             data: {
                 id: qId,
                 problem: problem,
