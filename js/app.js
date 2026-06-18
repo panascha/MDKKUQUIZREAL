@@ -780,7 +780,9 @@ $(function () {
     window.addEventListener('beforeinstallprompt', function (e) {
         e.preventDefault();
         deferredInstallPrompt = e;
-        $('#pwa-install-banner').css('display', 'flex').hide().fadeIn(400);
+        var $banner = $('#pwa-install-banner');
+        $banner.css('display', 'flex').hide().fadeIn(400);
+        setTimeout(function () { $banner.fadeOut(600); }, 8000);
     });
 
     $(document).on('click', '#pwa-install-btn', function () {
@@ -811,6 +813,8 @@ $(function () {
     var isIOSLike = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
                     (/Mac/i.test(navigator.userAgent) && 'ontouchend' in document);
     if (isIOSLike && !navigator.standalone) {
-        $('#pwa-ios-hint').css('display', 'flex');
+        var $iosHint = $('#pwa-ios-hint');
+        $iosHint.css('display', 'flex');
+        setTimeout(function () { $iosHint.fadeOut(600); }, 8000);
     }
 }());
