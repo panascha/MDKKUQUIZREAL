@@ -535,3 +535,134 @@ $(function () {
         window.submitVoteData(uniqueVotes, window.APP.modalTargetQuestion);
     });
 });
+
+// ============================================================
+// REPORT VOTE SYSTEM — mirrors fetchPendingVotes pattern
+// ============================================================
+
+window.isFetchingReports = false;
+
+window.fetchPendingReports = function (questionId) {
+    if (window.isFetchingReports) return;
+    window.isFetchingReports = true;
+
+    fetch(`${window.APPSCRIPT_URL}?action=getPendingReports&qid=${questionId}`)
+        .then(res => res.json())
+        .then(data => {
+            window.APP.pendingReportsCache[questionId] = data;
+            window.renderReportNotificationUI(questionId, data);
+        })
+        .catch(err => console.warn("Fetch Pending Reports Failed:", err))
+        .finally(() => { window.isFetchingReports = false; });
+};
+
+window.renderReportNotificationUI = function (questionId, data) {
+    if (questionId !== window.APP.current_question.questionId) return;
+    const $bar = $('#report-notification-bar');
+    $bar.empty();
+
+    const reports = (data.reports || []).filter(r => r.voteCount > 0);
+    if (reports.length === 0) return;
+
+    const top = reports[0]; // sorted desc by voteCount
+    const remaining = data.threshold - top.voteCount;
+    const statusText = remaining > 0
+        ? `ขาดอีก <b style="color:#9b1c1c;">${remaining}</b> โหวต`
+        : `<b style="color:#9b1c1c;">รอ Admin ตรวจสอบ</b>`;
+
+    const html = `
+        <div id="quick-report-badge"
+            style="margin-top: -10px; margin-bottom: 10px; padding: 10px 20px; border-radius: 25px;
+                   background-color: #fde8e8; color: #9b1c1c; font-weight: 700;
+                   display: flex; align-items: center; justify-content: center; cursor: pointer;
+                   box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 2px solid #9b1c1c;
+                   transition: all 0.3s ease-in-out; z-index: 10;">
+            <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>
+            <span style="font-size: 1.2rem; margin-right: 12px;">รายงานเฉลยผิด: <b>${reports.length} รายการ</b></span>
+            <span style="font-size: 1.1rem; font-weight: 600;">(${statusText})</span>
+        </div>
+    `;
+
+    $bar.html(html);
+    $bar.find('#quick-report-badge').off('click').on('click', function () {
+        window.openReportVoteModal(questionId, data);
+    });
+};
+
+window.openReportVoteModal = function (questionId, data) {
+    const reports = (data.reports || []).filter(r => r.voteCount > 0);
+    if (reports.length === 0) return;
+
+    let listHtml = '';
+    reports.forEach(function (r) {
+        const isUrl = r.suggestedChoice && (r.suggestedChoice.startsWith('http') || r.suggestedChoice.startsWith('<svg'));
+        const display = isUrl ? '[รูปภาพ]' : (r.suggestedChoice || '-');
+        listHtml += `
+            <div style="margin-bottom: 16px; padding: 12px; background: #fff8f8; border-radius: 8px; border-left: 4px solid #e74a3b;">
+                <div style="font-size: 1.1rem; margin-bottom: 6px;">
+                    เสนอเฉลย: <b>${display}</b>
+                    <span style="margin-left: 8px; padding: 2px 8px; background: #6b7280; color: white; border-radius: 10px; font-size: 0.85rem;">
+                        <i class="fas fa-users"></i> ${r.voteCount} โหวต
+                    </span>
+                </div>
+                ${r.reportDetail ? `<div style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">เหตุผล: ${r.reportDetail}</div>` : ''}
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-report-vote"
+                        data-timestamp="${r.timestamp}" data-delta="1" data-qid="${questionId}"
+                        style="padding: 6px 16px; border-radius: 20px; border: none; background: #22c55e; color: white; cursor: pointer; font-weight: 700;">
+                        เห็นด้วย (+1)
+                    </button>
+                    <button class="btn-report-vote"
+                        data-timestamp="${r.timestamp}" data-delta="-1" data-qid="${questionId}"
+                        style="padding: 6px 16px; border-radius: 20px; border: none; background: #dc3545; color: white; cursor: pointer; font-weight: 700;">
+                        ไม่เห็นด้วย (-1)
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    Swal.fire({
+        title: '<i class="fas fa-exclamation-circle" style="color:#dc3545;"></i> รายงานเฉลยผิด',
+        html: listHtml,
+        showConfirmButton: false,
+        showCloseButton: true,
+        width: '600px',
+        didOpen: function () {
+            document.querySelectorAll('.btn-report-vote').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const timestamp = this.dataset.timestamp;
+                    const delta = parseInt(this.dataset.delta);
+                    const qid = this.dataset.qid;
+                    Swal.close();
+                    window.submitReportVote(timestamp, delta, qid);
+                });
+            });
+        }
+    });
+};
+
+window.submitReportVote = async function (reportTimestamp, delta, questionId) {
+    const payload = {
+        action: 'voteOnReport',
+        reportTimestamp: reportTimestamp,
+        delta: delta,
+        questionId: questionId
+    };
+
+    try {
+        await window.sendWithRetry(payload);
+        delete window.APP.pendingReportsCache[questionId];
+        window.fetchPendingReports(questionId);
+        Swal.fire({
+            icon: 'success',
+            title: 'บันทึกการโหวตสำเร็จ!',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000
+        });
+    } catch (err) {
+        Swal.fire("Error", "ไม่สามารถบันทึกการโหวตได้ กรุณาลองใหม่อีกครั้ง", "error");
+    }
+};

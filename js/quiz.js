@@ -122,6 +122,12 @@ window.showQuestion = function (shouldFocus = true) {
     }
     window.fetchPendingVotes(window.APP.current_question.questionId);
 
+    $('#report-notification-bar').empty();
+    if (window.APP.pendingReportsCache[window.APP.current_question.questionId]) {
+        window.renderReportNotificationUI(window.APP.current_question.questionId, window.APP.pendingReportsCache[window.APP.current_question.questionId]);
+    }
+    window.fetchPendingReports(window.APP.current_question.questionId);
+
     let categoryName = "";
     window.APP.current_question.category.forEach(catId => {
         const catObj = window.APP.globalStructure.category.find(c => c.categoryId === catId);

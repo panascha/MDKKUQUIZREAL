@@ -322,6 +322,13 @@
                     <textarea id="report_text" placeholder="ระบุเหตุผลที่โจทย์/เฉลยผิด..."
                         style="width: 100%; min-height: 90px; font-size: 1.1rem; font-family: var(--font-primary);"></textarea>
                 </div>
+                <div class="modal-section"
+                    style="text-align: left; background: #eff6ff; border: 2px solid #3b82f6;">
+                    <h6 style="color: #1d4ed8; font-size: 1.2rem;">เสนอคำอธิบายเฉลย (ไม่จำเป็น)</h6>
+                    <p class="small-text" style="margin-bottom: 5px; color: #555;">ถ้าไม่กรอก ระบบจะใช้ Gemini AI สร้างคำอธิบายใหม่อัตโนมัติ</p>
+                    <textarea id="report-suggest-explain-input" placeholder="เสนอคำอธิบายเฉลยที่ถูกต้อง..."
+                        style="width: 100%; min-height: 80px; font-size: 1.0rem; font-family: var(--font-primary);"></textarea>
+                </div>
                 <div class="controls-container">
                     <button id="submit-report" class="quiz-button btn-dark">Submit Report</button>
                     <button id="cancel-report" class="quiz-button btn-light">Cancel</button>
@@ -708,6 +715,7 @@
             </div>
 
             <div id="vote-notification-bar" style="min-height: 0; margin-bottom: 6px;"></div>
+            <div id="report-notification-bar" style="min-height: 0; margin-bottom: 6px;"></div>
 
             <p id="categoryquestion"></p>
             <p id="question"></p>

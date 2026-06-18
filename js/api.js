@@ -57,7 +57,7 @@ window.sendActivityLog = function (action, target, result = "", meta = "") {
 };
 
 // กู้คืนฟังก์ชันการส่งข้อมูลรายงานข้อสอบผิดที่ตกหล่นไป
-window.saveReportToGoogleSheet = async function (from, category, questionId, question, questionImages, allChoices, suggestedChoice, report, time) {
+window.saveReportToGoogleSheet = async function (from, category, questionId, question, questionImages, allChoices, suggestedChoice, report, time, suggestedExplain) {
     const data = {
         action: 'submitReport',
         from: from,
@@ -68,7 +68,8 @@ window.saveReportToGoogleSheet = async function (from, category, questionId, que
         allChoices: allChoices,
         suggestedChoice: suggestedChoice,
         report: report,
-        time: time
+        time: time,
+        suggestedExplain: suggestedExplain || ""
     };
 
     try {

@@ -133,6 +133,7 @@ window.APP = {
     isReviewMode: false,
     filterMode: "category",
     pendingVotesCache: {},
+    pendingReportsCache: {},
     sessionAutoVoteCount: 0,
     votedQuestionIds: new Set(),
     modalTargetQuestion: null,

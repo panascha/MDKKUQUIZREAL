@@ -11,6 +11,7 @@ window.openReportModal = function (q) {
 
     $('#report_text').val('');
     $('#report-new-choice-input').val('');
+    $('#report-suggest-explain-input').val('');
     $('#report-correct-choice-select').empty();
     $('#report-question-images').empty();
 
@@ -108,6 +109,8 @@ $(function () {
             return `${letter}. ${isCurrentAnswer ? '(answer)' : ''} ${choiceText}`;
         }).join("\n");
 
+        const suggestedExplainValue = $('#report-suggest-explain-input').val().trim();
+
         window.saveReportToGoogleSheet(
             subjectFrom,
             categoryString,
@@ -117,7 +120,8 @@ $(function () {
             allChoices,
             suggestedChoice,
             reportTextValue,
-            new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" })
+            new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }),
+            suggestedExplainValue
         );
 
         $('#report-card').fadeOut();
