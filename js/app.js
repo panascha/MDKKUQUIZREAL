@@ -209,8 +209,21 @@ window.applyPendingUpdates = function () {
 
     if (applied > 0) {
         var currentActiveQId = window.APP.currentQuestions[window.APP.questionIndex] ? window.APP.currentQuestions[window.APP.questionIndex].questionId : null;
+        var orderedIds = window.APP.currentQuestions.map(function (q) { return q.questionId; });
 
         window.updateQuestionSet(false);
+
+        // Restore original quiz order; new questions fall to end
+        var orderMap = {};
+        orderedIds.forEach(function (id, idx) { orderMap[id] = idx; });
+        window.APP.currentQuestions.sort(function (a, b) {
+            var ia = orderMap[a.questionId];
+            var ib = orderMap[b.questionId];
+            if (ia === undefined && ib === undefined) return 0;
+            if (ia === undefined) return 1;
+            if (ib === undefined) return -1;
+            return ia - ib;
+        });
 
         if (currentActiveQId) {
             var newActiveIdx = window.APP.currentQuestions.findIndex(function (q) {
