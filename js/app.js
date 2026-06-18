@@ -806,8 +806,11 @@ $(function () {
         $('#pwa-install-banner').fadeOut(300);
     });
 
-    // iOS: beforeinstallprompt not supported — show manual hint instead
-    if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && !navigator.standalone) {
+    // iOS/iPadOS: beforeinstallprompt not supported — show manual hint instead
+    // iPadOS 13+ reports UA as Macintosh, so also check Mac + touch
+    var isIOSLike = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+                    (/Mac/i.test(navigator.userAgent) && 'ontouchend' in document);
+    if (isIOSLike && !navigator.standalone) {
         $('#pwa-ios-hint').css('display', 'flex');
     }
 }());
