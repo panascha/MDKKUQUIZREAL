@@ -211,7 +211,7 @@ window.applyPendingUpdates = function () {
         var currentActiveQId = window.APP.currentQuestions[window.APP.questionIndex] ? window.APP.currentQuestions[window.APP.questionIndex].questionId : null;
         var orderedIds = window.APP.currentQuestions.map(function (q) { return q.questionId; });
 
-        window.updateQuestionSet(false);
+        window.updateQuestionSet(false, false);
 
         // Restore original quiz order; new questions fall to end
         var orderMap = {};
@@ -773,3 +773,41 @@ $(function () {
         }
     });
 });
+
+(function () {
+    var deferredInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        $('#pwa-install-banner').css('display', 'flex').hide().fadeIn(400);
+    });
+
+    $(document).on('click', '#pwa-install-btn', function () {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.then(function (choice) {
+            if (typeof gtag === 'function') {
+                gtag('event', 'pwa_install', { outcome: choice.outcome });
+            }
+            deferredInstallPrompt = null;
+            $('#pwa-install-banner').fadeOut(300);
+        });
+    });
+
+    $(document).on('click', '#pwa-install-dismiss', function () {
+        $('#pwa-install-banner').fadeOut(300);
+    });
+
+    window.addEventListener('appinstalled', function () {
+        if (typeof gtag === 'function') {
+            gtag('event', 'pwa_installed');
+        }
+        $('#pwa-install-banner').fadeOut(300);
+    });
+
+    // iOS: beforeinstallprompt not supported — show manual hint instead
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && !navigator.standalone) {
+        $('#pwa-ios-hint').css('display', 'flex');
+    }
+}());

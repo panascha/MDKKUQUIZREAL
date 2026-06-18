@@ -41,6 +41,28 @@
 </head>
 
 <body>
+    <div id="pwa-ios-hint" style="display:none; position:fixed; bottom:20px; right:20px; z-index:9999;
+         background:#1a73e8; color:#fff; padding:12px 18px; border-radius:12px;
+         box-shadow:0 4px 16px rgba(0,0,0,0.2); font-family:var(--font-primary);
+         align-items:center; gap:10px; font-size:0.9rem; max-width:260px;">
+      <i class="fas fa-share-square"></i>
+      <span>กด <b>Share</b> แล้วเลือก <b>Add to Home Screen</b> เพื่อติดตั้ง</span>
+      <button onclick="document.getElementById('pwa-ios-hint').style.display='none'"
+        style="background:transparent; color:#fff; border:none; font-size:1.1rem; cursor:pointer; padding:0 4px; flex-shrink:0;">✕</button>
+    </div>
+
+    <div id="pwa-install-banner" style="display:none; position:fixed; bottom:20px; right:20px; z-index:9999;
+         background:#1a73e8; color:#fff; padding:12px 18px; border-radius:12px;
+         box-shadow:0 4px 16px rgba(0,0,0,0.2); font-family:var(--font-primary);
+         align-items:center; gap:12px; font-size:0.95rem;">
+      <i class="fas fa-download"></i>
+      <span>ติดตั้งแอปลงเครื่อง</span>
+      <button id="pwa-install-btn" style="background:#fff; color:#1a73e8; border:none;
+        padding:6px 14px; border-radius:8px; font-weight:700; cursor:pointer;">ติดตั้ง</button>
+      <button id="pwa-install-dismiss" style="background:transparent; color:#fff; border:none;
+        font-size:1.1rem; cursor:pointer; padding:0 4px;">✕</button>
+    </div>
+
     <div class="container">
 
         <!-- Edit Mode Status Badge -->

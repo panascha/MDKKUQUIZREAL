@@ -391,7 +391,7 @@ window.sortCurrentQuestions = function () {
 };
 
 // 8. การกรองและเปลี่ยนชุดข้อสอบ (Modified to support both categories and dynamic attribute filters)
-window.updateQuestionSet = function (shouldSort = true) {
+window.updateQuestionSet = function (shouldSort = true, shouldShow = true) {
     const previouslyAnswered = {};
     window.APP.currentQuestions.forEach(q => {
         if (q.state) {
@@ -484,7 +484,7 @@ window.updateQuestionSet = function (shouldSort = true) {
 
     if (window.APP.currentQuestions.length > 0) {
         $('#image-container-div').hide();
-        window.showQuestion(false);
+        if (shouldShow) window.showQuestion(false);
     } else {
         $('#question').html("ไม่พบข้อสอบในเงื่อนไขการกรองที่เลือก");
         $('#choices').empty();
