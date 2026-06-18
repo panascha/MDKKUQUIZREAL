@@ -46,7 +46,9 @@
          box-shadow:0 4px 16px rgba(0,0,0,0.2); font-family:var(--font-primary);
          align-items:center; gap:10px; font-size:0.9rem; max-width:260px;">
       <i class="fas fa-share-square"></i>
-      <span>กด <b>Share</b> แล้วเลือก <b>Add to Home Screen</b> เพื่อติดตั้ง</span>
+      <span id="pwa-ios-share-text">กด <b>Share</b> แล้วเลือก <b>Add to Home Screen</b> เพื่อติดตั้ง</span>
+      <a id="pwa-ios-open-link" href="https://panascha.github.io/MDKKUQUIZREAL/" target="_blank"
+        style="display:none; color:#fff; font-weight:700; text-decoration:underline; white-space:nowrap;">เปิดแอปเพื่อติดตั้ง →</a>
       <button onclick="document.getElementById('pwa-ios-hint').style.display='none'"
         style="background:transparent; color:#fff; border:none; font-size:1.1rem; cursor:pointer; padding:0 4px; flex-shrink:0;">✕</button>
     </div>

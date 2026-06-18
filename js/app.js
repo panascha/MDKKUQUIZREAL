@@ -814,6 +814,11 @@ $(function () {
                     (/Mac/i.test(navigator.userAgent) && 'ontouchend' in document);
     if (isIOSLike && !navigator.standalone) {
         var $iosHint = $('#pwa-ios-hint');
+        if (window.self !== window.top) {
+            // Inside iframe (Google Sites) — user must open quiz directly to install
+            $('#pwa-ios-share-text').hide();
+            $('#pwa-ios-open-link').show();
+        }
         $iosHint.css('display', 'flex');
         setTimeout(function () { $iosHint.fadeOut(600); }, 8000);
     }
