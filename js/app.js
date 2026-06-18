@@ -664,6 +664,7 @@ window.initApp = async function () {
     const localData = await window.getCacheDB(cacheKey);
     const localVer = await window.getCacheDB(verKey);
     let loadedSuccessfully = false;
+    let subjectSelectorPopulated = false;
 
     if (localData) {
         window.APP.globalStructure = localData.structure;
@@ -676,6 +677,10 @@ window.initApp = async function () {
         window.buildSearchDictionary();
         window.updateSubjectUI(subjectParam);
         loadedSuccessfully = true;
+
+        // โหลด Dropdown ทันทีจาก Cache โดยไม่รอ checkVersion
+        await window.populateSubjectSelector(subjectParam);
+        subjectSelectorPopulated = true;
     } else {
         $('#loading-overlay').css('display', 'flex');
     }
@@ -718,8 +723,10 @@ window.initApp = async function () {
     } catch (err) {
         console.error("Init Error:", err);
     } finally {
-        // โหลดรายชื่อวิชาทั้งหมดใส่ Dropdown
-        await window.populateSubjectSelector(subjectParam);
+        // โหลดรายชื่อวิชาทั้งหมดใส่ Dropdown (เฉพาะกรณีที่ยังไม่ได้โหลดไว้ก่อนหน้า)
+        if (!subjectSelectorPopulated) {
+            await window.populateSubjectSelector(subjectParam);
+        }
 
         if (loadedSuccessfully) {
             await window.checkAndPromptRestoreProgress(sessionKey);
