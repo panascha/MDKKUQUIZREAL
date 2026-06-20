@@ -296,6 +296,7 @@ window.runIncrementalSync = async function () {
                     await window.setCacheDB(cacheKey, existingCache);
                     window.APP.globalStructure = structRes;
                     window.renderAccordionUI(window.APP.globalStructure);
+                    window.renderAnnouncementsUI(window.APP.globalStructure.announcements || []);
                     console.log('[Sync] Structure & Categories updated successfully');
                 }
             }
@@ -692,6 +693,7 @@ window.initApp = async function () {
             category: Array.isArray(q.category) ? q.category : (q.category ? [q.category] : [])
         }));
         window.renderAccordionUI(window.APP.globalStructure);
+        window.renderAnnouncementsUI(window.APP.globalStructure.announcements || []);
         window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิก
         window.buildSearchDictionary();
         window.updateSubjectUI(subjectParam);
@@ -733,6 +735,7 @@ window.initApp = async function () {
             window.APP.globalStructure = newData.structure;
             window.APP.allQuestions = newData.questions;
             window.renderAccordionUI(window.APP.globalStructure);
+            window.renderAnnouncementsUI(window.APP.globalStructure.announcements || []);
             window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิกสำหรับการรันครั้งแรก
             window.buildSearchDictionary();
             

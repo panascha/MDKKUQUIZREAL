@@ -1175,3 +1175,36 @@ $(function () {
     // --- อัปเดตสถานะเริ่มต้นของปุ่มสุ่มข้อสอบ ---
     $('#toggle-random-btn').text(window.APP.isRandomized ? 'โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : 'โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)');
 });
+
+window.renderAnnouncementsUI = function (announcements) {
+    const $container = $('#dynamic-announcements-container');
+    if (!$container.length) return;
+    $container.empty().hide();
+
+    const activeAnns = (announcements || []).filter(a => String(a.Active).trim().toUpperCase() === 'TRUE');
+    if (activeAnns.length === 0) return;
+
+    // จัดเรียงตามลำดับความสำคัญ (Order)
+    activeAnns.sort((a, b) => (parseInt(a.Order) || 0) - (parseInt(b.Order) || 0));
+
+    // จับคู่คลาส Type ให้รองรับการเปลี่ยนสีตาม CSS variables ของทุกธีม (Light, Dark, Claude, Stranger)
+    const alertClasses = {
+        info: { bg: 'var(--color-primary-pale)', border: '1px solid var(--color-primary-light)', color: 'var(--color-text)' },
+        warning: { bg: 'var(--pastel-pharm)', border: '1px solid var(--active-pharm)', color: 'var(--color-text)' },
+        danger: { bg: 'var(--color-wrong-bg)', border: '1px solid var(--color-wrong)', color: 'var(--color-wrong)' },
+        success: { bg: 'var(--color-correct-bg)', border: '1px solid var(--color-correct)', color: 'var(--color-correct)' }
+    };
+
+    let html = '';
+    activeAnns.forEach(ann => {
+        const type = String(ann.Type).trim().toLowerCase();
+        const styles = alertClasses[type] || alertClasses.info;
+        html += `
+            <div style="background-color: ${styles.bg}; border: ${styles.border}; color: ${styles.color}; padding: 12px; border-radius: 8px; font-weight: 700; line-height: 1.45;">
+                ${ann.Text}
+            </div>
+        `;
+    });
+
+    $container.html(html).css('display', 'flex');
+};

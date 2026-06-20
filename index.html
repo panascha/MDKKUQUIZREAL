@@ -689,14 +689,8 @@
                 หมายเหตุ : ถ้าเจอโจทย์มีปัญหาพิมพ์เข้ามาใน report ได้เลย | คีย์ลัด: ← (ก่อนหน้า), → (ถัดไป), Enter
                 (ส่งคำตอบ)
             </div>
-            <div class="info-banner" style="display: flex; flex-direction: column; gap: 6px; text-align: left;">
-                <div style="background-color: var(--color-primary-pale); border: 1px solid #F6C29B; padding: 12px; border-radius: 8px;">
-                    <strong style="color: var(--color-wrong);"><i class="fas fa-star"></i> NEW FEATURE!!!</strong>
-                    <strong style="color: var(--color-wrong);">ระบบแก้ไขข้อสอบ &amp; Rich Explanation</strong>
-                    <strong>→ ผู้มีสิทธิ์สามารถแก้ไขโจทย์/ตัวเลือก พร้อมอัปโหลดไฟล์รูปภาพประกอบ หรือไฟล์เอกสาร PDF
-                        แนบท้ายคำอธิบายเฉลยได้ทันที!</strong>
-                </div>
-            </div>
+            <!-- กล่องสำหรับเรนเดอร์ Banner ประกาศข่าวสารแบบ Dynamic พลิกแพลงตามข้อมูลใน Sheet -->
+            <div id="dynamic-announcements-container" style="display: none; flex-direction: column; gap: 10px; text-align: left; width: 100%; margin-top: 12px;"></div>
         </div>
 
 
