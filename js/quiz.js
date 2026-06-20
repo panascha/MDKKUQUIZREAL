@@ -148,18 +148,28 @@ window.showQuestion = function (shouldFocus = true) {
     const choicesArray = choicesRaw.split("///").map(s => s.trim()).filter(Boolean);
 
     let indices = choicesArray.map((_, i) => i);
-    for (let i = indices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [indices[i], indices[j]] = [indices[j], indices[i]];
+    // Shuffle choices only if the question has not been answered yet
+    if (!window.APP.current_question.state) {
+        for (let i = indices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
     }
 
-    indices.forEach(i => {
+    indices.forEach((i, idx) => {
         const choiceText = choicesArray[i];
         let content = choiceText;
+
+        // Check if the choice text already has a letter prefix (e.g. A., B., C., D., E.)
+        const hasPrefix = /^[A-E]\s*[\.\)]/i.test(choiceText);
+        const prefix = hasPrefix ? "" : (String.fromCharCode(65 + idx) + ". ");
+
         if (window.isUrl(choiceText)) {
-            content = `<img src="${window.transformUrl(choiceText)}" alt="Choice">`;
+            content = `${prefix}<img src="${window.transformUrl(choiceText)}" alt="Choice">`;
         } else if (choiceText.startsWith('<svg')) {
-            content = `<div class="svg-choice-container">${choiceText}</div>`;
+            content = `${prefix}<div class="svg-choice-container" style="display:inline-block; vertical-align:middle;">${choiceText}</div>`;
+        } else {
+            content = prefix + choiceText;
         }
         const $btn = $('<button></button>');
         $btn.attr('data-answer', choiceText);
@@ -245,13 +255,8 @@ window.submitQuestion = function () {
 
     if (selectedAnswer === window.APP.current_question.answer) {
         window.APP.score++;
-        $('#feedback').addClass("correct").html(`ถูกต้อง!: ${window.displayAnswerContent(window.APP.current_question.answer)}`);
-        $('#quiz-container h1 span[style*="color"]').css("color", "#198754")
-            .html(`(ข้อนี้ทำไป: ${window.APP.current_question.attemptCount} | ผิด: ${window.APP.current_question.failCount} | สถานะ: ทำถูกแล้ว ✅)`);
     } else {
         window.APP.current_question.failCount = (window.APP.current_question.failCount || 0) + 1;
-        $('#feedback').addClass("incorrect").html(`ผิด! คำตอบที่ถูกคือ: ${window.displayAnswerContent(window.APP.current_question.answer)}`);
-        $('#quiz-container h1 span[style*="color"]').html(`(ข้อนี้ทำไป: ${window.APP.current_question.attemptCount} | ผิด: ${window.APP.current_question.failCount})`);
 
         if (window.APP.isReviewMode) {
             const retryQuestion = {
@@ -265,14 +270,19 @@ window.submitQuestion = function () {
             const insertAt = Math.floor(Math.random() * (max - min + 1)) + min;
 
             window.APP.currentQuestions.splice(insertAt, 0, retryQuestion);
-            $('#feedback').append(`<div style="font-size: 0.8em; color: #721c24;">* ข้อนี้ถูกเพิ่มกลับเข้าไปในชุดคำถามเพื่อให้คุณแก้ตัวอีกครั้ง</div>`);
         }
     }
 
     $('#score').text(`${window.APP.score}/${window.APP.currentQuestions.length}`);
     $('#questionIndex').text(`${window.APP.questionIndex + 1}/${window.APP.currentQuestions.length}`);
-    window.highlightAnswers();
-    window.renderExplainMediaInQuiz(window.APP.current_question.explain, '#quiz-explain-container');
+
+    // Re-draw choices in their original database order (since state is now true, showQuestion will not shuffle)
+    window.showQuestion(false);
+
+    if (selectedAnswer !== window.APP.current_question.answer && window.APP.isReviewMode) {
+        $('#feedback').append(`<div style="font-size: 0.8em; color: #721c24;">* ข้อนี้ถูกเพิ่มกลับเข้าไปในชุดคำถามเพื่อให้คุณแก้ตัวอีกครั้ง</div>`);
+    }
+
     window.showSubmission($('#submission-filter').val());
     window.updateProgressHeader();
     setTimeout(window.renderAllMath, 50);
