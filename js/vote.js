@@ -6,7 +6,7 @@ window.fetchPendingVotes = function (questionId) {
     if (window.isFetchingVotes) return;
     window.isFetchingVotes = true;
 
-    fetch(`${window.APPSCRIPT_URL}?action=getPendingVotes&qid=${questionId}`)
+    fetch(`${window.APPSCRIPT_URL}?action=getPendingVotes&qid=${questionId}&_=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
             window.APP.pendingVotesCache[questionId] = data;
@@ -546,7 +546,7 @@ window.fetchPendingReports = function (questionId) {
     if (window.isFetchingReports) return;
     window.isFetchingReports = true;
 
-    fetch(`${window.APPSCRIPT_URL}?action=getPendingReports&qid=${questionId}`)
+    fetch(`${window.APPSCRIPT_URL}?action=getPendingReports&qid=${questionId}&_=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
             window.APP.pendingReportsCache[questionId] = data;

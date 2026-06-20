@@ -118,7 +118,7 @@ window.checkPendingReports = function () {
     const urlParams = new URLSearchParams(window.location.search);
     const subjectParam = urlParams.get('subject') || '';
 
-    fetch(`${window.APPSCRIPT_URL}?action=getPendingReportCount&subject=${subjectParam}`)
+    fetch(`${window.APPSCRIPT_URL}?action=getPendingReportCount&subject=${subjectParam}&_=${Date.now()}`)
         .then(r => r.json())
         .then(data => {
             if (data.count > 0) {
@@ -267,7 +267,7 @@ window.runIncrementalSync = async function () {
 
     try {
         var resVer = await fetch(
-            window.APPSCRIPT_URL + '?action=checkVersion'
+            window.APPSCRIPT_URL + '?action=checkVersion&_=' + Date.now()
         ).then(function (r) { return r.json(); });
 
         var localVer = await window.getCacheDB(verKey);
@@ -280,12 +280,13 @@ window.runIncrementalSync = async function () {
         var url = window.APPSCRIPT_URL
             + '?action=getChangedSince'
             + '&since=' + lastSync
-            + (subjectParam ? '&subject=' + subjectParam : '');
+            + (subjectParam ? '&subject=' + subjectParam : '')
+            + '&_=' + Date.now();
 
         var res = await fetch(url).then(function (r) { return r.json(); });
 
         if (!res.changed || res.changed.length === 0) {
-            var structUrl = window.APPSCRIPT_URL + '?action=getStructure' + (subjectParam ? '&subject=' + subjectParam : '');
+            var structUrl = window.APPSCRIPT_URL + '?action=getStructure' + (subjectParam ? '&subject=' + subjectParam : '') + '&_=' + Date.now();
             var structRes = await fetch(structUrl).then(function (r) { return r.json(); });
 
             if (structRes && structRes.subjects) {
@@ -704,14 +705,14 @@ window.initApp = async function () {
     }
 
     try {
-        // 2. เปรียบเทียบเวอร์ชันและดึงข้อมูลอัปเดตจากเครื่องเซิร์ฟเวอร์หลัก (GAS)
-        const resVer = await fetch(`${window.APPSCRIPT_URL}?action=checkVersion`).then(r => r.json());
+        // 2. เปรียบเทียบเวอร์ชันและดึงข้อมูลอัปเดตจากเครื่องเซิร์ฟเวอร์หลัก (GAS) - แนบ cache-buster ป้องกัน browser ค้างไฟล์เก่า
+        const resVer = await fetch(`${window.APPSCRIPT_URL}?action=checkVersion&_=${Date.now()}`).then(r => r.json());
         const serverVersion = resVer.v;
 
         if (localVer !== serverVersion || !localData) {
             const [resStruct, resQues] = await Promise.all([
-                fetch(`${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}`).then(r => r.json()),
-                fetch(`${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}`).then(r => r.json())
+                fetch(`${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`).then(r => r.json()),
+                fetch(`${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}&_=${Date.now()}`).then(r => r.json())
             ]);
 
             const newData = {
@@ -729,14 +730,17 @@ window.initApp = async function () {
             // บันทึก Last Sync Time เฉพาะเมื่อมีการ Fetch ข้อมูลสำเร็จจริงเท่านั้น
             await window.saveLastSyncTime(subjectParam, Date.now());
 
-            if (!localData) {
-                window.APP.globalStructure = newData.structure;
-                window.APP.allQuestions = newData.questions;
-                window.renderAccordionUI(window.APP.globalStructure);
-                window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิกสำหรับการรันครั้งแรก
-                window.buildSearchDictionary();
-                loadedSuccessfully = true;
+            window.APP.globalStructure = newData.structure;
+            window.APP.allQuestions = newData.questions;
+            window.renderAccordionUI(window.APP.globalStructure);
+            window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิกสำหรับการรันครั้งแรก
+            window.buildSearchDictionary();
+            
+            if (localData) {
+                // อัปเดตชุดคำถามทันทีหากมีข้อมูลใหม่เข้ามาระหว่างเริ่ม เพื่อไม่ให้โชว์ข้อมูลเก่าในหน่วยความจำค้าง
+                window.updateQuestionSet(false, true);
             }
+            loadedSuccessfully = true;
         }
     } catch (err) {
         console.error("Init Error:", err);
@@ -759,6 +763,53 @@ window.initApp = async function () {
     }
 };
 
+window.forceSyncDatabase = async function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const subjectParam = urlParams.get('subject') || '';
+    const cacheKey = `data_${subjectParam}`;
+    const verKey = `ver_${subjectParam}`;
+    const syncTimeKey = `last_sync_${subjectParam}`;
+
+    const { isConfirmed } = await Swal.fire({
+        title: 'ดึงข้อมูลใหม่ล่าสุดจากเซิร์ฟเวอร์?',
+        text: 'ระบบจะทำการเคลียร์ข้อมูล Cache เก่าในเครื่องทั้งหมด และดึงข้อสอบล่าสุดโดยติดต่อตรงกับทาง Google Sheets',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'ตกลง, ดึงข้อมูลใหม่',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#0d6efd'
+    });
+
+    if (!isConfirmed) return;
+
+    $('#loading-overlay').fadeIn(150).css('display', 'flex').find('h5').text('กำลังล้าง Cache และดาวน์โหลดข้อสอบล่าสุด...');
+
+    try {
+        const db = await window.openDB();
+        const transaction = db.transaction("quiz_cache", "readwrite");
+        const store = transaction.objectStore("quiz_cache");
+        
+        // ล้างข้อมูล cache รายวิชา, ข้อมูลการ sync และ dropdown ทั้งหมด
+        await store.delete(cacheKey);
+        await store.delete(verKey);
+        await store.delete(syncTimeKey);
+        await store.delete('all_subjects_list_v2');
+
+        Swal.fire({
+            icon: 'success',
+            title: 'ล้าง Cache สำเร็จ',
+            text: 'ระบบกำลังเริ่มโหลดโครงสร้างและชุดข้อสอบล่าสุดใหม่...',
+            timer: 1500,
+            showConfirmButton: false
+        }).then(() => {
+            location.reload();
+        });
+    } catch (e) {
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถล้าง Cache ได้: ' + e.message, 'error');
+        $('#loading-overlay').hide();
+    }
+};
+
 // สั่งรันคำสั่งเมื่อ DOM พร้อมทำงานสมบูรณ์
 $(function () {
     window.initApp();
@@ -776,6 +827,10 @@ $(function () {
         } else {
             window.location.search = '';
         }
+    });
+
+    $(document).on('click', '#btn-force-sync', function () {
+        window.forceSyncDatabase();
     });
 });
 
