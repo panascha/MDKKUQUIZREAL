@@ -28,18 +28,24 @@ window.openReportModal = function (q) {
 
     const choicesArray = (window.APP.modalTargetQuestion.choices || "").split("///").map(s => s.trim()).filter(Boolean);
     let choicesHtml = choicesArray.map((choice, index) => {
+        const hasPrefix = /^[A-E]\s*[\.\)]/i.test(choice);
+        const prefix = hasPrefix ? "" : `<b>${String.fromCharCode(65 + index)}.</b> `;
+
         let content = window.isUrl(choice) ? `<br><img src="${window.transformUrl(choice)}" class="report-choice-img">` :
             (choice.startsWith('<svg') ? `<div class="report-choice-svg-container">${choice}</div>` : choice);
-        return `<p style="margin: 5px 0; border-bottom: 1px solid #eee; padding-bottom: 5px;"><b>${String.fromCharCode(65 + index)}.</b> ${content}</p>`;
+        return `<p style="margin: 5px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; display: flex; align-items: center; gap: 4px;">${prefix}${content}</p>`;
     }).join('');
     $('#report-choices-list').html(choicesHtml || 'ไม่มีตัวเลือก');
 
     let selectOptions = '<option value="newanswer">-- คำตอบใหม่ (ถ้าไม่มีในตัวเลือกเดิม) --</option>';
     choicesArray.forEach((choice, index) => {
         const isCurrentAnswer = choice === window.APP.modalTargetQuestion.answer;
+        const hasPrefix = /^[A-E]\s*[\.\)]/i.test(choice);
+        const prefix = hasPrefix ? "" : `${String.fromCharCode(65 + index)}. `;
+
         let display = window.isUrl(choice) ? `[รูปภาพ] ...${choice.slice(-10)}` : (choice.startsWith('<svg') ? `[SVG]` : choice);
         selectOptions += `<option value="${choice.replace(/"/g, '&quot;')}" ${isCurrentAnswer ? 'selected' : ''}>
-            ${String.fromCharCode(65 + index)}. ${display}${isCurrentAnswer ? ' (เฉลยปัจจุบัน)' : ''}
+            ${prefix}${display}${isCurrentAnswer ? ' (เฉลยปัจจุบัน)' : ''}
         </option>`;
     });
     $('#report-correct-choice-select').append(selectOptions);

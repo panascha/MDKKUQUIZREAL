@@ -364,11 +364,14 @@ window.performSearch = function () {
             }
         }
 
-        const choicesList = q.choices ? q.choices.split('///').map(c => {
+        const choicesList = q.choices ? q.choices.split('///').map((c, ci) => {
             const trimmed = c.trim();
-            if (window.isUrl(trimmed)) return `<li><img src="${window.transformUrl(trimmed)}" style="height:40px;"></li>`;
-            if (trimmed.startsWith('<svg')) return `<li><div style="height:40px;">${trimmed}</div></li>`;
-            return `<li>${window.highlight(trimmed)}</li>`;
+            const hasPrefix = /^[A-E]\s*[\.\)]/i.test(trimmed);
+            const prefix = hasPrefix ? "" : (String.fromCharCode(65 + ci) + ". ");
+
+            if (window.isUrl(trimmed)) return `<li style="display: flex; align-items: center; gap: 4px;">${prefix}<img src="${window.transformUrl(trimmed)}" style="height:40px;"></li>`;
+            if (trimmed.startsWith('<svg')) return `<li style="display: flex; align-items: center; gap: 4px;">${prefix}<div style="height:40px;">${trimmed}</div></li>`;
+            return `<li style="display: flex; align-items: center; gap: 4px;">${prefix}${window.highlight(trimmed)}</li>`;
         }).join('') : '';
 
         let answerDisplay = window.isUrl(q.answer) ? `<img src="${window.transformUrl(q.answer)}" style="max-height:60px;">` : window.highlight(q.answer);

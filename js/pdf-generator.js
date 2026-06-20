@@ -210,14 +210,16 @@ window.saveResultsToPdf = async function () {
         const choicesArray = (q.choices || "").split('///').map(s => s.trim());
         for (let i = 0; i < choicesArray.length; i++) {
             const choice = choicesArray[i];
-            const prefix = `${String.fromCharCode(65 + i)}. `;
+            const hasPrefix = /^[A-E]\s*[\.\)]/i.test(choice);
+            const prefix = hasPrefix ? "" : `${String.fromCharCode(65 + i)}. `;
 
             if (choice.startsWith('<svg')) {
                 checkPageBreak(15);
                 doc.text(prefix, pageMargin, y + 5);
                 try {
                     const svgB64 = await window.svgToPngBase64(choice, 100, 100);
-                    doc.addImage(svgB64, 'PNG', pageMargin + 10, y, 10, 10);
+                    const xOffset = hasPrefix ? 0 : 10;
+                    doc.addImage(svgB64, 'PNG', pageMargin + xOffset, y, 10, 10);
                     y += 12;
                 } catch (e) {
                     doc.text("[SVG]", pageMargin + 10, y + 5);
@@ -229,7 +231,8 @@ window.saveResultsToPdf = async function () {
                 doc.text(prefix, pageMargin, y + 5);
                 try {
                     const base64C = await window.convertImgToBase64(window.transformUrl(choice));
-                    doc.addImage(base64C, 'JPEG', pageMargin + 10, y, 50, 40);
+                    const xOffset = hasPrefix ? 0 : 10;
+                    doc.addImage(base64C, 'JPEG', pageMargin + xOffset, y, 50, 40);
                     y += 42;
                 } catch (e) {
                     doc.text("[Image Error]", pageMargin + 10, y);

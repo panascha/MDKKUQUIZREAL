@@ -540,7 +540,12 @@ window.showSubmission = function (filter = 'all') {
             }
         }
 
-        const choicesList = q.choices ? q.choices.split('///').map(c => `<li>${renderContent(c)}</li>`).join('') : '';
+        const choicesList = q.choices ? q.choices.split('///').map((c, ci) => {
+            const trimmed = c.trim();
+            const hasPrefix = /^[A-E]\s*[\.\)]/i.test(trimmed);
+            const prefix = hasPrefix ? "" : (String.fromCharCode(65 + ci) + ". ");
+            return `<li style="display: flex; align-items: center; gap: 4px;">${prefix}${renderContent(trimmed)}</li>`;
+        }).join('') : '';
         const isFirstInList = topRowQ && q.questionId === topRowQ.questionId;
 
         cardsHtml += `
