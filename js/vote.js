@@ -1,10 +1,11 @@
 // REFACTOR/js/vote.js
 
-window.isFetchingVotes = false;
+// ปรับปรุงจาก Single Boolean Lock เป็นแบบระบุเจาะจงราย Question ID (Set) เพื่อให้ระบบดาวน์โหลดขนานกันเบื้องหลังได้โดยไม่บล็อกกันเอง
+window.activeVoteFetches = window.activeVoteFetches || new Set();
 
 window.fetchPendingVotes = function (questionId) {
-    if (window.isFetchingVotes) return;
-    window.isFetchingVotes = true;
+    if (window.activeVoteFetches.has(questionId)) return;
+    window.activeVoteFetches.add(questionId);
 
     fetch(`${window.APPSCRIPT_URL}?action=getPendingVotes&qid=${questionId}&_=${Date.now()}`)
         .then(res => res.json())
@@ -19,7 +20,7 @@ window.fetchPendingVotes = function (questionId) {
             console.warn("Fetch Pending Votes Failed:", err);
         })
         .finally(() => {
-            window.isFetchingVotes = false;
+            window.activeVoteFetches.delete(questionId);
         });
 };
 
@@ -540,11 +541,11 @@ $(function () {
 // REPORT VOTE SYSTEM — mirrors fetchPendingVotes pattern
 // ============================================================
 
-window.isFetchingReports = false;
+window.activeReportFetches = window.activeReportFetches || new Set();
 
 window.fetchPendingReports = function (questionId) {
-    if (window.isFetchingReports) return;
-    window.isFetchingReports = true;
+    if (window.activeReportFetches.has(questionId)) return;
+    window.activeReportFetches.add(questionId);
 
     fetch(`${window.APPSCRIPT_URL}?action=getPendingReports&qid=${questionId}&_=${Date.now()}`)
         .then(res => res.json())
@@ -553,7 +554,7 @@ window.fetchPendingReports = function (questionId) {
             window.renderReportNotificationUI(questionId, data);
         })
         .catch(err => console.warn("Fetch Pending Reports Failed:", err))
-        .finally(() => { window.isFetchingReports = false; });
+        .finally(() => { window.activeReportFetches.delete(questionId); });
 };
 
 window.renderReportNotificationUI = function (questionId, data) {

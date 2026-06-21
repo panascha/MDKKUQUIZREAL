@@ -210,11 +210,31 @@ window.showQuestion = function (shouldFocus = true) {
     }
 
     if (shouldFocus) {
+        // ... (focus choices) ...
         $('#choices').find('button').first().trigger('focus', { preventScroll: true });
     }
     setTimeout(window.renderAllMath, 50);
 
     if ($('#quick-cat-container').is(':visible')) { window.renderQuickCatPanel(); }
+
+    // [เพิ่ม] ระบบดาวน์โหลดข้อมูลการโหวต/รายงานล่วงหน้า (Background Prefetching) 
+    // ช่วยโหลดข้อถัดไป (+1, +2) และข้อก่อนหน้า (-1) มาอุ่นรอในแคชเบื้องหลังเงียบๆ ทันที
+    setTimeout(() => {
+        const prefetchIndices = [window.APP.questionIndex + 1, window.APP.questionIndex + 2, window.APP.questionIndex - 1];
+        prefetchIndices.forEach(idx => {
+            if (idx >= 0 && idx < window.APP.currentQuestions.length) {
+                const targetQ = window.APP.currentQuestions[idx];
+                if (targetQ && targetQ.questionId) {
+                    if (!window.APP.pendingReportsCache[targetQ.questionId]) {
+                        window.fetchPendingReports(targetQ.questionId);
+                    }
+                    if (!window.APP.pendingVotesCache[targetQ.questionId]) {
+                        window.fetchPendingVotes(targetQ.questionId);
+                    }
+                }
+            }
+        });
+    }, 300);
 };
 
 // 4. ระบบการเดินหน้า / ถอยหลังของคำถาม
