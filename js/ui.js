@@ -1182,6 +1182,50 @@ $(function () {
     $('#toggle-random-btn').text(window.APP.isRandomized ? 'โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : 'โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)');
 });
 
+window.copyQuestionForAI = function () {
+    const q = window.APP.current_question;
+    if (!q || !q.problem) return;
+
+    // แยกและจัดระเบียบตัวเลือกทั้งหมด
+    const choicesArray = (q.choices || "").split("///").map(s => s.trim()).filter(Boolean);
+    const choicesText = choicesArray.map((c, i) => {
+        if (c.startsWith('<svg')) return `${String.fromCharCode(65 + i)}. [รูปภาพ SVG]`;
+        if (window.isUrl(c)) return `${String.fromCharCode(65 + i)}. [รูปภาพประกอบ]`;
+        return `${String.fromCharCode(65 + i)}. ${c}`;
+    }).join("\n");
+
+    const textToCopy = `ช่วยตอบและอธิบายกลไกทางพยาธิสรีรวิทยา (Pathophysiology) ของข้อสอบแพทย์ข้อนี้ให้หน่อย:\n\nโจทย์: ${q.problem}\n\nตัวเลือก:\n${choicesText}`;
+
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        window.bgToast.fire({
+            icon: 'success',
+            title: 'คัดลอกโจทย์และตัวเลือกแล้ว!',
+            text: 'นำไปใช้วางถาม AI ได้ทันที 🤖',
+            timer: 2000
+        });
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+        // Fallback สำหรับเบราว์เซอร์หรือสภาพแวดล้อมที่สิทธิ์ Clipboard ถูกจำกัด
+        const tempTextarea = document.createElement('textarea');
+        tempTextarea.value = textToCopy;
+        tempTextarea.style.position = 'fixed';
+        document.body.appendChild(tempTextarea);
+        tempTextarea.select();
+        try {
+            document.execCommand('copy');
+            window.bgToast.fire({
+                icon: 'success',
+                title: 'คัดลอกโจทย์และตัวเลือกแล้ว! (Fallback)',
+                timer: 2000
+            });
+        } catch (e) {
+            Swal.fire("ไม่สามารถคัดลอกได้", "กรุณาคัดลอกข้อมูลโจทย์ด้วยตนเอง", "error");
+        } finally {
+            document.body.removeChild(tempTextarea);
+        }
+    });
+};
+
 window.renderAnnouncementsUI = function (announcements) {
     const $container = $('#dynamic-announcements-container');
     if (!$container.length) return;

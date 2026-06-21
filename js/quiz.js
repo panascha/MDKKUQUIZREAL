@@ -136,6 +136,7 @@ window.showQuestion = function (shouldFocus = true) {
         }
     });
     $('#categoryquestion').html(categoryName ? `หัวข้อ: <b>${categoryName}</b>` : "หัวข้อ: <b>ไม่ระบุหัวข้อ</b>");
+    $('#btn-copy-question-ai').show();
     $('#question').html(window.APP.current_question.problem ? window.APP.current_question.problem.replace(/\n/g, '<br>') : "");
 
     window.APP.currentImageArray = window.APP.current_question.img ?
@@ -499,6 +500,7 @@ window.updateQuestionSet = function (shouldSort = true, shouldShow = true) {
         $('#question').html("ไม่พบข้อสอบในเงื่อนไขการกรองที่เลือก");
         $('#choices').empty();
         $('#questionIndex').text("0/0");
+        $('#btn-copy-question-ai').hide();
     }
 
     if (window.APP.currentQuestions.length > 0) {

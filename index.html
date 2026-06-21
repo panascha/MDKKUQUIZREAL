@@ -737,10 +737,17 @@
 
             <div id="vote-notification-bar" style="min-height: 0; margin-bottom: 6px;"></div>
             <div id="report-notification-bar" style="min-height: 0; margin-bottom: 6px;"></div>
-
-            <p id="categoryquestion"></p>
+            
+            <div class="category-header-wrap"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px 0; box-sizing: border-box; width: 100%;">
+                <p id="categoryquestion" style="padding: 0; margin: 0;"></p>
+                <button id="btn-copy-question-ai" class="btn-xs teal" style="display: none; padding: 3px 10px; font-size: 0.85rem;"
+                    onclick="window.copyQuestionForAI()" title="คัดลอกโจทย์และตัวเลือกไปถาม AI">
+                    <i class="fas fa-copy"></i> คัดลอกไปถาม
+                </button>
+            </div>
             <p id="question"></p>
-
+            
             <div id="image-container-div" style="display: none;">
                 <button id="prev-img-btn" class="img-nav-btn"><i class="fas fa-chevron-left"></i></button>
                 <img id="question-image" src="" alt="Question Image" />
