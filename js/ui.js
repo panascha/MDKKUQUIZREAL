@@ -171,6 +171,7 @@ window.renderAttributeFilterUI = function () {
     const topicToSuffix = {}; // ตารางจับคู่ Topic Name -> Suffix เพื่อทำไฮไลต์สี
 
     // 2. คำนวณหา Facet และสร้างโครงสร้างจับคู่ความสัมพันธ์ของวิชากับหัวข้อย่อย
+    // 2. คำนวณหา Facet และสร้างโครงสร้างจับคู่ความสัมพันธ์ของวิชากับหัวข้อย่อย
     window.APP.allQuestions.forEach(q => {
         const meta = window.parseQuestionMetadata(q);
 
@@ -178,15 +179,20 @@ window.renderAttributeFilterUI = function () {
             topicToSuffix[meta.topic] = meta.suffix;
         }
 
-        if (matchGroup(meta, selectedGroups) && matchSuffix(meta, selectedSuffixes) && matchTopic(meta, selectedTopics)) {
-            if (meta.year !== "N/A") availableYears.add(meta.year);
+        // ปรับระบบเป็น Strict Top-Down เพื่อป้องกันปุ่มระดับบนหายระหว่างเลือก
+        // 1. ปีข้อสอบ (Year) จะแสดงตัวเลือกทั้งหมดเสมอ ไม่ถูกกรองจากตัวเลือกระดับล่าง
+        if (meta.year !== "N/A" && meta.year !== "") {
+            availableYears.add(meta.year);
         }
-        if (matchYear(meta, selectedYears) && matchSuffix(meta, selectedSuffixes) && matchTopic(meta, selectedTopics)) {
+        // 2. กลุ่มข้อสอบ (Exam Group) จะกรองตาม ปีข้อสอบ (Year) ที่เลือกเท่านั้น
+        if (matchYear(meta, selectedYears)) {
             if (meta.examGroup !== "N/A") availableGroups.add(meta.examGroup);
         }
-        if (matchYear(meta, selectedYears) && matchGroup(meta, selectedGroups) && matchTopic(meta, selectedTopics)) {
+        // 3. หมวดวิชาเฉพาะทาง (Suffix) จะกรองตาม ปีข้อสอบ + กลุ่มข้อสอบ ที่เลือกเท่านั้น
+        if (matchYear(meta, selectedYears) && matchGroup(meta, selectedGroups)) {
             if (meta.suffix !== "N/A") availableSuffixes.add(meta.suffix);
         }
+        // 4. หัวข้อย่อย (Topic) จะกรองตาม ปีข้อสอบ + กลุ่มข้อสอบ + หมวดวิชาเฉพาะทาง ที่เลือก
         if (matchYear(meta, selectedYears) && matchGroup(meta, selectedGroups) && matchSuffix(meta, selectedSuffixes)) {
             if (meta.topic !== "N/A") availableTopics.add(meta.topic);
         }
