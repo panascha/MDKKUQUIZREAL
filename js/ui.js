@@ -327,6 +327,11 @@ window.uncheckAttributeFilter = function (type, value) {
 };
 
 window.renderAccordionUI = function (data) {
+    // จดจำ ID ของวิชา/เลคเชอร์ที่ผู้ใช้เลือกไว้ก่อนล้าง DOM
+    const checkedIds = $('input[type="checkbox"][name="category"]:checked').map(function () {
+        return this.value;
+    }).get();
+
     const $container = $('#dynamic-accordion-area');
     $container.empty();
 
@@ -448,7 +453,7 @@ window.renderAccordionUI = function (data) {
             superGroups[key].accordions.push({ groupName, categories, isExcluded });
         } else if (
             (groupName.toUpperCase().includes("LEC") ||
-            categories.some(c => isLectureCategory(c.categoryId))) &&
+                categories.some(c => isLectureCategory(c.categoryId))) &&
             !groupName.toUpperCase().includes("BY AI")
         ) {
             const key = `${subjectId}|LEC`;
@@ -501,11 +506,23 @@ window.renderAccordionUI = function (data) {
         $container.append(html);
     });
 
+    // คืนค่า Checked ให้กับ Checkboxes ที่เพิ่งสร้างใหม่
+    checkedIds.forEach(catId => {
+        const targetEl = document.getElementById(`cat-${catId}`);
+        if (targetEl) {
+            $(targetEl).prop('checked', true);
+        }
+    });
+
     $('input[type="checkbox"][name="category"]').on('change', () => {
         window.updateQuestionSet();
         window.updateSelectedCategoryStatus();
         window.updateSuperGroupBadges();
     });
+
+    // อัปเดตการแสดงผลและ Badges ตัวเลขสะสมของปุ่มในหน้า UI
+    window.updateSelectedCategoryStatus();
+    window.updateSuperGroupBadges();
 };
 
 window.toggleSuperGroup = function (headerEl) {

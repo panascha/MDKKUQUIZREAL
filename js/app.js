@@ -163,6 +163,7 @@ window.isUserBusy = function () {
     if ($('#progress-modal-card').is(':visible')) return true;
     if ($('#donate-modal-card').is(':visible')) return true;
     if ($('#auto-grader-modal').is(':visible')) return true;
+    if ($('#quiz-edit-modal').is(':visible')) return true;
 
     var currentQ = window.APP.currentQuestions[window.APP.questionIndex];
     if (currentQ && !currentQ.state) return true;
@@ -350,6 +351,14 @@ window._showPendingBadge = function (count) {
                     window.applyPendingUpdates();
                     $badge.fadeOut(300, function () { $(this).remove(); });
                 }, 100);
+            } else {
+                // แจ้งเตือนผู้ใช้ให้ปิดหน้าต่างย่อย (Modal) ที่ทำงานค้างอยู่ก่อนเพื่อความปลอดภัยของระบบ
+                if (typeof window.bgToast !== 'undefined') {
+                    window.bgToast.fire({
+                        icon: 'warning',
+                        title: 'กรุณาปิดหน้าต่างแก้ไข/แจ้งปัญหาที่เปิดค้างอยู่ก่อนอัปเดต'
+                    });
+                }
             }
         });
         $('body').append($badge);
