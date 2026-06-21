@@ -159,20 +159,21 @@ window.showQuestion = function (shouldFocus = true) {
 
     indices.forEach((i, idx) => {
         const choiceText = choicesArray[i];
-        let content = choiceText;
 
-        // Check if the choice text already has a letter prefix (e.g. A., B., C., D., E.)
-        const hasPrefix = /^[A-E]\s*[\.\)]/i.test(choiceText);
-        const prefix = hasPrefix ? "" : (String.fromCharCode(65 + idx) + ". ");
+        // ล้างลบตัวเลือกหัวข้อ A-E เดิมที่ติดมาจากฐานข้อมูลออกก่อน (ถ้ามี) เพื่อป้องกันการตีกันของหัวข้อตอนสลับลำดับ
+        const cleanChoiceText = choiceText.replace(/^[A-E]\s*[\.\)]\s*/i, "");
+        const prefix = String.fromCharCode(65 + idx) + ". ";
+        let content = cleanChoiceText;
 
-        if (window.isUrl(choiceText)) {
-            content = `${prefix}<img src="${window.transformUrl(choiceText)}" alt="Choice">`;
-        } else if (choiceText.startsWith('<svg')) {
-            content = `${prefix}<div class="svg-choice-container" style="display:inline-block; vertical-align:middle;">${choiceText}</div>`;
+        if (window.isUrl(cleanChoiceText)) {
+            content = `${prefix}<img src="${window.transformUrl(cleanChoiceText)}" alt="Choice">`;
+        } else if (cleanChoiceText.startsWith('<svg')) {
+            content = `${prefix}<div class="svg-choice-container" style="display:inline-block; vertical-align:middle;">${cleanChoiceText}</div>`;
         } else {
-            content = prefix + choiceText;
+            content = prefix + cleanChoiceText;
         }
         const $btn = $('<button></button>');
+        // เก็บคำตอบต้นฉบับเต็มไว้ใช้ตรวจสอบกับคำเฉลย (ห้ามตัด Prefix ออกจากแอตทริบิวต์ data-answer เพื่อความถูกต้องในการตรวจเฉลย)
         $btn.attr('data-answer', choiceText);
         $btn.html(content);
 
@@ -329,7 +330,8 @@ window.checkAnswerUI = function (selectedVal, updateScore = true) {
     const correctVal = window.APP.current_question.answer;
 
     $('#choices').find('button').each(function () {
-        const val = $(this).data('answer');
+        // ใช้คำสั่ง .attr() แทน .data() ดึงข้อมูลแอตทริบิวต์โดยตรงเพื่อความเสถียรและหลีกเลี่ยงค่า undefined
+        const val = $(this).attr('data-answer');
         if (val === correctVal) $(this).addClass('correct');
         if (val === selectedVal && val !== correctVal) $(this).addClass('wrong');
     });
