@@ -35,8 +35,9 @@ window.updateProgressHeader = function () {
         </div>
     `);
 
-    // อัปเดตคะแนนในส่วนของ Header ภาพรวมข้อสอบให้ตรงกับปัจจุบันเสมอ
-    $('#index-score-badge-header').text(`${window.APP.score} / ${window.APP.currentQuestions.length}`);
+    // อัปเดตคะแนนในส่วนของ Header ภาพรวมข้อสอบให้ตรงกับปัจจุบันเสมอ (จำนวนที่ถูก / จำนวนข้อที่ทำไปแล้ว)
+    let totalAnswered = window.APP.currentQuestions.filter(q => q.state).length;
+    $('#index-score-badge-header').text(`${window.APP.score} / ${totalAnswered}`);
 
     // อัปเดต Dot Grid ทันทีหากผู้ใช้เปิดแผงทิ้งไว้
     if ($('#index-grid-container').hasClass('open')) {

@@ -33,7 +33,8 @@ window.renderIndexPanel = function () {
     });
 
     let totalCorrect = window.APP.currentQuestions.filter(q => q.state && q.select === q.answer).length;
-    $('#index-score-badge-header').text(`${totalCorrect} / ${window.APP.currentQuestions.length}`);
+    let totalAnswered = window.APP.currentQuestions.filter(q => q.state).length;
+    $('#index-score-badge-header').text(`${totalCorrect} / ${totalAnswered}`);
 };
 
 window.jumpToQuestion = function (index) {
