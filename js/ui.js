@@ -1186,7 +1186,6 @@ window.copyQuestionForAI = function () {
     const q = window.APP.current_question;
     if (!q || !q.problem) return;
 
-    // แยกและจัดระเบียบตัวเลือกทั้งหมด
     const choicesArray = (q.choices || "").split("///").map(s => s.trim()).filter(Boolean);
     const choicesText = choicesArray.map((c, i) => {
         if (c.startsWith('<svg')) return `${String.fromCharCode(65 + i)}. [รูปภาพ SVG]`;
@@ -1194,18 +1193,41 @@ window.copyQuestionForAI = function () {
         return `${String.fromCharCode(65 + i)}. ${c}`;
     }).join("\n");
 
-    const textToCopy = `ช่วยตอบและอธิบายกลไกทางพยาธิสรีรวิทยา (Pathophysiology) ของข้อสอบแพทย์ข้อนี้ให้หน่อย:\n\nโจทย์: ${q.problem}\n\nตัวเลือก:\n${choicesText}`;
+    const textToCopy = `
+คุณคือผู้เชี่ยวชาญทางการแพทย์ ช่วยวิเคราะห์ข้อสอบแพทย์ข้อนี้ โดยอธิบายตามหลักการทางวิทยาศาสตร์และการแพทย์ตรงๆ ไม่ต้องใช้การเปรียบเทียบหรืออุปมา
+
+อธิบายตาม 5 ส่วนนี้:
+
+1. เฉลยและเหตุผล
+บอกคำตอบที่ถูกต้อง พร้อมเหตุผลโดยตรงว่าทำไมจึงถูก
+
+2. Mechanism / Pathophysiology
+อธิบาย causal chain ของกระบวนการที่เกิดขึ้นตามลำดับ (ใช้ → แสดงขั้นตอน) พร้อมอธิบายว่า "ทำไม" แต่ละขั้นตอนจึงเกิดขึ้น ไม่ใช่แค่บอกว่าเกิดอะไร
+
+3. ตัวเลือกที่ไม่ถูก: แต่ละอันคืออะไร และต่างจากคำตอบอย่างไร
+สำหรับแต่ละ choice ที่ไม่ใช่คำตอบ อธิบายว่ามันคืออะไร, ทำไมจึงผิดในโจทย์นี้, และในสถานการณ์ใดที่มันจะเป็นคำตอบที่ถูก
+
+4. Key Concepts ที่ต้องรู้
+สรุป high-yield points ที่ต้องจำ รวมถึง keywords อื่นๆ ในโจทย์ที่มีนัยสำคัญ
+
+5. Clinical Relevance และแหล่งอ้างอิง
+บอกว่า concept นี้เจอในคลินิกหรือข้อสอบในบริบทใด และระบุแหล่งอ้างอิง (เช่น Harrison's, Robbins, UpToDate, หรือ guideline ที่เกี่ยวข้อง) พร้อมบอกหน้า/บทถ้าทราบ
+
+---
+โจทย์: ${q.problem}
+
+ตัวเลือก:
+${choicesText}
+`.trim();
 
     navigator.clipboard.writeText(textToCopy).then(() => {
         window.bgToast.fire({
             icon: 'success',
             title: 'คัดลอกโจทย์และตัวเลือกแล้ว!',
-            text: 'นำไปใช้วางถาม AI ได้ทันที 🤖',
             timer: 2000
         });
     }).catch(err => {
         console.error('Failed to copy text: ', err);
-        // Fallback สำหรับเบราว์เซอร์หรือสภาพแวดล้อมที่สิทธิ์ Clipboard ถูกจำกัด
         const tempTextarea = document.createElement('textarea');
         tempTextarea.value = textToCopy;
         tempTextarea.style.position = 'fixed';
