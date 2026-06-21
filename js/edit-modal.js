@@ -755,139 +755,179 @@ window.saveEditChanges = async function () {
     const categories = JSON.parse($("#edit-category-hidden").val() || "[]");
 
     if (categories.length === 0) {
-        return Swal.fire("แจ้งเตือน", "กรุณาระบุหัวข้อวิชาอย่างน้อย 1 หัวข้อ", "warning");
+        return Swal.fire("แจ้งเตือน", "กรุณาระบุหัวข้อวิชาอย่างน้อย 1หัวข้อ", "warning");
     }
 
-    const $saveBtn = $(".edit-btn-save");
-    if ($saveBtn.prop('disabled')) return; // ป้องกันการส่งแบบขนาน
-    $saveBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...');
+    // --- STEP 1: สร้าง Snapshot ข้อมูลก่อนปิดหน้าต่าง เพื่อส่งไปประมวลผลเบื้องหลัง (Memory Isolation) ---
+    const mainImgsSnapshot = [...window.editImageArray];
+    const explainMediaSnapshot = [...window.explainImageArray];
+    const rowElements = $("#dynamic-choices-container .choice-row");
 
-    Swal.fire({
-        title: "กำลังบันทึกข้อมูล...",
-        text: "ระบบกำลังอัปโหลดและปรับขนาดรูปภาพ โปรดรอสักครู่",
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
+    const choicesBlueprint = [];
+    const choicesOptimisticList = [];
+    let answerOptimistic = "";
 
-    try {
-        // 1. Upload Choice Images (Base64 Pending)
-        const finalChoices = [];
-        let finalAnswer = "";
+    for (let i = 0; i < rowElements.length; i++) {
+        const $row = $(rowElements[i]);
+        const rowId = $row.attr('id');
+        const isCorrect = $row.hasClass('correct');
+        const textVal = $row.find('.edit-choice-input').val().trim();
+        const pendingUpload = window.choiceImagesData[rowId];
 
-        const rowElements = $("#dynamic-choices-container .choice-row");
-        for (let i = 0; i < rowElements.length; i++) {
-            const $row = $(rowElements[i]);
-            const rowId = $row.attr('id');
-            const $input = $row.find('.edit-choice-input');
-            const isCorrect = $row.hasClass('correct');
-            let val = $input.val().trim();
+        // สำหรับหน้าจอแบบรวดเร็ว (Optimistic UI): ดึง blob หรือ base64 ท้องถิ่นขึ้นแสดงทันทีโดยไม่ต้องรอ Drive URL
+        const localImgUrl = pendingUpload ? (pendingUpload.blob || pendingUpload.data) : textVal;
 
-            if (window.choiceImagesData[rowId]) {
-                const res = await window.sendWithRetry({
-                    action: 'uploadImage',
-                    sessionToken: window.EDIT_SESSION.sessionToken,
-                    data: { base64: window.choiceImagesData[rowId].data, questionId: qId, type: 'Choice' }
-                });
-                val = res.url;
-            }
-
-            if (val && val !== "") {
-                finalChoices.push(val);
-                if (isCorrect) finalAnswer = val;
-            }
-        }
-
-        // 2. Upload Main Images (Base64 Pending)
-        const finalMainImgs = [];
-        for (let img of window.editImageArray) {
-            if (img.startsWith('data:')) {
-                const res = await window.sendWithRetry({
-                    action: 'uploadImage',
-                    sessionToken: window.EDIT_SESSION.sessionToken,
-                    data: { base64: img, questionId: qId, type: 'Main' }
-                });
-                finalMainImgs.push(res.url);
-            } else {
-                finalMainImgs.push(img);
-            }
-        }
-
-        // 3. Upload Explanation Media (Base64 Pending)
-        const finalExplainMedia = [];
-        for (let media of window.explainImageArray) {
-            if (media.startsWith('data:')) {
-                const isPdf = media.includes('application/pdf');
-                const res = await window.sendWithRetry({
-                    action: 'uploadImage',
-                    sessionToken: window.EDIT_SESSION.sessionToken,
-                    data: { base64: media, questionId: qId, type: isPdf ? 'Explain' : 'Explain' }
-                });
-                finalExplainMedia.push(res.url);
-            } else {
-                finalExplainMedia.push(media);
-            }
-        }
-
-        const serializedExplain = window.serializeExplain(explainText, finalExplainMedia);
-
-        // 4. Submit Question Edit Payload
-        const res = await window.sendWithRetry({
-            action: 'editQuestion',
-            sessionToken: window.EDIT_SESSION.sessionToken,
-            data: {
-                id: qId,
-                problem: problem,
-                explain: serializedExplain,
-                category: categories,
-                img: finalMainImgs.join('///'),
-                choices: finalChoices.join('///'),
-                answer: finalAnswer
-            }
+        choicesBlueprint.push({
+            rowId,
+            isCorrect,
+            originalVal: textVal,
+            pendingUpload: pendingUpload ? pendingUpload.data : null
         });
 
-        if (res.result === "success") {
-            // Memory Sync
-            const localQ = window.APP.allQuestions.find(q => q.questionId === qId);
-            if (localQ) {
-                Object.assign(localQ, {
+        if (localImgUrl && localImgUrl !== "") {
+            choicesOptimisticList.push(localImgUrl);
+            if (isCorrect) answerOptimistic = localImgUrl;
+        }
+    }
+
+    // --- STEP 2: Optimistic UI Update (แสดงผลลัพธ์แก้ไขล่าสุดบนหน้าจอนิสิตทันทีระดับมิลลิวินาที) ---
+    const localQ = window.APP.allQuestions.find(q => q.questionId === qId);
+    if (localQ) {
+        Object.assign(localQ, {
+            problem: problem,
+            explain: window.serializeExplain(explainText, explainMediaSnapshot),
+            category: categories,
+            img: mainImgsSnapshot.join('///'),
+            choices: choicesOptimisticList.join('///'),
+            answer: answerOptimistic
+        });
+    }
+
+    // สั่งวาดหน้าจอแสดงข้อสอบ, ประวัติ และระบบค้นหาใหม่ทันที
+    window.showQuestion(false);
+    window.showSubmission($('#submission-filter').val());
+    if ($('#search-input').val().trim() !== '' && $('#search-input').val().trim() !== '""') {
+        window.performSearch();
+    }
+
+    // ปิดหน้าต่าง Modal เพื่อให้ทำข้อสอบต่อได้ทันที
+    window.closeEditModal();
+
+    // คำนวณจำนวนไฟล์ภาพทั้งหมดที่กำลังจะถูกซิงค์ในระบบเบื้องหลัง
+    const pendingUploadCount = choicesBlueprint.filter(c => c.pendingUpload).length +
+        mainImgsSnapshot.filter(img => img.startsWith('data:')).length +
+        explainMediaSnapshot.filter(img => img.startsWith('data:')).length;
+
+    window.bgToast.fire({
+        icon: "info",
+        title: pendingUploadCount > 0 ? `กำลังอัปโหลดรูปภาพเบื้องหลัง (${pendingUploadCount} ไฟล์)...` : "กำลังเชื่อมโยงฐานข้อมูลเบื้องหลัง...",
+        timer: 3000
+    });
+
+    // --- STEP 3: ทำงานเบื้องหลัง (Background Thread Async Task) ---
+    (async () => {
+        try {
+            // 3.1 ดำเนินการอัปโหลดไฟล์ภาพตัวเลือกที่ติดค้างอยู่ (Choices Upload)
+            const finalChoices = [];
+            let finalAnswer = "";
+
+            for (const choice of choicesBlueprint) {
+                let val = choice.originalVal;
+                if (choice.pendingUpload) {
+                    const res = await window.sendWithRetry({
+                        action: 'uploadImage',
+                        sessionToken: window.EDIT_SESSION.sessionToken,
+                        data: { base64: choice.pendingUpload, questionId: qId, type: 'Choice' }
+                    });
+                    val = res.url;
+                }
+                if (val && val !== "") {
+                    finalChoices.push(val);
+                    if (choice.isCorrect) finalAnswer = val;
+                }
+            }
+
+            // 3.2 ดำเนินการอัปโหลดไฟล์รูปภาพโจทย์ (Main Images Upload)
+            const finalMainImgs = [];
+            for (let img of mainImgsSnapshot) {
+                if (img.startsWith('data:')) {
+                    const res = await window.sendWithRetry({
+                        action: 'uploadImage',
+                        sessionToken: window.EDIT_SESSION.sessionToken,
+                        data: { base64: img, questionId: qId, type: 'Main' }
+                    });
+                    finalMainImgs.push(res.url);
+                } else {
+                    finalMainImgs.push(img);
+                }
+            }
+
+            // 3.3 ดำเนินการอัปโหลดไฟล์สื่อประกอบคำอธิบาย (Explain Media Upload)
+            const finalExplainMedia = [];
+            for (let media of explainMediaSnapshot) {
+                if (media.startsWith('data:')) {
+                    const isPdf = media.includes('application/pdf');
+                    const res = await window.sendWithRetry({
+                        action: 'uploadImage',
+                        sessionToken: window.EDIT_SESSION.sessionToken,
+                        data: { base64: media, questionId: qId, type: isPdf ? 'Explain' : 'Explain' }
+                    });
+                    finalExplainMedia.push(res.url);
+                } else {
+                    finalExplainMedia.push(media);
+                }
+            }
+
+            const serializedExplain = window.serializeExplain(explainText, finalExplainMedia);
+
+            // 3.4 ส่งชุดคำสั่งอัปเดตข้อมูลทั้งหมดลงฐานแผ่นงาน Google Sheets
+            const res = await window.sendWithRetry({
+                action: 'editQuestion',
+                sessionToken: window.EDIT_SESSION.sessionToken,
+                data: {
+                    id: qId,
                     problem: problem,
                     explain: serializedExplain,
                     category: categories,
                     img: finalMainImgs.join('///'),
                     choices: finalChoices.join('///'),
                     answer: finalAnswer
+                }
+            });
+
+            if (res.result === "success") {
+                // ซิงค์บันทึก URL จริงของฝั่งเซิร์ฟเวอร์ทับข้อมูลจำลองในเครื่องเพื่อความถูกต้องถาวร
+                if (localQ) {
+                    Object.assign(localQ, {
+                        explain: serializedExplain,
+                        img: finalMainImgs.join('///'),
+                        choices: finalChoices.join('///'),
+                        answer: finalAnswer
+                    });
+                }
+
+                await window.syncQuestionsToCache();
+
+                // วาดการแสดงผลใหม่อีกครั้งอย่างเงียบๆ (Silent Re-render) ด้วยข้อมูล URL สมบูรณ์
+                window.showQuestion(false);
+                window.showSubmission($('#submission-filter').val());
+
+                window.bgToast.fire({
+                    icon: "success",
+                    title: `บันทึกและเชื่อมโยงข้อสอบ ${qId} สำเร็จ!`,
+                    timer: 2000
                 });
             }
-            await window.syncQuestionsToCache();
-
-            // 1. อัปเดตข้อมูลบนหน้าทำแบบทดสอบ (Quiz Workspace)
-            window.showQuestion(false);
-
-            // 2. อัปเดตตารางสรุปข้อมูล (Submissions history list)
-            window.showSubmission($('#submission-filter').val());
-
-            // 3. อัปเดตฟิลด์ในรายการแสดงสืบค้น (Search result grid)
-            if ($('#search-input').val().trim() !== '' && $('#search-input').val().trim() !== '""') {
-                window.performSearch();
-            }
-
-            // 4. สั่งปิดหน้าต่างย่อย (Modal) ทันทีหลังสำเร็จ
-            window.closeEditModal();
-
-            Swal.fire({
-                icon: "success",
-                title: "บันทึกข้อมูลเรียบร้อยแล้ว",
-                timer: 1500,
-                showConfirmButton: false
+        } catch (err) {
+            console.error("Background sync failed for question:", qId, err);
+            window.bgToast.fire({
+                icon: "error",
+                title: `ซิงค์ข้อสอบ ${qId} ล้มเหลว!`,
+                text: err.message,
+                timer: 6000
             });
         }
-    } catch (e) {
-        Swal.fire("ข้อผิดพลาดในการบันทึก", e.message, "error");
-    } finally {
-        $saveBtn.prop('disabled', false).html('<i class="fas fa-save"></i> บันทึกการแก้ไข');
-    }
+    })();
 };
 
 // --- UI Bindings ---
