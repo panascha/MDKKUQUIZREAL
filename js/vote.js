@@ -651,18 +651,23 @@ window.submitReportVote = async function (reportTimestamp, delta, questionId) {
     };
 
     try {
-        await window.sendWithRetry(payload);
-        delete window.APP.pendingReportsCache[questionId];
-        window.fetchPendingReports(questionId);
-        Swal.fire({
-            icon: 'success',
-            title: 'บันทึกการโหวตสำเร็จ!',
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 2000
-        });
+        const res = await window.sendWithRetry(payload);
+        // ดักจับและประเมินสิทธิ์ความสำเร็จที่ส่งกลับมาจาก Server เสมอเพื่อความเสถียร
+        if (res && res.result === 'success') {
+            delete window.APP.pendingReportsCache[questionId];
+            window.fetchPendingReports(questionId);
+            Swal.fire({
+                icon: 'success',
+                title: 'บันทึกการโหวตสำเร็จ!',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000
+            });
+        } else {
+            throw new Error(res ? res.message : "เซิร์ฟเวอร์ปฏิเสธการลงคะแนน");
+        }
     } catch (err) {
-        Swal.fire("Error", "ไม่สามารถบันทึกการโหวตได้ กรุณาลองใหม่อีกครั้ง", "error");
+        Swal.fire("Error", "ไม่สามารถบันทึกการโหวตได้: " + err.message, "error");
     }
 };

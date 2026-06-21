@@ -595,9 +595,18 @@ $(document).on('paste', function (e) {
                     window.renderEditChoicePreview($targetInput);
                     window.syncChoicesToHiddenInput();
                 } else {
-                    window.editImageArray.push(compressed);
-                    window.editImageIndex = window.editImageArray.length - 1;
-                    window.syncEditImageGallery();
+                    // ตรวจสอบว่าแอดมินกำลังใช้งานอยู่ในแท็บ "คำอธิบาย" (t-explanation) หรือไม่
+                    if ($('#t-explanation').hasClass('active')) {
+                        // เก็บภาพเข้าคลังสื่อประกอบคำอธิบาย
+                        window.explainImageArray.push(compressed);
+                        window.explainImageIndex = window.explainImageArray.length - 1;
+                        window.syncExplainMediaGallery();
+                    } else {
+                        // เก็บภาพเข้าคลังรูปภาพประกอบโจทย์หลักตามเดิม
+                        window.editImageArray.push(compressed);
+                        window.editImageIndex = window.editImageArray.length - 1;
+                        window.syncEditImageGallery();
+                    }
                 }
             });
         }
