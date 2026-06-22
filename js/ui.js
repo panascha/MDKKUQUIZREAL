@@ -878,12 +878,12 @@ $(function () {
             isRandom: window.APP.isRandomized,
             order: window.APP.currentQuestions.map(q => q.questionId)
         };
-        return btoa(JSON.stringify(state));
+        return btoa(unescape(encodeURIComponent(JSON.stringify(state))));
     };
 
     window.applyImportedState = function (encodedString) {
         try {
-            const stateJSON = atob(encodedString);
+            const stateJSON = decodeURIComponent(escape(atob(encodedString)));
             const state = JSON.parse(stateJSON);
 
             window.APP.filterMode = state.filterMode || "category";
