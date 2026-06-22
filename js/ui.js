@@ -807,6 +807,15 @@ $(function () {
         $('#progress-modal-card').fadeOut();
     });
 
+    $('#show-stats-modal-btn').on('click', () => {
+        window.renderWeaknessStats();
+        $('#stats-modal-card').css('display', 'flex').hide().fadeIn(250);
+    });
+
+    $('#close-stats-modal').on('click', () => {
+        $('#stats-modal-card').fadeOut();
+    });
+
     $('#donate-coffee-btn').on('click', () => {
         $('#donate-modal-card').fadeIn();
     });
@@ -1371,4 +1380,248 @@ window.renderAnnouncementsUI = function (announcements) {
     });
 
     $container.html(html).css('display', 'flex');
+};
+
+window.renderWeaknessStats = function () {
+    const $container = $('#stats-container');
+    $container.empty();
+
+    const answered = window.APP.currentQuestions.filter(q => q.state);
+    if (answered.length === 0) {
+        $container.html(`
+            <div style="text-align: center; padding: 40px 20px; color: var(--color-text-muted, #475569);">
+                <i class="fas fa-clipboard-list fa-3x" style="opacity: 0.3; margin-bottom: 12px; color: var(--color-text-muted);"></i>
+                <p style="font-size: 1.15rem; margin: 0; font-weight: 700; color: var(--color-text);">ยังไม่มีประวัติการทำข้อสอบ</p>
+                <p style="font-size: 0.95rem; margin-top: 4px; opacity: 0.8;">กรุณาลองทำข้อสอบบางข้อก่อนเปิดแผงวิเคราะห์จุดอ่อน</p>
+            </div>
+        `);
+        return;
+    }
+
+    const SUBGROUPS_LOCAL = ["ANA", "BIOCHEM", "PHYSIO", "MICRO", "PARASITO", "PATHO", "PHARM", "RADIO", "CLINICAL"];
+    const isLectureCategoryLocal = (catId) => {
+        const upper = String(catId).toUpperCase();
+        // รองรับวิชาที่มีโครงสร้างเลคเชอร์แบบ _LEC_ หรือ _QUIZ_ เป็นรหัสระบบ
+        if (upper.includes("_LEC_") || upper.includes("_QUIZ_")) {
+            return true;
+        }
+        const parts = upper.split('_');
+        for (let i = 1; i < parts.length; i++) {
+            if (SUBGROUPS_LOCAL.some(sg => parts[i].includes(sg))) return true;
+        }
+        return false;
+    };
+
+    // ฟังก์ชันช่วยสลับเส้นทางจัดหมวดหมู่วิชากลุ่มทั่วไปและวิชาพิเศษเข้าสู่แกนหมวดหมู่สากล
+    const getSystemCorrectedSuffix = (catId, originalSuffix) => {
+        const upper = String(catId).toUpperCase();
+        if (upper.startsWith("MBN2_") || upper.startsWith("MBN_")) {
+            return "BIOCHEM";
+        }
+        if (upper.startsWith("EMBRYO_")) {
+            return "ANA";
+        }
+        if (upper.startsWith("GEN3_")) {
+            if (upper.includes("CESTODE") || upper.includes("PARASITE") || upper.includes("PROTOZOA") || upper.includes("TREMATODES") || upper.includes("NEMATODES")) {
+                return "PARASITO";
+            }
+            return "MICRO";
+        }
+        if (upper.startsWith("GEN4_")) {
+            return "MICRO";
+        }
+        if (upper.startsWith("GEN2_")) {
+            if (upper.includes("EPITHELIAL") || upper.includes("CONNECTIVE") || upper.includes("MUSCLE TISSUE") || upper.includes("NERVOUS TISSUE") || upper.includes("MICROSCOPE") || upper.includes("ORGANELLES") || upper.includes("STRUCTURE")) {
+                return "ANA";
+            }
+            if (upper.includes("INJURY") || upper.includes("ADAPTATIONS")) {
+                return "PATHO";
+            }
+            return "PHYSIO";
+        }
+        if (upper.startsWith("PSYCHIATRY_") || upper.startsWith("COMMED_")) {
+            return "CLINICAL";
+        }
+        return originalSuffix;
+    };
+
+    const stats = {}; // { suffix: { total: 0, correct: 0, lectures: {} } }
+    answered.forEach(q => {
+        const qCats = Array.isArray(q.category) ? q.category : [q.category];
+
+        let detectedSfx = 'OTHER';
+        let detectedLectureCatId = null;
+
+        // สกัดหา Lecture Category ดั้งเดิมที่มีสิทธิ์ใช้งานจริง (และข้าม Extracted)
+        for (let i = 0; i < qCats.length; i++) {
+            const catId = qCats[i];
+            if (isLectureCategoryLocal(catId)) {
+                const catName = window.getCategoryNameById(catId) || catId;
+                if (catId.toUpperCase().includes("EXTRACTED") || catName.toUpperCase().includes("EXTRACTED")) {
+                    continue;
+                }
+                detectedLectureCatId = catId;
+                break;
+            }
+        }
+
+        // จัดหมวดหมู่ Suffix (หมวดหลัก) ให้แม่นยำขึ้นสำหรับวิชากลุ่มสากลหลักสูตรใหม่
+        if (detectedLectureCatId) {
+            detectedSfx = getSystemCorrectedSuffix(detectedLectureCatId, 'OTHER');
+        } else if (qCats.length > 0) {
+            const meta = window.parseQuestionMetadata(q);
+            detectedSfx = getSystemCorrectedSuffix(qCats[0], meta.suffix || 'OTHER');
+        }
+
+        const sfx = detectedSfx;
+        if (!stats[sfx]) {
+            stats[sfx] = { total: 0, correct: 0, lectures: {} };
+        }
+
+        stats[sfx].total++;
+        const isCorrect = (q.select === q.answer);
+        if (isCorrect) {
+            stats[sfx].correct++;
+        }
+
+        if (detectedLectureCatId) {
+            if (!stats[sfx].lectures[detectedLectureCatId]) {
+                stats[sfx].lectures[detectedLectureCatId] = {
+                    name: window.getCategoryNameById(detectedLectureCatId) || detectedLectureCatId,
+                    total: 0,
+                    correct: 0
+                };
+            }
+            stats[sfx].lectures[detectedLectureCatId].total++;
+            if (isCorrect) {
+                stats[sfx].lectures[detectedLectureCatId].correct++;
+            }
+        } else {
+            const fallbackId = sfx + "_GENERAL_FALLBACK";
+            if (!stats[sfx].lectures[fallbackId]) {
+                stats[sfx].lectures[fallbackId] = {
+                    name: "หัวข้อทั่วไป / ยังไม่แยกเลคเชอร์",
+                    total: 0,
+                    correct: 0
+                };
+            }
+            stats[sfx].lectures[fallbackId].total++;
+            if (isCorrect) {
+                stats[sfx].lectures[fallbackId].correct++;
+            }
+        }
+    });
+
+    const sfxConfig = {
+        'ANA': { name: 'Anatomy (กายวิภาคศาสตร์)', icon: 'fas fa-bone', bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
+        'PHYSIO': { name: 'Physiology (สรีรวิทยา)', icon: 'fas fa-heartbeat', bg: '#dbeafe', border: '#93c5fd', text: '#1e3a8a' },
+        'BIOCHEM': { name: 'Biochemistry (ชีวเคมี)', icon: 'fas fa-dna', bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af' },
+        'MICRO': { name: 'Microbiology (จุลชีววิทยา)', icon: 'fas fa-microscope', bg: '#f5f3ff', border: '#ddd6fe', text: '#5b21b6' },
+        'PARASITO': { name: 'Parasitology (ปรสิตวิทยา)', icon: 'fas fa-bug', bg: '#faf5ff', border: '#e9d5ff', text: '#6b21a8' },
+        'PATHO': { name: 'Pathology (พยาธิวิทยา)', icon: 'fas fa-vial', bg: '#dcfce7', border: '#86efac', text: '#14532d' },
+        'PHARM': { name: 'Pharmacology (เภสัชวิทยา)', icon: 'fas fa-pills', bg: '#fef3c7', border: '#fde68a', text: '#78350f' },
+        'RADIO': { name: 'Radiology (รังสีวิทยา)', icon: 'fas fa-radiation', bg: '#ecfeff', border: '#a5f3fc', text: '#115e59' },
+        'CLINICAL': { name: 'Clinical (เวชปฏิบัติคลินิก)', icon: 'fas fa-user-md', bg: '#e0f2fe', border: '#bae6fd', text: '#075985' },
+        'OTHER': { name: 'หมวดหมู่อื่น ๆ', icon: 'fas fa-folder', bg: '#f3f4f6', border: '#e5e7eb', text: '#374151' }
+    };
+
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; width: 100%; box-sizing: border-box;">';
+
+    Object.keys(stats).sort().forEach(sfx => {
+        const item = stats[sfx];
+        const pct = Math.round((item.correct / item.total) * 100);
+
+        const config = sfxConfig[sfx.toUpperCase()] || sfxConfig['OTHER'];
+        const displayName = config.name;
+        const iconClass = config.icon;
+
+        let statusText = 'ควรปรับปรุง ❌';
+        let statusColor = 'var(--color-wrong, #dc2626)';
+        let statusBg = 'var(--color-wrong-bg, #fee2e2)';
+        let statusBorderColor = '#fca5a5';
+
+        if (pct >= 80) {
+            statusText = 'ดีเยี่ยม 🎉';
+            statusColor = 'var(--color-correct, #16a34a)';
+            statusBg = 'var(--color-correct-bg, #dcfce7)';
+            statusBorderColor = '#86efac';
+        } else if (pct >= 50) {
+            statusText = 'พอใช้ได้ ⚠️';
+            statusColor = '#f59e0b';
+            statusBg = 'var(--pastel-pharm, #fff9f0)';
+            statusBorderColor = '#fde68a';
+        }
+
+        // จัดทำชุดข้อมูลการแจกแจงราย Lecture (Lectures Breakdown)
+        let lecturesHtml = '';
+        const lectureIds = Object.keys(item.lectures);
+        if (lectureIds.length > 0) {
+            lecturesHtml += `
+                <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--color-border-soft, #e2e8f0); display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-text-muted, #475569);"><i class="fas fa-list-ul"></i> สถิติรายเลคเชอร์:</div>
+            `;
+            lectureIds.forEach(catId => {
+                const lect = item.lectures[catId];
+                const lPct = Math.round((lect.correct / lect.total) * 100);
+
+                let lColor = '#16a34a';
+                if (lPct < 50) lColor = '#dc2626';
+                else if (lPct < 80) lColor = '#f59e0b';
+
+                lecturesHtml += `
+                    <div style="font-size: 0.85rem; color: var(--color-text, #0f172a);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 72%;" title="${lect.name}">• ${lect.name}</span>
+                            <span style="font-weight: 700; color: ${lColor}; flex-shrink: 0; margin-left: 4px;">${lect.correct}/${lect.total} ข้อ (${lPct}%)</span>
+                        </div>
+                        <div style="width: 100%; background: var(--color-surface-3, #e2e8f0); height: 5px; border-radius: 4px; overflow: hidden;">
+                            <div style="width: ${lPct}%; background: ${lColor}; height: 100%; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            lecturesHtml += `</div>`;
+        }
+
+        html += `
+            <div style="background: var(--color-surface, #fff); border: 1.5px solid var(--color-border, #cbd5e1); padding: 14px; border-radius: var(--border-radius, 8px); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
+                <div>
+                    <!-- รายชื่อบทเรียนและไอคอนสี Soft-palette -->
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                        <span style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: ${config.bg}; border: 1px solid ${config.border}; color: ${config.text}; font-size: 0.9rem; flex-shrink: 0;">
+                            <i class="${iconClass}"></i>
+                        </span>
+                        <span style="font-weight: 700; font-size: 1.05rem; color: var(--color-text, #0f172a); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 36px);">${displayName}</span>
+                    </div>
+
+                    <!-- ค่าประเมินสถานะคำตอบหลัก -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 0.95rem; color: var(--color-text-muted, #475569);">
+                            ภาพรวม: ถูกต้อง <b>${item.correct}</b> / <b>${item.total}</b> ข้อ
+                        </span>
+                        <span style="background: ${statusBg}; color: ${statusColor}; border: 1px solid ${statusBorderColor}; font-size: 0.8rem; padding: 1px 8px; border-radius: 12px; font-weight: 700;">
+                            ${statusText}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- แถบประเมินทักษะอย่างละเอียดเชิงเปอร์เซ็นต์ (Progress Bar) -->
+                <div style="margin-top: 6px; margin-bottom: 2px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px;">
+                        <span style="font-size: 0.8rem; color: var(--color-text-muted, #475569); font-weight: 600;">ความแม่นยำภาพรวม</span>
+                        <span style="font-size: 1.15rem; font-weight: 800; color: ${statusColor}; line-height: 1;">${pct}%</span>
+                    </div>
+                    <div style="width: 100%; background: var(--color-surface-3, #e2e8f0); height: 10px; border-radius: 10px; overflow: hidden; border: 1px solid var(--color-border-soft, #e2e8f0);">
+                        <div style="width: ${pct}%; background: ${statusColor}; height: 100%; border-radius: 10px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                    </div>
+                </div>
+
+                <!-- การแสดงสถิติแจกแจงรายเลคเชอร์ที่ซ้อนอยู่ภายใน -->
+                ${lecturesHtml}
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    $container.html(html);
 };
