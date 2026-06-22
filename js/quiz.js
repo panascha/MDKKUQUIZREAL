@@ -158,6 +158,18 @@ window.showQuestion = function (shouldFocus = true) {
         }
     }
 
+    let allowedOriginalIndices = [];
+    if (window.APP.isFastMode && !window.APP.current_question.state) {
+        const correctOriginalIdx = choicesArray.indexOf(window.APP.current_question.answer);
+        if (correctOriginalIdx !== -1) {
+            const incorrectOriginalIndices = choicesArray.map((_, idx) => idx).filter(idx => idx !== correctOriginalIdx);
+            if (incorrectOriginalIndices.length > 0) {
+                const randomIncorrectIdx = incorrectOriginalIndices[Math.floor(Math.random() * incorrectOriginalIndices.length)];
+                allowedOriginalIndices = [correctOriginalIdx, randomIncorrectIdx];
+            }
+        }
+    }
+
     indices.forEach((i, idx) => {
         const choiceText = choicesArray[i];
 
@@ -177,6 +189,12 @@ window.showQuestion = function (shouldFocus = true) {
         // เก็บคำตอบต้นฉบับเต็มไว้ใช้ตรวจสอบกับคำเฉลย (ห้ามตัด Prefix ออกจากแอตทริบิวต์ data-answer เพื่อความถูกต้องในการตรวจเฉลย)
         $btn.attr('data-answer', choiceText);
         $btn.html(content);
+
+        if (window.APP.isFastMode && !window.APP.current_question.state && allowedOriginalIndices.length > 0) {
+            if (!allowedOriginalIndices.includes(i)) {
+                $btn.addClass('faded-choice');
+            }
+        }
 
         $('#choices').append($btn);
     });

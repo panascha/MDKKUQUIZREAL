@@ -131,6 +131,7 @@ window.APP = {
     isRandomized: true,
     isShowingAllAnswers: false,
     isReviewMode: false,
+    isFastMode: false,
     filterMode: "category",
     pendingVotesCache: {},
     pendingReportsCache: {},

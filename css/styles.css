@@ -3480,3 +3480,13 @@
     .cat-row .btn-icon { grid-column: 1; justify-self: flex-end; }
     .choice-row { grid-template-columns: 24px 24px 1fr; gap: 6px; padding: 8px; }
 }
+
+/* =========================================
+   19. Fast Mode Styling
+   ========================================= */
+.faded-choice {
+    opacity: 0.15 !important;
+    pointer-events: none !important;
+    filter: grayscale(90%);
+    transition: opacity 0.25s ease, filter 0.25s ease;
+}

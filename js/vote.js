@@ -535,6 +535,24 @@ $(function () {
 
         window.submitVoteData(uniqueVotes, window.APP.modalTargetQuestion);
     });
+
+    $('#toggle-fast-mode-btn').on('click', function () {
+        window.APP.isFastMode = !window.APP.isFastMode;
+
+        if (window.APP.isFastMode) {
+            $(this).html('<i class="fas fa-bolt"></i> โหมดเร่งด่วน (Fast Mode): เปิด').css('background-color', '#eab308');
+            window.bgToast.fire({
+                icon: 'info',
+                title: 'เปิดใช้งานโหมดเร่งด่วน เหลือเพียง 2 ตัวเลือก',
+                timer: 2000
+            });
+        } else {
+            $(this).html('<i class="fas fa-bolt"></i> โหมดเร่งด่วน (Fast Mode): ปิด').css('background-color', '#6b7280');
+        }
+
+        window.showQuestion(false);
+        window.saveProgressToCache();
+    });
 });
 
 // ============================================================
