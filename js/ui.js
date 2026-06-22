@@ -592,12 +592,12 @@ window.updateSelectedCategoryStatus = function () {
         const selectedSuffixes = $('input[type="checkbox"][name="filter-suffix"]:checked');
         const selectedTopics = $('input[type="checkbox"][name="filter-topic"]:checked');
 
-        const totalSelected = selectedYears.length + selectedGroups.length + selectedSuffixes.length + selectedTopics.length;
+        const totalSelectedCount = selectedYears.length + selectedGroups.length + selectedSuffixes.length + selectedTopics.length;
 
-        if (totalSelected === 0) {
+        if (totalSelectedCount === 0) {
             $status.html('<p class="small-text" style="color: #999; margin:0;">ยังไม่ได้เลือกตัวกรองละเอียด</p>');
         } else {
-            $status.append(`<button class="btn-clear-all" onclick="window.clearAllAttributeFilters()"><i class="fas fa-trash-alt"></i> ล้างตัวกรองทั้งหมด (${totalSelected})</button>`);
+            $status.append(`<button class="btn-clear-all" onclick="window.clearAllAttributeFilters()"><i class="fas fa-trash-alt"></i> ล้างตัวกรองทั้งหมด (${totalSelectedCount})</button>`);
 
             selectedYears.each(function () {
                 const val = this.value;
@@ -615,6 +615,81 @@ window.updateSelectedCategoryStatus = function () {
                 const val = this.value;
                 $status.append(`<button class="status-category-button" onclick="window.uncheckAttributeFilter('topic', '${val.replace(/'/g, "\\'")}')">หัวข้อ: ${val} <i class="fas fa-times"></i></button>`);
             });
+
+            // คำนวณสรุปจำนวนข้อสอบแยกตามปีและวิชาเฉพาะทาง (SubGroup Suffix) จากผลการกรองจริง
+            const summaryMap = {};
+            window.APP.currentQuestions.forEach(q => {
+                const meta = window.parseQuestionMetadata(q);
+                const yr = meta.year || 'N/A';
+                const sfx = meta.suffix || 'N/A';
+                if (!summaryMap[yr]) summaryMap[yr] = {};
+                if (!summaryMap[yr][sfx]) summaryMap[yr][sfx] = 0;
+                summaryMap[yr][sfx]++;
+            });
+
+            const years = Object.keys(summaryMap).sort();
+            if (years.length > 0 && window.APP.currentQuestions.length > 0) {
+                // ฟังก์ชันช่วยสกัดสไตล์สีตามชื่อวิชา
+                const getSuffixStyle = (suffix) => {
+                    const s = suffix.toUpperCase();
+                    if (s.includes("RADIO") || s.includes("CLINICAL")) {
+                        return { bg: "var(--pastel-clinical, #F0FFFF)", border: "#A5F3FC", text: "var(--color-text, #000)" };
+                    }
+                    if (s.includes("ANATOMY") || s.includes("ANA")) {
+                        return { bg: "var(--pastel-anatomy, #FFF0F0)", border: "#FECACA", text: "var(--color-text, #000)" };
+                    }
+                    if (s.includes("PARASITO") || s.includes("MICRO")) {
+                        return { bg: "var(--pastel-micro, #F5F0FF)", border: "#DDD6FE", text: "var(--color-text, #000)" };
+                    }
+                    if (s.includes("PATHO")) {
+                        return { bg: "var(--pastel-patho, #F0FFF4)", border: "#BBF7D0", text: "var(--color-text, #000)" };
+                    }
+                    if (s.includes("PHYSIO") || s.includes("BIOCHEM")) {
+                        return { bg: "var(--pastel-physio, #F0F7FF)", border: "#BFDBFE", text: "var(--color-text, #000)" };
+                    }
+                    if (s.includes("PHARM")) {
+                        return { bg: "var(--pastel-pharm, #FFF9F0)", border: "#FDE68A", text: "var(--color-text, #000)" };
+                    }
+                    // ถ้าไม่ตรงกับวิชาหลัก ให้แสดงผลเป็นสีเทา (Gray Background)
+                    return { bg: "var(--color-surface-3, #e2e8f0)", border: "var(--color-border, #cbd5e1)", text: "var(--color-text-muted, #475569)" };
+                };
+
+                let summaryHtml = `
+                    <div class="filter-summary-box" style="width: 100%; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--color-border-soft); font-size: 0.95rem; text-align: left; color: var(--color-text-muted);">
+                        <div style="font-weight: 700; margin-bottom: 8px; color: var(--color-primary);"><i class="fas fa-chart-bar"></i> สรุปข้อสอบที่กรองได้แยกตามปี:</div>
+                        <ul style="margin: 0; padding-left: 20px; list-style-type: disc; display: flex; flex-direction: column; gap: 8px;">
+                `;
+
+                years.forEach(yr => {
+                    summaryHtml += `
+                        <li style="line-height: 1.5;">
+                            <strong style="color: var(--color-text);">ปี ${yr}:</strong>
+                            <span style="display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: 6px; vertical-align: middle;">
+                    `;
+
+                    const suffixes = Object.keys(summaryMap[yr]).sort();
+                    suffixes.forEach(sfx => {
+                        const count = summaryMap[yr][sfx];
+                        const style = getSuffixStyle(sfx);
+                        summaryHtml += `
+                            <span style="background: ${style.bg}; border: 1px solid ${style.border}; color: ${style.text}; padding: 1px 8px; border-radius: 8px; font-weight: 600; font-size: 0.85rem;">
+                                [${sfx}] ${count} ข้อ
+                            </span>
+                        `;
+                    });
+
+                    summaryHtml += `
+                            </span>
+                        </li>
+                    `;
+                });
+
+                summaryHtml += `
+                        </ul>
+                    </div>
+                `;
+                $status.append(summaryHtml);
+            }
         }
     }
 
