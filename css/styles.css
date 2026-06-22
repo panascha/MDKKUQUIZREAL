@@ -928,12 +928,15 @@
     }
 
     .btn-light {
-        background: #15803D;
-        color: white;
+        background: var(--color-surface-2, #f1f5f9);
+        color: var(--color-text, #0f172a);
+        border: 1.5px solid var(--color-border, #cbd5e1);
     }
 
     .btn-light:hover {
-        background: #166534;
+        background: var(--color-surface-3, #e2e8f0);
+        border-color: var(--color-text-muted, #475569);
+        color: var(--color-text, #0f172a);
     }
 
     #save {

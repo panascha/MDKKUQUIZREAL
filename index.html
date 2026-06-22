@@ -611,8 +611,7 @@
                     </div>
                 </div>
                 <div class="controls-container" style="margin-top: 0.75rem; justify-content: center; width: 100%;">
-                    <button id="close-grader-modal" class="quiz-button btn-dark"
-                        style="width: 100%;">ปิดหน้าต่าง</button>
+                    <button id="close-grader-modal" class="quiz-button btn-light" style="width: 100%;">ปิดหน้าต่าง</button>
                 </div>
             </div>
         </div>
@@ -696,27 +695,90 @@
             <!-- หน้าจอแสดงการกรองคุณสมบัติแยกตามปี, กลุ่มข้อสอบ และรายวิชาย่อย (Attribute Selection Panel) -->
             <div id="attribute-filter-area" style="display: none; width: 100%; box-sizing: border-box;"></div>
 
-            <div class="controls-container">
-                <button id="save" class="quiz-button">Save to PDF</button>
-                <button id="btn-open-grader" class="quiz-button" style="background-color: #6D28D9; color: white; width: 100%;">
-                    <i class="fas fa-magic"></i> ระบบตรวจข้อสอบอัตโนมัติ (Auto-Grader) TESTING***
-                </button>
-                <button id="toggle-random-btn" class="quiz-button">สลับโหมดสุ่ม/เรียงลำดับ</button>
-                <button id="toggle-review-mode-btn" class="quiz-button" style="background-color: var(--color-wrong);">โหมดทบทวนข้อผิด:
-                    ปิด</button>
-                <button id="show-all-answers-btn" class="quiz-button btn-light">แสดงเฉลย (Screening)</button>
-                <button id="toggle-fast-mode-btn" class="quiz-button" style="background-color: #6b7280; color: white;">
-                    <i class="fas fa-bolt"></i> โหมดเร่งด่วน (Fast Mode): ปิด
-                </button>
-                <button id="show-progress-modal-btn" class="quiz-button btn-import">บันทึก / ทำต่อจากครั้งก่อน</button>
-                <button id="show-stats-modal-btn" class="quiz-button" style="background-color: #0d9488; color: white;">
-                    <i class="fas fa-chart-pie"></i> วิเคราะห์จุดอ่อน
-                </button>
-                <button id="btn-force-sync" class="quiz-button" style="background-color: #0d6efd; color: white;">
-                    <i class="fas fa-sync-alt"></i> ดึงข้อมูลใหม่ล่าสุด (Force Sync)
-                </button>
-                <button id="donate-coffee-btn" class="quiz-button" style="background-color: #92400E; color: #fff;">Donate
-                    ค่ากาแฟ☕</button>
+            <!-- สไตล์ชีตเฉพาะสำหรับอนิเมชันลูกศรของกล่องพับควบคุมเพิ่มเติม -->
+            <style>
+                details[open] summary .fa-chevron-down {
+                    transform: rotate(180deg);
+                }
+            
+                summary::-webkit-details-marker {
+                    display: none;
+                }
+            
+                summary {
+                    list-style: none;
+                }
+            </style>
+            
+            <div class="controls-container"
+                style="display: flex; flex-direction: column; gap: 10px; width: 100%; border-top: 1px solid var(--color-border-soft); padding-top: 14px; margin-top: 16px; box-sizing: border-box;">
+                <!-- แถบปุ่มหลักยอดนิยม (Primary Action Row) -->
+                <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; width: 100%; box-sizing: border-box;">
+                    <button id="show-stats-modal-btn" class="quiz-button"
+                        style="background-color: #0d9488; color: white; border: none; margin: 0; min-height: 46px; width: 100%; font-size: 1.1rem; font-weight: 700; box-shadow: 0 2px 6px rgba(13, 148, 136, 0.15);">
+                        <i class="fas fa-chart-pie"></i> วิเคราะห์จุดอ่อน
+                    </button>
+                    <button id="save" class="quiz-button"
+                        style="background-color: var(--color-primary); color: white; border: none; margin: 0; min-height: 46px; width: 100%; font-size: 1.1rem; font-weight: 700; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);">
+                        <i class="fas fa-file-pdf"></i> Save to PDF
+                    </button>
+                </div>
+            
+                <!-- กล่องตั้งค่าโหมดทำข้อสอบ (Quiz Settings Block - คุมโทนสีกลมกลืนตามธีมเริ่มต้น) -->
+                <details
+                    style="width: 100%; border: 1.5px solid var(--color-border); border-radius: var(--border-radius); background: var(--color-surface-2); box-sizing: border-box;">
+                    <summary
+                        style="font-size: 1.1rem; padding: 12px 16px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px; user-select: none;">
+                        <i class="fas fa-cog" style="color: var(--color-primary);"></i> ตั้งค่าโหมดทำข้อสอบ (Quiz Settings)
+                        <i class="fas fa-chevron-down"
+                            style="margin-left: auto; font-size: 0.85rem; opacity: 0.7; transition: transform 0.25s ease;"></i>
+                    </summary>
+                    <div
+                        style="padding: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; border-top: 1.5px solid var(--color-border-soft); box-sizing: border-box;">
+                        <button id="toggle-random-btn" class="quiz-button"
+                            style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;"><i
+                                class="fas fa-random"></i> โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)</button>
+                        <button id="toggle-review-mode-btn" class="quiz-button"
+                            style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;"><i
+                                class="fas fa-times-circle"></i> โหมดทวนข้อผิด: ปิด</button>
+                        <button id="show-all-answers-btn" class="quiz-button"
+                            style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;"><i
+                                class="fas fa-eye"></i> แสดงเฉลย (Screening)</button>
+                        <button id="toggle-fast-mode-btn" class="quiz-button"
+                            style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;"><i
+                                class="fas fa-bolt"></i> โหมดเร่งด่วน (Fast Mode): ปิด</button>
+                    </div>
+                    </details>
+                    
+                    <!-- กล่องจัดการระบบและการดาวน์โหลด (System Tools Block - คุมโทนสีกลมกลืนตามธีมเริ่มต้น) -->
+                    <details
+                        style="width: 100%; border: 1.5px solid var(--color-border); border-radius: var(--border-radius); background: var(--color-surface-2); box-sizing: border-box;">
+                        <summary
+                            style="font-size: 1.1rem; padding: 12px 16px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px; user-select: none;">
+                            <i class="fas fa-tools" style="color: var(--color-primary);"></i> เครื่องมือระบบ &amp; การซิงค์ (System &amp;
+                            Files)
+                            <i class="fas fa-chevron-down"
+                                style="margin-left: auto; font-size: 0.85rem; opacity: 0.7; transition: transform 0.25s ease;"></i>
+                        </summary>
+                        <div
+                            style="padding: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; border-top: 1.5px solid var(--color-border-soft); box-sizing: border-box;">
+                            <button id="btn-open-grader" class="quiz-button"
+                                style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;">
+                                <i class="fas fa-magic" style="color: #6D28D9;"></i> ตรวจข้อสอบอัตโนมัติ (OMR)
+                            </button>
+                            <button id="show-progress-modal-btn" class="quiz-button btn-import"
+                                style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;"><i
+                                    class="fas fa-history"></i> บันทึก/โหลดประวัติ</button>
+                            <button id="btn-force-sync" class="quiz-button"
+                                style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;">
+                                <i class="fas fa-sync-alt" style="color: #0d6efd;"></i> ดึงข้อมูลล่าสุด (Sync)
+                            </button>
+                            <button id="donate-coffee-btn" class="quiz-button"
+                                style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;">
+                                <i class="fas fa-mug-hot" style="color: #92400E;"></i> Donate ค่ากาแฟ ☕
+                            </button>
+                        </div>
+                    </details>
             </div>
             <div class="small-text" style="margin-top: 9px; color: var(--color-text-muted);">
                 หมายเหตุ : ถ้าเจอโจทย์มีปัญหาพิมพ์เข้ามาใน report ได้เลย | คีย์ลัด: ← (ก่อนหน้า), → (ถัดไป), Enter

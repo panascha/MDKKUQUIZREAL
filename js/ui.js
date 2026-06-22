@@ -1179,12 +1179,12 @@ $(function () {
     // --- ปุ่มควบคุมโหมดการสุ่มข้อสอบ ---
     $('#toggle-random-btn').on('click', function () {
         window.APP.isRandomized = !window.APP.isRandomized;
-        $(this).text(window.APP.isRandomized ? 'โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : 'โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)');
+        $(this).html(window.APP.isRandomized ? '<i class="fas fa-random"></i> โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : '<i class="fas fa-sort-amount-down-alt"></i> โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)');
 
         if (window.APP.isRandomized) {
-            $(this).css('background-color', '#e8710a');
+            $(this).css({ 'background-color': '#e8710a', 'color': 'white', 'border-color': '#e8710a' });
         } else {
-            $(this).css('background-color', '#007bff');
+            $(this).css({ 'background-color': '#007bff', 'color': 'white', 'border-color': '#007bff' });
         }
 
         window.sortCurrentQuestions();
@@ -1200,10 +1200,18 @@ $(function () {
     $('#toggle-review-mode-btn').on('click', function () {
         window.APP.isReviewMode = !window.APP.isReviewMode;
         if (window.APP.isReviewMode) {
-            $(this).text('โหมดทวนข้อผิด: เปิด').css('background-color', '#28a745');
+            $(this).html('<i class="fas fa-redo"></i> โหมดทวนข้อผิด: เปิด').css({
+                'background-color': '#28a745',
+                'color': 'white',
+                'border-color': '#28a745'
+            });
             Swal.fire("เปิดโหมดทวนข้อผิด", "ข้อที่ตอบผิดจะถูกสุ่มกลับมาให้ทำใหม่จนกว่าจะถูก", "info");
         } else {
-            $(this).text('โหมดทวนข้อผิด: ปิด').css('background-color', '#d32f2f');
+            $(this).html('<i class="fas fa-times-circle"></i> โหมดทวนข้อผิด: ปิด').css({
+                'background-color': 'var(--color-surface)',
+                'color': 'var(--color-text)',
+                'border-color': 'var(--color-border)'
+            });
         }
     });
 
@@ -1211,10 +1219,18 @@ $(function () {
     $('#show-all-answers-btn').on('click', function () {
         window.APP.isShowingAllAnswers = !window.APP.isShowingAllAnswers;
         if (window.APP.isShowingAllAnswers) {
-            $(this).text('ซ่อนเฉลย (Screening)');
+            $(this).html('<i class="fas fa-eye-slash"></i> ซ่อนเฉลย (Screening)').css({
+                'background-color': 'var(--color-correct, #16a34a)',
+                'color': 'white',
+                'border-color': 'var(--color-correct, #16a34a)'
+            });
             $('#submit-btn').hide();
         } else {
-            $(this).text('แสดงเฉลย (Screening)');
+            $(this).html('<i class="fas fa-eye"></i> แสดงเฉลย (Screening)').css({
+                'background-color': 'var(--color-surface)',
+                'color': 'var(--color-text)',
+                'border-color': 'var(--color-border)'
+            });
             $('#submit-btn').show();
         }
         window.showQuestion();
@@ -1279,8 +1295,18 @@ $(function () {
         }
     });
 
-    // --- อัปเดตสถานะเริ่มต้นของปุ่มสุ่มข้อสอบ ---
-    $('#toggle-random-btn').text(window.APP.isRandomized ? 'โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : 'โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)');
+    // --- อัปเดตสถานะเริ่มต้นของปุ่มสุ่มข้อสอบและปุ่มโหมดทวนข้อผิด ---
+    $('#toggle-random-btn').html(window.APP.isRandomized ? '<i class="fas fa-random"></i> โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : '<i class="fas fa-sort-amount-down-alt"></i> โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)').css({
+        'background-color': window.APP.isRandomized ? '#e8710a' : '#007bff',
+        'color': 'white',
+        'border-color': window.APP.isRandomized ? '#e8710a' : '#007bff'
+    });
+
+    $('#toggle-review-mode-btn').html(window.APP.isReviewMode ? '<i class="fas fa-redo"></i> โหมดทวนข้อผิด: เปิด' : '<i class="fas fa-times-circle"></i> โหมดทวนข้อผิด: ปิด').css({
+        'background-color': window.APP.isReviewMode ? '#28a745' : 'var(--color-surface)',
+        'color': window.APP.isReviewMode ? 'white' : 'var(--color-text)',
+        'border-color': window.APP.isReviewMode ? '#28a745' : 'var(--color-border)'
+    });
 });
 
 window.copyQuestionForAI = function () {

@@ -163,11 +163,23 @@ window.loadProgressFromCache = async function () {
 
         window.updateSelectedCategoryStatus();
 
-        $('#toggle-random-btn').text(window.APP.isRandomized ? 'โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : 'โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)');
+        $('#toggle-random-btn').html(window.APP.isRandomized ? '<i class="fas fa-random"></i> โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : '<i class="fas fa-sort-amount-down-alt"></i> โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)').css({
+            'background-color': window.APP.isRandomized ? '#e8710a' : '#007bff',
+            'color': 'white',
+            'border-color': window.APP.isRandomized ? '#e8710a' : '#007bff'
+        });
         if (window.APP.isReviewMode) {
-            $('#toggle-review-mode-btn').text('โหมดทวนข้อผิด: เปิด').css('background-color', '#28a745');
+            $('#toggle-review-mode-btn').html('<i class="fas fa-redo"></i> โหมดทวนข้อผิด: เปิด').css({
+                'background-color': '#28a745',
+                'color': 'white',
+                'border-color': '#28a745'
+            });
         } else {
-            $('#toggle-review-mode-btn').text('โหมดทวนข้อผิด: ปิด').css('background-color', '#d32f2f');
+            $('#toggle-review-mode-btn').html('<i class="fas fa-times-circle"></i> โหมดทวนข้อผิด: ปิด').css({
+                'background-color': 'var(--color-surface)',
+                'color': 'var(--color-text)',
+                'border-color': 'var(--color-border)'
+            });
         }
 
         if (typeof window.updateFastModeButtonUI === 'function') {
