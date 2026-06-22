@@ -536,18 +536,25 @@ $(function () {
         window.submitVoteData(uniqueVotes, window.APP.modalTargetQuestion);
     });
 
+    window.updateFastModeButtonUI = function () {
+        const $fastBtn = $('#toggle-fast-mode-btn');
+        if (window.APP.isFastMode) {
+            $fastBtn.html('<i class="fas fa-bolt"></i> โหมดเร่งด่วน (Fast Mode): เปิด').addClass('fast-mode-on');
+        } else {
+            $fastBtn.html('<i class="fas fa-bolt"></i> โหมดเร่งด่วน (Fast Mode): ปิด').removeClass('fast-mode-on');
+        }
+    };
+
     $('#toggle-fast-mode-btn').on('click', function () {
         window.APP.isFastMode = !window.APP.isFastMode;
+        window.updateFastModeButtonUI();
 
         if (window.APP.isFastMode) {
-            $(this).html('<i class="fas fa-bolt"></i> โหมดเร่งด่วน (Fast Mode): เปิด').css('background-color', '#eab308');
             window.bgToast.fire({
                 icon: 'info',
                 title: 'เปิดใช้งานโหมดเร่งด่วน เหลือเพียง 2 ตัวเลือก',
                 timer: 2000
             });
-        } else {
-            $(this).html('<i class="fas fa-bolt"></i> โหมดเร่งด่วน (Fast Mode): ปิด').css('background-color', '#6b7280');
         }
 
         window.showQuestion(false);

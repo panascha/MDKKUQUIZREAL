@@ -170,11 +170,8 @@ window.loadProgressFromCache = async function () {
             $('#toggle-review-mode-btn').text('โหมดทวนข้อผิด: ปิด').css('background-color', '#d32f2f');
         }
 
-        const $fastBtn = $('#toggle-fast-mode-btn');
-        if (window.APP.isFastMode) {
-            $fastBtn.html('<i class="fas fa-bolt"></i> โหมดเร่งด่วน (Fast Mode): เปิด').css('background-color', '#eab308');
-        } else {
-            $fastBtn.html('<i class="fas fa-bolt"></i> โหมดเร่งด่วน (Fast Mode): ปิด').css('background-color', '#6b7280');
+        if (typeof window.updateFastModeButtonUI === 'function') {
+            window.updateFastModeButtonUI();
         }
 
         return true;
