@@ -3,7 +3,7 @@
 // และ cache เฉพาะไฟล์ static ของตัวเอง
 // ไม่แตะ requests ไปหา Google Apps Script (script.google.com) เด็ดขาด
 
-const CACHE_NAME = 'mdkkuquiz-v2';
+const CACHE_NAME = 'mdkkuquiz-v3';
 const STATIC_ASSETS = [
     './',
     'index.html',
