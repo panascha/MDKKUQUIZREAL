@@ -371,73 +371,32 @@ window._syncInterval = null;
 window._idleTimeout = null;
 window._currentPollingMode = 'ACTIVE';
 window._isUserIdle = false;
+window._pollTimer = null;
 
 window.startIncrementalPolling = function () {
-    if (window._syncInterval) clearInterval(window._syncInterval);
-    if (window._idleTimeout) clearTimeout(window._idleTimeout);
-
     var INTERVALS = {
-        ACTIVE: 30000,   // 30 seconds
-        IDLE: 120000,    // 2 minutes
-        HIDDEN: 300000   // 5 minutes
+        ACTIVE: 120000, // 2 minutes
+        HIDDEN: 600000  // 10 minutes
     };
 
-    function getOptimalMode() {
-        if (document.hidden) {
-            return 'HIDDEN';
-        }
-        if (window._isUserIdle) {
-            return 'IDLE';
-        }
-        return 'ACTIVE';
+    function checkVersion() {
+        console.log("Auto-checking for data updates...");
+        window.runIncrementalSync();
     }
 
-    function rescheduleSync() {
-        var targetMode = getOptimalMode();
-        if (window._currentPollingMode === targetMode && window._syncInterval) {
-            return; // Maintain running interval if state is identical
-        }
-
-        console.log('[Sync] Adaptive interval adjusted: ' + targetMode + ' (' + INTERVALS[targetMode] + 'ms)');
-        window._currentPollingMode = targetMode;
-
-        if (window._syncInterval) clearInterval(window._syncInterval);
-        window._syncInterval = setInterval(function () {
-            window.runIncrementalSync();
-        }, INTERVALS[targetMode]);
+    function restartPolling() {
+        clearInterval(window._pollTimer);
+        var interval = document.hidden ? INTERVALS.HIDDEN : INTERVALS.ACTIVE;
+        console.log('[Sync] Adaptive interval adjusted: ' + (document.hidden ? 'HIDDEN' : 'ACTIVE') + ' (' + interval + 'ms)');
+        window._pollTimer = setInterval(checkVersion, interval);
     }
 
-    function resetIdleTimer() {
-        if (window._isUserIdle) {
-            window._isUserIdle = false;
-            rescheduleSync();
-        }
+    // Bind clean event listeners
+    document.removeEventListener('visibilitychange', restartPolling);
+    document.addEventListener('visibilitychange', restartPolling);
 
-        if (window._idleTimeout) clearTimeout(window._idleTimeout);
-        window._idleTimeout = setTimeout(function () {
-            window._isUserIdle = true;
-            rescheduleSync();
-        }, 300000); // Trigger idle state after 5 minutes of inactivity
-    }
-
-    // Capture User Inputs
-    document.addEventListener('mousemove', resetIdleTimer);
-    document.addEventListener('keydown', resetIdleTimer);
-
-    // Monitor Visibility Changes
-    document.addEventListener('visibilitychange', function () {
-        if (!document.hidden) {
-            // Trigger instant sync once returning to focus and reset timer
-            window.runIncrementalSync();
-            resetIdleTimer();
-        }
-        rescheduleSync();
-    });
-
-    // Boot Polling Sequence
-    resetIdleTimer();
-    rescheduleSync();
-    console.log('[Sync] Adaptive incremental polling system active');
+    restartPolling();
+    console.log('[Sync] Adaptive incremental polling system active (2 min active / 10 min background)');
 };
 
 
