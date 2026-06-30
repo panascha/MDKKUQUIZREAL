@@ -79,11 +79,7 @@ window.logoutEditModeSilent = function () {
 
 window.resumeSessionFromToken = async function (token) {
     try {
-        const res = await fetch(window.APPSCRIPT_URL, {
-            method: 'POST',
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ action: 'verifySession', sessionToken: token })
-        }).then(r => r.json());
+        const res = await window.sendWithRetry({ action: 'verifySession', sessionToken: token });
 
         if (res.result === 'success') {
             window.EDIT_SESSION = {
@@ -136,11 +132,7 @@ window.handleCredentialResponse = async function (response) {
     });
 
     try {
-        const res = await fetch(window.APPSCRIPT_URL, {
-            method: 'POST',
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ action: "checkGoogleAuth", idToken: idToken })
-        }).then(r => r.json());
+        const res = await window.sendWithRetry({ action: "checkGoogleAuth", idToken: idToken });
 
         if (res.result === "success") {
             if (!res.sessionToken) {
