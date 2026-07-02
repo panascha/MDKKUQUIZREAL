@@ -140,15 +140,41 @@ window.highlight = function (text) {
     if (!text) return "";
     let highlightedText = String(text);
 
-    for (const term in window.APP.termColors) {
-        if (!term) continue;
-        const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(`(${safeTerm})`, 'gi');
-        const color = window.APP.termColors[term];
-
-        highlightedText = highlightedText.replace(regex, `<mark style="background-color: ${color}; color: #000; padding: 0 2px; border-radius: 2px;">$1</mark>`);
+    // 1. If there are no terms to highlight, return original text immediately
+    if (!window.APP.termColors || Object.keys(window.APP.termColors).length === 0) {
+        return highlightedText;
     }
-    return highlightedText;
+
+    // 2. Sort terms by length in descending order to match longer terms/phrases first
+    const terms = Object.keys(window.APP.termColors)
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length);
+
+    if (terms.length === 0) return highlightedText;
+
+    // 3. Escape regex special characters in the search terms
+    const evaporatedTerms = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+    // 4. Create a single-pass regular expression combining all terms
+    const regex = new RegExp(`(${evaporatedTerms.join('|')})`, 'gi');
+
+    // 5. Tokenize the text to separate HTML tags from plain text.
+    // HTML tags end up in odd indices of the split array; plain text in even indices.
+    const tokens = highlightedText.split(/(<[^>]+>)/g);
+
+    // 6. Run replacement ONLY on the plain text tokens (even indices)
+    for (let i = 0; i < tokens.length; i += 2) {
+        if (!tokens[i]) continue;
+        tokens[i] = tokens[i].replace(regex, (match) => {
+            const lowerMatch = match.toLowerCase();
+            const color = window.APP.termColors[lowerMatch];
+            if (!color) return match; // Fallback if no matching color is found
+            return `<mark style="background-color: ${color}; color: #000; padding: 0 2px; border-radius: 2px;">${match}</mark>`;
+        });
+    }
+
+    // 7. Reassemble the tokens back into a single clean string
+    return tokens.join('');
 };
 
 window.performSearch = function () {
