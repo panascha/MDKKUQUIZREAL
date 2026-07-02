@@ -515,7 +515,14 @@ window.showSubmission = function (filter = 'all') {
             const trimmed = c.trim();
             const hasPrefix = /^[A-E]\s*[\.\)]/i.test(trimmed);
             const prefix = hasPrefix ? "" : (String.fromCharCode(65 + ci) + ". ");
-            return `<li style="display: flex; align-items: center; gap: 4px;">${prefix}${renderContent(trimmed)}</li>`;
+
+            if (window.isUrl(trimmed)) {
+                return `<li style="display: flex; align-items: center; gap: 4px;"><span>${prefix}</span><img src="${window.transformUrl(trimmed)}" class="search-card-img" referrerpolicy="no-referrer" onclick="viewFullImage('${window.transformUrl(trimmed)}', event)"></li>`;
+            }
+            if (trimmed.startsWith('<svg')) {
+                return `<li style="display: flex; align-items: center; gap: 4px;"><span>${prefix}</span><div class="svg-render-area" onclick="viewFullImageSVG(this, event)">${trimmed}</div></li>`;
+            }
+            return `<li style="display: flex; align-items: center; gap: 4px;"><span>${prefix}${trimmed}</span></li>`;
         }).join('') : '';
         const isFirstInList = topRowQ && q.questionId === topRowQ.questionId;
 
