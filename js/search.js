@@ -71,6 +71,11 @@ window.levenshtein = function (a, b) {
 };
 
 window.findSuggestions = function (term) {
+    // T3.2: Lazy build — สร้าง Dictionary เมื่อมีการค้นหาจริงครั้งแรก
+    if (window.searchDictionaryDirty || window.searchDictionary.size === 0) {
+        window.buildSearchDictionary();
+        window.searchDictionaryDirty = false;
+    }
     term = term.toLowerCase().replace(/["“”]/g, '').trim();
     if (term.length < 2) return [];
 
@@ -178,6 +183,11 @@ window.highlight = function (text) {
 };
 
 window.performSearch = function () {
+    // T3.2: Lazy build — สร้าง Dictionary เมื่อมีการค้นหาจริงครั้งแรก
+    if (window.searchDictionaryDirty || window.searchDictionary.size === 0) {
+        window.buildSearchDictionary();
+        window.searchDictionaryDirty = false;
+    }
     for (const member in window.APP.termColors) delete window.APP.termColors[member];
     window.APP.colorIndex = 0;
 

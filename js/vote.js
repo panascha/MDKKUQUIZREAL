@@ -3,6 +3,9 @@
 // ปรับปรุงจาก Single Boolean Lock เป็นแบบระบุเจาะจงราย Question ID (Set) เพื่อให้ระบบดาวน์โหลดขนานกันเบื้องหลังได้โดยไม่บล็อกกันเอง
 window.activeVoteFetches = window.activeVoteFetches || new Set();
 
+// T1.1: flag ว่า Bulk Votes/Reports โหลดครบแล้ว — เมื่อ true ไม่ต้อง per-qid fetch อีก
+window._bulkPendingLoaded = false;
+
 window.fetchPendingVotes = function (questionId) {
     if (window.activeVoteFetches.has(questionId)) return;
     window.activeVoteFetches.add(questionId);
@@ -695,5 +698,42 @@ window.submitReportVote = async function (reportTimestamp, delta, questionId) {
         }
     } catch (err) {
         Swal.fire("Error", "ไม่สามารถบันทึกการโหวตได้: " + err.message, "error");
+    }
+};
+
+// ============================================================
+// T1.1 — Bulk Votes/Reports Fetch (ครั้งเดียวต่อ Session)
+// ดึง pending votes + reports ของทุกข้อในวิชาด้วย request เดียว
+// แล้วอัดเข้า pendingVotesCache / pendingReportsCache ทันที
+// qid ที่ไม่ปรากฏใน response = ไม่มีข้อมูล (ใช้ _bulkPendingLoaded
+// เป็น flag ว่า cache miss = known-empty ไม่ต้อง per-qid fallback)
+// ============================================================
+
+window.fetchAllPendingVotesReports = async function (subjectParam) {
+    if (!subjectParam) return;
+    try {
+        const res = await fetch(
+            `${window.APPSCRIPT_URL}?action=getPendingVotesReports&subject=${encodeURIComponent(subjectParam)}&_=${Date.now()}`
+        );
+        const json = await res.json();
+        if (!json || json.status !== 'success' || !json.data) return;
+
+        const votesMap = json.data.votes || {};
+        const reportsMap = json.data.reports || {};
+
+        // เติม cache ด้วยข้อมูลจริงของแต่ละ qid
+        Object.keys(votesMap).forEach(function (qid) {
+            window.APP.pendingVotesCache[qid] = votesMap[qid];
+        });
+        Object.keys(reportsMap).forEach(function (qid) {
+            window.APP.pendingReportsCache[qid] = reportsMap[qid];
+        });
+
+        window._bulkPendingLoaded = true;
+        console.log('[Bulk VR] loaded votes for', Object.keys(votesMap).length,
+            'qids, reports for', Object.keys(reportsMap).length, 'qids');
+    } catch (err) {
+        console.warn('[Bulk VR] fetchAllPendingVotesReports failed:', err);
+        // ไม่ set _bulkPendingLoaded → showQuestion จะ fallback per-qid ตามเดิม
     }
 };

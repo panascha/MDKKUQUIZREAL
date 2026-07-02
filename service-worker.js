@@ -3,7 +3,7 @@
 // และ cache เฉพาะไฟล์ static ของตัวเอง
 // ไม่แตะ requests ไปหา Google Apps Script (script.google.com) เด็ดขาด
 
-const CACHE_NAME = 'mdkkuquiz-v4';
+const CACHE_NAME = 'mdkkuquiz-v5'; // bump ทุกครั้งที่ deploy JS ใหม่ เพื่อให้ SW cache-first ส่งไฟล์ใหม่ถึงผู้ใช้
 const STATIC_ASSETS = [
     './',
     'index.html',
@@ -20,7 +20,8 @@ const STATIC_ASSETS = [
     'js/edit-modal.js',
     'js/app.js',
     'js/pdf-generator.js',
-    'js/grader.js'
+    'js/grader.js',
+    'js/th-sarabun-font.js'
 ];
 
 // ติดตั้ง: cache ไฟล์ static

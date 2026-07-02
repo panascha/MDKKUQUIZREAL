@@ -3,6 +3,23 @@
 // ดึงการตั้งค่าพิกัด OMR และ Font จากหน้า Config
 const OMR_CONFIG = window.OMR_CONFIG;
 
+// T3.1: Lazy-load TH Sarabun font — โหลด js/th-sarabun-font.js เมื่อส่งออก PDF ครั้งแรก
+window.ensureThSarabunFont = function () {
+    if (window.thSarabunBase64) return Promise.resolve();
+    if (window._thSarabunFontPromise) return window._thSarabunFontPromise;
+    window._thSarabunFontPromise = new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = 'js/th-sarabun-font.js';
+        s.onload = resolve;
+        s.onerror = function () {
+            window._thSarabunFontPromise = null; // ล้าง memo เผื่อ retry
+            reject(new Error('Failed to load TH Sarabun font script'));
+        };
+        document.head.appendChild(s);
+    });
+    return window._thSarabunFontPromise;
+};
+
 window.svgToPngBase64 = function (svgString, width = 500, height = 500) {
     return new Promise((resolve, reject) => {
         try {
@@ -123,6 +140,9 @@ window.saveResultsToPdf = async function () {
     $('#pdf-pc-text').text('0%');
     $('#pdf-bar-fill').css('width', '0%');
     $('#pdf-progress-widget').fadeIn();
+
+    // T3.1: โหลด font แบบ lazy (ไม่โหลดตั้งแต่ startup)
+    await window.ensureThSarabunFont();
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
@@ -324,6 +344,9 @@ window.savePracticeSheetToPdf = async function () {
     $('#pdf-pc-text').text('0%');
     $('#pdf-bar-fill').css('width', '0%');
     $('#pdf-progress-widget').show();
+
+    // T3.1: โหลด font แบบ lazy (ไม่โหลดตั้งแต่ startup)
+    await window.ensureThSarabunFont();
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });

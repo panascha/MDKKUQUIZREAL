@@ -121,13 +121,19 @@ window.showQuestion = function (shouldFocus = true) {
     if (window.APP.pendingVotesCache[window.APP.current_question.questionId]) {
         window.renderVoteNotificationUI(window.APP.current_question.questionId, window.APP.pendingVotesCache[window.APP.current_question.questionId]);
     }
-    window.fetchPendingVotes(window.APP.current_question.questionId);
+    // T1.1: per-qid fetch เฉพาะกรณี bulk ยังไม่เสร็จ (fallback สำหรับข้อปัจจุบัน)
+    if (!window._bulkPendingLoaded) {
+        window.fetchPendingVotes(window.APP.current_question.questionId);
+    }
 
     $('#report-notification-bar').empty();
     if (window.APP.pendingReportsCache[window.APP.current_question.questionId]) {
         window.renderReportNotificationUI(window.APP.current_question.questionId, window.APP.pendingReportsCache[window.APP.current_question.questionId]);
     }
-    window.fetchPendingReports(window.APP.current_question.questionId);
+    // T1.1: per-qid fetch เฉพาะกรณี bulk ยังไม่เสร็จ (fallback สำหรับข้อปัจจุบัน)
+    if (!window._bulkPendingLoaded) {
+        window.fetchPendingReports(window.APP.current_question.questionId);
+    }
 
     let categoryName = "";
     window.APP.current_question.category.forEach(catId => {
@@ -218,7 +224,10 @@ window.showQuestion = function (shouldFocus = true) {
     if (window.APP.pendingVotesCache[window.APP.current_question.questionId]) {
         window.renderVoteNotificationUI(window.APP.current_question.questionId, window.APP.pendingVotesCache[window.APP.current_question.questionId]);
     }
-    window.fetchPendingVotes(window.APP.current_question.questionId);
+    // T1.1: per-qid fetch เฉพาะกรณี bulk ยังไม่เสร็จ
+    if (!window._bulkPendingLoaded) {
+        window.fetchPendingVotes(window.APP.current_question.questionId);
+    }
 
     // Sync Edit Mode button status
     if (window.EDIT_SESSION && window.EDIT_SESSION.isLoggedIn) {
@@ -234,25 +243,6 @@ window.showQuestion = function (shouldFocus = true) {
     setTimeout(window.renderAllMath, 50);
 
     if ($('#quick-cat-container').is(':visible')) { window.renderQuickCatPanel(); }
-
-    // [เพิ่ม] ระบบดาวน์โหลดข้อมูลการโหวต/รายงานล่วงหน้า (Background Prefetching) 
-    // ช่วยโหลดข้อถัดไป (+1, +2) และข้อก่อนหน้า (-1) มาอุ่นรอในแคชเบื้องหลังเงียบๆ ทันที
-    setTimeout(() => {
-        const prefetchIndices = [window.APP.questionIndex + 1, window.APP.questionIndex + 2, window.APP.questionIndex - 1];
-        prefetchIndices.forEach(idx => {
-            if (idx >= 0 && idx < window.APP.currentQuestions.length) {
-                const targetQ = window.APP.currentQuestions[idx];
-                if (targetQ && targetQ.questionId) {
-                    if (!window.APP.pendingReportsCache[targetQ.questionId]) {
-                        window.fetchPendingReports(targetQ.questionId);
-                    }
-                    if (!window.APP.pendingVotesCache[targetQ.questionId]) {
-                        window.fetchPendingVotes(targetQ.questionId);
-                    }
-                }
-            }
-        });
-    }, 300);
 };
 
 // 4. ระบบการเดินหน้า / ถอยหลังของคำถาม

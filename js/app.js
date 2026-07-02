@@ -374,29 +374,31 @@ window._isUserIdle = false;
 window._pollTimer = null;
 
 window.startIncrementalPolling = function () {
+    // T2.1: เพิ่ม interval เป็น 5 นาที (active) + random jitter ±30s เพื่อกระจาย herd
     var INTERVALS = {
-        ACTIVE: 120000, // 2 minutes
+        ACTIVE: 300000, // 5 minutes
         HIDDEN: 600000  // 10 minutes
     };
 
-    function checkVersion() {
-        console.log("Auto-checking for data updates...");
-        window.runIncrementalSync();
+    function scheduleNextPoll() {
+        clearTimeout(window._pollTimer);
+        var base = document.hidden ? INTERVALS.HIDDEN : INTERVALS.ACTIVE;
+        var jitter = Math.floor(Math.random() * 60000) - 30000; // ±30000ms
+        var delay = Math.max(30000, base + jitter); // ไม่ต่ำกว่า 30s ต่อให้ jitter ดึงต่ำ
+        console.log('[Sync] Next poll in ' + Math.round(delay / 1000) + 's (' + (document.hidden ? 'HIDDEN' : 'ACTIVE') + ')');
+        window._pollTimer = setTimeout(function () {
+            console.log("Auto-checking for data updates...");
+            window.runIncrementalSync();
+            scheduleNextPoll();
+        }, delay);
     }
 
-    function restartPolling() {
-        clearInterval(window._pollTimer);
-        var interval = document.hidden ? INTERVALS.HIDDEN : INTERVALS.ACTIVE;
-        console.log('[Sync] Adaptive interval adjusted: ' + (document.hidden ? 'HIDDEN' : 'ACTIVE') + ' (' + interval + 'ms)');
-        window._pollTimer = setInterval(checkVersion, interval);
-    }
+    // ปรับ schedule ใหม่เมื่อ visibility เปลี่ยน (เพื่อใช้ interval ที่เหมาะสม)
+    document.removeEventListener('visibilitychange', scheduleNextPoll);
+    document.addEventListener('visibilitychange', scheduleNextPoll);
 
-    // Bind clean event listeners
-    document.removeEventListener('visibilitychange', restartPolling);
-    document.addEventListener('visibilitychange', restartPolling);
-
-    restartPolling();
-    console.log('[Sync] Adaptive incremental polling system active (2 min active / 10 min background)');
+    scheduleNextPoll();
+    console.log('[Sync] Adaptive incremental polling system active (5 min active / 10 min background, ±30s jitter)');
 };
 
 
@@ -671,7 +673,7 @@ window.initApp = async function () {
         window.renderAccordionUI(window.APP.globalStructure);
         window.renderAnnouncementsUI(window.APP.globalStructure.announcements || []);
         window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิก
-        window.buildSearchDictionary();
+        window.searchDictionaryDirty = true; // T3.2: Lazy build — สร้าง Dictionary เมื่อค้นหาจริง
         window.updateSubjectUI(subjectParam);
         loadedSuccessfully = true;
 
@@ -687,11 +689,22 @@ window.initApp = async function () {
         const resVer = await fetch(`${window.APPSCRIPT_URL}?action=checkVersion&_=${Date.now()}`).then(r => r.json());
         const serverVersion = resVer.v;
 
-        if (localVer !== serverVersion || !localData) {
-            const [resStruct, resQues] = await Promise.all([
+        if (!localData) {
+            // ─── T3.6: First Run — ดึงทุกอย่างใน Parallel รวม Structure ไม่ filter สำหรับ Dropdown ───
+            const initFetchPromises = [
                 fetch(`${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`).then(r => r.json()),
                 fetch(`${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}&_=${Date.now()}`).then(r => r.json())
-            ]);
+            ];
+            // ดึง Structure ทั้งหมด (ไม่ filter) พร้อมกันเพื่อ populate dropdown — เฉพาะเมื่อมี subject filter
+            if (subjectParam) {
+                initFetchPromises.push(
+                    fetch(`${window.APPSCRIPT_URL}?action=getStructure&_=${Date.now()}`).then(r => r.json())
+                );
+            }
+            const initResults = await Promise.all(initFetchPromises);
+            const resStruct = initResults[0];
+            const resQues   = initResults[1];
+            const resAllStruct = initResults[2]; // undefined เมื่อ subjectParam ว่าง (scoped = full ในกรณีนั้น)
 
             const newData = {
                 structure: resStruct,
@@ -704,19 +717,100 @@ window.initApp = async function () {
 
             await window.setCacheDB(cacheKey, newData);
             await window.setCacheDB(verKey, serverVersion);
-
-            // บันทึก Last Sync Time เฉพาะเมื่อมีการ Fetch ข้อมูลสำเร็จจริงเท่านั้น
             await window.saveLastSyncTime(subjectParam, Date.now());
+
+            // T3.6: แคช subjects list ล่วงหน้า ป้องกัน getStructure ซ้ำใน populateSubjectSelector
+            const subjectsSource = resAllStruct || resStruct;
+            if (subjectsSource && subjectsSource.subjects) {
+                const uniqueSubjs = [];
+                const seen = new Set();
+                subjectsSource.subjects.forEach(s => {
+                    if (s.subjectId && !seen.has(s.subjectId)) {
+                        seen.add(s.subjectId);
+                        uniqueSubjs.push({ id: s.subjectId, name: s.subjectName, year: s.year });
+                    }
+                });
+                await window.setCacheDB('all_subjects_list_v2', uniqueSubjs);
+            }
 
             window.APP.globalStructure = newData.structure;
             window.APP.allQuestions = newData.questions;
             window.renderAccordionUI(window.APP.globalStructure);
             window.renderAnnouncementsUI(window.APP.globalStructure.announcements || []);
             window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิกสำหรับการรันครั้งแรก
-            window.buildSearchDictionary();
-            
-            if (localData) {
-                // อัปเดตชุดคำถามทันทีหากมีข้อมูลใหม่เข้ามาระหว่างเริ่ม เพื่อไม่ให้โชว์ข้อมูลเก่าในหน่วยความจำค้าง
+            window.searchDictionaryDirty = true; // T3.2: Lazy build
+            loadedSuccessfully = true;
+
+        } else if (localVer !== serverVersion) {
+            // ─── T1.2: Cache มีอยู่ แต่ Version ต่าง → Incremental Sync ก่อน, Fallback full-fetch ถ้าล้มเหลว ───
+            let incrementalOk = false;
+            try {
+                const lastSync = await window.getLastSyncTime(subjectParam);
+                const changedUrl = `${window.APPSCRIPT_URL}?action=getChangedSince&since=${lastSync}${subjectParam ? '&subject=' + subjectParam : ''}&_=${Date.now()}`;
+                const res = await fetch(changedUrl).then(r => r.json());
+
+                if (res.changed && res.changed.length > 0) {
+                    // มีคำถามเปลี่ยนแปลง: merge เข้า cache แล้วอัปเดต memory
+                    await window.mergeChangedQuestionsToCache(res.changed, subjectParam);
+
+                    const mergedCache = await window.getCacheDB(cacheKey);
+                    if (mergedCache) {
+                        window.APP.allQuestions = mergedCache.questions.map(q => ({
+                            ...q,
+                            category: Array.isArray(q.category) ? q.category : (q.category ? [q.category] : [])
+                        }));
+                        window.searchDictionaryDirty = true; // T3.2
+                        window.updateQuestionSet(false, true);
+                    }
+                } else {
+                    // ไม่มีคำถามเปลี่ยน แต่ version ต่าง → Structure/Category เปลี่ยน
+                    const structUrl = `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`;
+                    const structRes = await fetch(structUrl).then(r => r.json());
+                    if (structRes && structRes.subjects) {
+                        const existingCache = await window.getCacheDB(cacheKey);
+                        if (existingCache) {
+                            existingCache.structure = structRes;
+                            await window.setCacheDB(cacheKey, existingCache);
+                            window.APP.globalStructure = structRes;
+                            window.renderAccordionUI(window.APP.globalStructure);
+                            window.renderAnnouncementsUI(window.APP.globalStructure.announcements || []);
+                            console.log('[initApp] Structure & Categories updated (incremental)');
+                        }
+                    }
+                }
+
+                await window.setCacheDB(verKey, serverVersion);
+                await window.saveLastSyncTime(subjectParam, res.serverTime || Date.now());
+                incrementalOk = true;
+
+            } catch (incErr) {
+                console.warn('[initApp] Incremental sync failed, falling back to full fetch:', incErr);
+            }
+
+            if (!incrementalOk) {
+                // Fallback: Full re-download
+                const [resStruct, resQues] = await Promise.all([
+                    fetch(`${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`).then(r => r.json()),
+                    fetch(`${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}&_=${Date.now()}`).then(r => r.json())
+                ]);
+                const newData = {
+                    structure: resStruct,
+                    questions: resQues.map((q, index) => ({
+                        ...q,
+                        _originalIndex: index,
+                        category: Array.isArray(q.category) ? q.category : (q.category ? [q.category] : [])
+                    }))
+                };
+                await window.setCacheDB(cacheKey, newData);
+                await window.setCacheDB(verKey, serverVersion);
+                await window.saveLastSyncTime(subjectParam, Date.now());
+
+                window.APP.globalStructure = newData.structure;
+                window.APP.allQuestions = newData.questions;
+                window.renderAccordionUI(window.APP.globalStructure);
+                window.renderAnnouncementsUI(window.APP.globalStructure.announcements || []);
+                window.renderAttributeFilterUI();
+                window.searchDictionaryDirty = true; // T3.2
                 window.updateQuestionSet(false, true);
             }
             loadedSuccessfully = true;
@@ -733,9 +827,27 @@ window.initApp = async function () {
             await window.checkAndPromptRestoreProgress(sessionKey);
         }
 
+        // T1.1: ดาวน์โหลด Pending Votes/Reports แบบ Bulk ครั้งเดียวต่อ Session (fire-and-forget)
+        // ไม่รอ await — ไม่บล็อก first render; เมื่อเสร็จจะ re-render badge ข้อปัจจุบัน
+        if (loadedSuccessfully && subjectParam) {
+            window.fetchAllPendingVotesReports(subjectParam).then(function () {
+                var curQ = window.APP.current_question;
+                if (curQ && curQ.questionId) {
+                    if (window.APP.pendingVotesCache[curQ.questionId]) {
+                        window.renderVoteNotificationUI(curQ.questionId, window.APP.pendingVotesCache[curQ.questionId]);
+                    }
+                    if (window.APP.pendingReportsCache[curQ.questionId]) {
+                        window.renderReportNotificationUI(curQ.questionId, window.APP.pendingReportsCache[curQ.questionId]);
+                    }
+                }
+            }).catch(function (err) {
+                console.warn('[Bulk VR] startup fetch failed:', err);
+            });
+        }
+
         // บูตระบบ Incremental Sync ทำงานในฝั่งผู้ใช้งาน (มีตัวรับส่งที่พร้อม 100%)
         window.startPendingUpdateWatcher();   // ตัวคอยตรวจสิทธิ์ว่างทุกๆ 5 วินาที
-        window.startIncrementalPolling();      // บูตลูปตรวจสอบเซิร์ฟเวอร์ทุกๆ 30 วินาที
+        window.startIncrementalPolling();      // บูตลูปตรวจสอบเซิร์ฟเวอร์ทุกๆ 5 นาที (active) / 10 นาที (background)
 
         window.checkPendingReports();
         window.finishLoading();

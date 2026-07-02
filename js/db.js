@@ -4,7 +4,9 @@ const dbName = "MDKKU_Quiz_DB";
 const storeName = "quiz_cache";
 
 window.openDB = function () {
-    return new Promise((resolve, reject) => {
+    // T3.3: Memoize — เปิด IndexedDB แค่ครั้งเดียว ส่ง Promise เดิมซ้ำ
+    if (window._dbConnPromise) return window._dbConnPromise;
+    window._dbConnPromise = new Promise((resolve, reject) => {
         const request = indexedDB.open(dbName, 1);
         request.onupgradeneeded = (e) => {
             const db = e.target.result;
@@ -12,9 +14,18 @@ window.openDB = function () {
                 db.createObjectStore(storeName);
             }
         };
-        request.onsuccess = (e) => resolve(e.target.result);
-        request.onerror = (e) => reject(e.target.error);
+        request.onsuccess = (e) => {
+            const db = e.target.result;
+            // เมื่อ connection ถูกปิดจากภายนอก ล้าง memo เพื่อให้ call ต่อไป reopen ได้
+            db.onclose = function () { window._dbConnPromise = null; };
+            resolve(db);
+        };
+        request.onerror = (e) => {
+            window._dbConnPromise = null; // ล้าง memo เมื่อ open ล้มเหลว
+            reject(e.target.error);
+        };
     });
+    return window._dbConnPromise;
 };
 
 window.setCacheDB = async function (key, data) {
