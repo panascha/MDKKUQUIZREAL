@@ -807,6 +807,7 @@ window.loadChatbotModelCatalog = async function () {
         if (res.result !== 'success') throw new Error('catalog fetch failed');
 
         window._chatbotCatalog = res.catalog;
+        window._chatbotDonors = res.donors || [];
 
         var $select = $('#chatbot-model-select');
         $select.empty();
@@ -825,11 +826,35 @@ window.loadChatbotModelCatalog = async function () {
     } catch (e) {
         console.warn('[Chatbot] Model catalog load failed, using minimal fallback list', e);
         window._chatbotCatalog = null;
+        window._chatbotDonors = [];
         $('#chatbot-model-select').html(
             '<option value="__auto__" selected>🤖 Auto — เลือกโมเดลอัตโนมัติ (แนะนำ)</option>' +
             '<option value="deepseek-v4-pro">Deepseek V4 Pro</option>'
         );
     }
+};
+
+// Feedback (👍/😐/👎) ต่อคำตอบ AI — หนึ่งเสียงต่อหนึ่งฟองคำตอบ, fire-and-forget
+window._chatbotFeedbackCtx = {};
+window._chatbotFeedbackSeq = 0;
+
+window.submitAiFeedbackRating = function (fbId, rating, btn) {
+    $('#ai-fb-' + fbId + ' button').prop('disabled', true).css('opacity', 0.4);
+    $(btn).css('opacity', 1);
+    $('#ai-fb-' + fbId).append('<span style="margin-left:4px;">ขอบคุณ!</span>');
+
+    var ctx = window._chatbotFeedbackCtx[fbId] || {};
+    delete window._chatbotFeedbackCtx[fbId];
+    window.sendWithRetry({
+        action: 'submitAiFeedback',
+        rating: rating,
+        model: ctx.model || '',
+        questionId: ctx.questionId || '',
+        subject: ctx.subject || '',
+        promptSnippet: ctx.promptSnippet || '',
+        answerSnippet: ctx.answerSnippet || '',
+        sessionToken: localStorage.getItem('mdkku_session_token') || 'guest_user'
+    }).catch(function () { /* fire-and-forget */ });
 };
 
 // ส่งคำถามนิสิต + context ข้อสอบปัจจุบันไป askAIExpert (provider: IntelSphere)
@@ -882,10 +907,25 @@ window.sendChatbotQuery = async function () {
                 ? '<div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:4px;">' +
                 'ℹ️ โควต้าของโมเดลที่เลือกหมดชั่วคราว ระบบตอบด้วย <b>' + servedSafe + '</b> แทน</div>'
                 : '';
+            // เก็บ context ไว้ส่งกับ feedback (👍/😐/👎) — ลบทิ้งหลังส่ง
+            var fbId = ++window._chatbotFeedbackSeq;
+            window._chatbotFeedbackCtx[fbId] = {
+                model: res.servedModel || model,
+                questionId: q.questionId || '',
+                subject: new URLSearchParams(location.search).get('subject') || '',
+                promptSnippet: query.slice(0, 200),
+                answerSnippet: String(res.answer || '').slice(0, 200)
+            };
+            var fbBar =
+                '<div class="ai-fb-bar" id="ai-fb-' + fbId + '">คำตอบนี้เป็นยังไง?' +
+                '<button type="button" onclick="window.submitAiFeedbackRating(' + fbId + ',\'good\',this)">👍</button>' +
+                '<button type="button" onclick="window.submitAiFeedbackRating(' + fbId + ',\'neutral\',this)">😐</button>' +
+                '<button type="button" onclick="window.submitAiFeedbackRating(' + fbId + ',\'bad\',this)">👎</button>' +
+                '</div>';
             $conv.append(
                 '<div class="chat-md" style="align-self:flex-start;background:var(--color-surface-3);color:var(--color-text);' +
                 'padding:8px 12px;border-radius:12px 12px 12px 0;max-width:85%;font-weight:500;font-size:0.95rem;">' +
-                autoBadge + switchNote + safeAnswer + '</div>'
+                autoBadge + switchNote + safeAnswer + fbBar + '</div>'
             );
         } else {
             $conv.append(

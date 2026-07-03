@@ -824,6 +824,20 @@ $(function () {
         $('#donate-modal-card').fadeOut();
     });
 
+    // --- Donate API Key (KKU IntelSphere) ---
+    $('#donate-key-btn').on('click', () => window.openDonateKeyModal());
+
+    $('#close-donate-key-modal').on('click', () => {
+        $('#donate-key-modal-card').fadeOut();
+    });
+
+    $('#donate-key-anon').on('change', function () {
+        $('#donate-key-name').prop('disabled', this.checked);
+        if (this.checked) $('#donate-key-name').val('');
+    });
+
+    $('#btn-submit-donate-key').on('click', () => window.submitDonatedKey());
+
     // --- จัดการปุ่มสลับการซูมและควบคุมตำแหน่งสกรอลล์ ---
     $('#zoom-in-btn').on('click', function () {
         if (window.currentZoom < window.maxZoom) {
@@ -889,7 +903,7 @@ $(function () {
     // --- การดักจับคีย์บอร์ดลัด (Keyboard Shortcuts Navigation) ---
     $(document).on('keydown', function (e) {
         if ($('#search-input').is(':focus') || $(document.activeElement).is('input, textarea')) return;
-        if ($('#report-card').is(":visible") || $('#progress-modal-card').is(":visible") || $('#pdf-choice-modal').is(":visible") || $('#vote-category-modal').is(":visible") || $('#donate-modal-card').is(":visible")) return;
+        if ($('#report-card').is(":visible") || $('#progress-modal-card').is(":visible") || $('#pdf-choice-modal').is(":visible") || $('#vote-category-modal').is(":visible") || $('#donate-modal-card').is(":visible") || $('#donate-key-modal-card').is(":visible")) return;
 
         if (e.key === 'ArrowRight') {
             window.nextQuestion();
@@ -1650,4 +1664,67 @@ window.renderWeaknessStats = function () {
 
     html += '</div>';
     $container.html(html);
+};
+// =========================================================
+// Donate API Key (KKU IntelSphere) — modal + submit
+// =========================================================
+
+window.openDonateKeyModal = function () {
+    window.renderDonorCredits();
+    $('#donate-key-modal-card').fadeIn();
+};
+
+// รายชื่อผู้บริจาคจาก listModels (window._chatbotDonors ตั้งค่าใน loadChatbotModelCatalog)
+window.renderDonorCredits = function () {
+    var donors = window._chatbotDonors || [];
+    var $list = $('#donor-credits-list');
+    if (donors.length === 0) {
+        $list.text('ยังไม่มีรายชื่อ — เป็นคนแรกได้เลย!');
+        return;
+    }
+    $list.empty();
+    donors.forEach(function (name) {
+        $list.append(
+            $('<span>').text(name).css({
+                display: 'inline-block', background: 'var(--color-surface-3)',
+                borderRadius: '12px', padding: '2px 10px', margin: '2px 4px 2px 0', fontWeight: 600
+            })
+        );
+    });
+};
+
+window.submitDonatedKey = async function () {
+    var apiKey = $('#donate-key-input').val().trim();
+    if (!apiKey) {
+        Swal.fire('กรุณาวาง API Key ก่อนส่ง', '', 'warning');
+        return;
+    }
+    var donorName = $('#donate-key-anon').is(':checked') ? '' : $('#donate-key-name').val().trim();
+
+    var $btn = $('#btn-submit-donate-key');
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ Key...');
+
+    try {
+        var res = await window.sendWithRetry({
+            action: 'seedIntelSphereKey',
+            apiKey: apiKey,
+            donorName: donorName,
+            notes: 'donated via web form',
+            sessionToken: localStorage.getItem('mdkku_session_token') || ''
+        });
+
+        if (res.result === 'success') {
+            $('#donate-key-input').val('');
+            $('#donate-key-name').val('');
+            $('#donate-key-modal-card').fadeOut();
+            Swal.fire('สำเร็จ 💖', res.message || 'ขอบคุณสำหรับการบริจาค!', 'success');
+            window.loadChatbotModelCatalog(); // refresh catalog + donor list ด้วย key ใหม่
+        } else {
+            Swal.fire('บริจาคไม่สำเร็จ', res.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+        }
+    } catch (e) {
+        Swal.fire('บริจาคไม่สำเร็จ', 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่ภายหลัง', 'error');
+    } finally {
+        $btn.prop('disabled', false).html('<i class="fas fa-key"></i> บริจาค Key');
+    }
 };

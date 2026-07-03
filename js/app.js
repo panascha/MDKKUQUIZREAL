@@ -163,6 +163,7 @@ window.isUserBusy = function () {
     if ($('#pdf-choice-modal').is(':visible')) return true;
     if ($('#progress-modal-card').is(':visible')) return true;
     if ($('#donate-modal-card').is(':visible')) return true;
+    if ($('#donate-key-modal-card').is(':visible')) return true;
     if ($('#auto-grader-modal').is(':visible')) return true;
     if ($('#quiz-edit-modal').is(':visible')) return true;
 

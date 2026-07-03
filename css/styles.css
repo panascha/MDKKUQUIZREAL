@@ -3667,3 +3667,25 @@ body.chatbot-open #chatbot-fab {
         transform: none;
     }
 }
+/* --- AI answer feedback bar (👍/😐/👎 ใต้ฟองคำตอบ chatbot) --- */
+.ai-fb-bar {
+    margin-top: 6px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.ai-fb-bar button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 2px;
+    line-height: 1;
+}
+
+.ai-fb-bar button:disabled {
+    cursor: default;
+}

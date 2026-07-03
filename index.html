@@ -555,6 +555,72 @@
             </div>
         </div>
 
+        <!-- 5.1 Donate API Key Modal (KKU IntelSphere) -->
+        <div id="donate-key-modal-card" class="modal-card">
+            <div class="modal-body">
+                <h5 class="modal-title" style="color: #0d9488;">บริจาค API Key (KKU IntelSphere) 🔑</h5>
+
+                <div class="modal-section"
+                    style="background-color: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <h6 style="font-size: 1.1rem; color: var(--color-text); margin-bottom: 9px;">วิธีขอ API Key (ฟรี สำหรับชาว มข.)</h6>
+                    <ol class="small-text" style="color: var(--color-text-muted); padding-left: 20px; margin-bottom: 9px; line-height: 1.8;">
+                        <li>เข้า <a href="https://gen.ai.kku.ac.th" target="_blank" rel="noopener">gen.ai.kku.ac.th</a> แล้ว login ด้วยบัญชี KKU</li>
+                        <li>คลิกไอคอน ⚙️ <b>Settings</b> ที่แถบด้านซ้าย</li>
+                        <li>เลือกเมนู <b>API Platform</b> (For developers)</li>
+                        <li>ในแท็บ Introduction กด <b>Copy</b> ที่ช่อง api_key (หรือกด <b>Generate New Key</b> ถ้ายังไม่มี) แล้วนำมาวางด้านล่าง</li>
+                    </ol>
+                    <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+                        <img src="assets/KKU Intelsphere API Key flow/1.png" alt="ขั้นตอน 1: กด Settings"
+                            onclick="window.viewFullImage(this.src, event)"
+                            style="width: 30%; min-width: 90px; border-radius: 6px; border: 1px solid var(--color-border); cursor: zoom-in;">
+                        <img src="assets/KKU Intelsphere API Key flow/2.png" alt="ขั้นตอน 2: เลือก API Platform"
+                            onclick="window.viewFullImage(this.src, event)"
+                            style="width: 30%; min-width: 90px; border-radius: 6px; border: 1px solid var(--color-border); cursor: zoom-in;">
+                        <img src="assets/KKU Intelsphere API Key flow/3.png" alt="ขั้นตอน 3: Copy api_key"
+                            onclick="window.viewFullImage(this.src, event)"
+                            style="width: 30%; min-width: 90px; border-radius: 6px; border: 1px solid var(--color-border); cursor: zoom-in;">
+                    </div>
+                </div>
+
+                <div class="modal-section" style="background-color: #FFFBEB; border: 2px solid #FCD34D;">
+                    <h6 style="font-size: 1.1rem; color: #92400E; margin-bottom: 9px;">Key ของคุณจะถูกใช้ทำอะไรบ้าง</h6>
+                    <ul class="small-text" style="color: #92400E; padding-left: 20px; margin-bottom: 0; line-height: 1.8;">
+                        <li>ตอบคำถามของเพื่อนๆ ผ่าน AI Study Assistant บนเว็บนี้</li>
+                        <li>ทีมพัฒนาใช้โควต้าจาก pool เพื่อปรับปรุงเว็บ (เช่น สร้างคำอธิบายเฉลย)</li>
+                        <li>ระบบเก็บ feedback (ดี/เฉยๆ/แย่) ต่อคำตอบ AI เพื่อพัฒนาต่อ</li>
+                        <li>Key ที่บริจาคอาจถูกใช้รันงานสร้างเนื้อหาแบบ batch ช่วงกลางคืน โดยจำกัดการใช้ต่อ Key ต่อคืน</li>
+                    </ul>
+                </div>
+
+                <div class="modal-section"
+                    style="background-color: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <label for="donate-key-name" class="small-text" style="font-weight: 600;">ชื่อผู้บริจาค (แสดงในหน้าขอบคุณ)</label>
+                    <input type="text" id="donate-key-name" class="edit-choice-input" placeholder="เช่น ปอนด์ ปี 2"
+                        style="width: 100%; margin: 4px 0 8px;">
+                    <label class="small-text" style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
+                        <input type="checkbox" id="donate-key-anon"> ไม่ประสงค์ออกนาม
+                    </label>
+                    <label for="donate-key-input" class="small-text" style="font-weight: 600;">API Key</label>
+                    <input type="text" id="donate-key-input" class="edit-choice-input" placeholder="sk_..." autocomplete="off"
+                        style="width: 100%; margin: 4px 0 6px;">
+                    <p class="small-text" style="color: var(--color-text-muted); margin-bottom: 0;">
+                        Key จะถูกตรวจสอบกับระบบ IntelSphere ก่อนบันทึก</p>
+                </div>
+
+                <div class="modal-section"
+                    style="background-color: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <h6 style="font-size: 1.1rem; color: var(--color-text); margin-bottom: 9px;">ขอบคุณผู้บริจาค 💖</h6>
+                    <div id="donor-credits-list" class="small-text" style="color: var(--color-text-muted);"></div>
+                </div>
+
+                <div class="controls-container" style="padding-top: 0; border-top: none;">
+                    <button id="close-donate-key-modal" class="quiz-button btn-light">ปิด</button>
+                    <button id="btn-submit-donate-key" class="quiz-button btn-dark">
+                        <i class="fas fa-key"></i> บริจาค Key</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 1.2 Image Library Modal (Shared with Database Center) -->
         <div id="quiz-image-library-modal" class="modal-card" style="z-index: 2100;">
             <div class="modal-body" style="max-width: 1000px; width: 95vw;">
@@ -776,6 +842,10 @@
                             <button id="donate-coffee-btn" class="quiz-button"
                                 style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;">
                                 <i class="fas fa-mug-hot" style="color: #92400E;"></i> Donate ค่ากาแฟ ☕
+                            </button>
+                            <button id="donate-key-btn" class="quiz-button"
+                                style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;">
+                                <i class="fas fa-key" style="color: #0d9488;"></i> บริจาค API Key (AI)
                             </button>
                         </div>
                     </details>
@@ -1007,7 +1077,8 @@
             </button>
         </div>
         <div style="margin-top: 8px; font-size: 0.8rem; color: var(--color-text-muted); text-align: right;">
-            ขับเคลื่อนโดย KKU IntelSphere · โควต้าแบ่งปันจากผู้บริจาค · สูงสุด 15 ครั้ง/ชม.
+            ขับเคลื่อนโดย KKU IntelSphere · โควต้าแบ่งปันจากผู้บริจาค · สูงสุด 15 ครั้ง/ชม. ·
+            <a href="#" onclick="window.openDonateKeyModal(); return false;" style="color: var(--color-primary);">บริจาค Key</a>
         </div>
     </div>
 
