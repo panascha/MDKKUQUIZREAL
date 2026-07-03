@@ -859,7 +859,31 @@
 
             <p id="feedback"></p>
             <div id="quiz-explain-container" style="margin: 0 20px 10px;"></div>
-            
+
+            <!-- AI Clinical Study Assistant — IntelSphere Shared Pool -->
+            <div id="quiz-chatbot-panel" style="margin: 10px 20px; border: 1.5px solid var(--color-border); border-radius: var(--border-radius); background: var(--color-surface-2); padding: 14px; display: none; text-align: left; box-sizing: border-box; font-family: var(--font-primary);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px;">
+                    <span style="font-weight: 800; font-size: 1.15rem; color: var(--color-primary); display: inline-flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-robot"></i> AI Study Assistant (ถามตอบรายข้อ)
+                    </span>
+                    <select id="chatbot-model-select" class="field-input" style="width: auto; height: 32px; padding: 0 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border-radius: 6px;">
+                        <option value="" disabled selected>กำลังโหลดรายชื่อโมเดล...</option>
+                    </select>
+                </div>
+                <div id="chatbot-conversation" style="max-height: 220px; overflow-y: auto; background: var(--color-surface); padding: 10px; border-radius: 8px; border: 1px solid var(--color-border-soft); margin-bottom: 12px; font-size: 1.05rem; display: flex; flex-direction: column; gap: 8px;">
+                    <p class="text-muted mb-0" style="font-style: italic;">พิมพ์คำถามเพื่อให้ AI อธิบายกลไกการเกิดโรคหรือขยายความเฉลยได้ทันที...</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="chatbot-input" class="edit-choice-input" style="flex: 1;" placeholder="เช่น ทำไมถึงไม่ใช่ข้อ C? อธิบาย mechanism หน่อยได้ไหม">
+                    <button type="button" class="btn-xs teal" id="btn-send-chat" onclick="window.sendChatbotQuery()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div style="margin-top: 8px; font-size: 0.8rem; color: var(--color-text-muted); text-align: right;">
+                    ขับเคลื่อนโดย KKU IntelSphere · โควต้าแบ่งปันจากผู้บริจาค · สูงสุด 15 ครั้ง/ชม.
+                </div>
+            </div>
+
             <div class="nav-container">
                 <button id="prev-question" class="quiz-button btn-dark">
                     <i class="fas fa-chevron-left" style="margin-right: 5px;"></i> ก่อนหน้า

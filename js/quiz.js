@@ -597,3 +597,127 @@ window.renderExplainMediaInQuiz = function (explainRaw, containerSelector) {
         $container.append($mediaDiv);
     }
 };
+
+/*
+   =========================================
+   AI Study Assistant — KKU IntelSphere Shared Pool
+   (Idea/interested-using-kkuintel.md — v7: per-question only, no RAG)
+   =========================================
+*/
+
+// โหลด catalog โมเดลจาก backend (listModels) มาเติม dropdown
+window.loadChatbotModelCatalog = async function () {
+    try {
+        var res = await window.sendWithRetry({ action: 'listModels' });
+        if (res.result !== 'success') throw new Error('catalog fetch failed');
+
+        var $select = $('#chatbot-model-select');
+        $select.empty();
+
+        var providerOrder = ["Deepseek", "Gemini", "Meta", "Nova", "xAI", "Qwen", "OpenAI", "Claude", "Mistral", "MiniMax"];
+        providerOrder.forEach(function (provider) {
+            var models = res.catalog[provider];
+            if (!models || models.length === 0) return;
+            var $group = $('<optgroup>').attr('label', provider);
+            models.forEach(function (modelId) { $group.append($('<option>').val(modelId).text(modelId)); });
+            $select.append($group);
+        });
+
+        var deepseekModels = res.catalog["Deepseek"];
+        if (deepseekModels && deepseekModels.indexOf("deepseek-v4-pro") >= 0) {
+            $select.val("deepseek-v4-pro");
+        }
+    } catch (e) {
+        console.warn('[Chatbot] Model catalog load failed, using minimal fallback list', e);
+        $('#chatbot-model-select').html('<option value="deepseek-v4-pro">Deepseek V4 Pro</option>');
+    }
+};
+
+// ส่งคำถามนิสิต + context ข้อสอบปัจจุบันไป askAIExpert (provider: IntelSphere)
+window.sendChatbotQuery = async function () {
+    var query = $('#chatbot-input').val().trim();
+    if (!query) return;
+
+    var q = window.APP.current_question;
+    var model = $('#chatbot-model-select').val();
+    if (!model) { alert('กรุณาเลือกโมเดล AI ก่อน'); return; }
+    var token = localStorage.getItem("mdkku_session_token") || "guest_user";
+
+    $('#chatbot-input').val('').prop('disabled', true);
+    $('#btn-send-chat').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+    var $conv = $('#chatbot-conversation');
+    $conv.append(
+        '<div style="align-self:flex-end;background:var(--color-primary-pale);color:var(--color-primary);' +
+        'padding:8px 12px;border-radius:12px 12px 0 12px;max-width:85%;font-weight:600;">' +
+        $('<div>').text(query).html() + '</div>'  // XSS-safe: escape user input before inserting
+    );
+    $conv.scrollTop($conv[0].scrollHeight);
+
+    var prompt =
+        'คุณคืออาจารย์แพทย์ ช่วยตอบคำถามของนิสิตแพทย์โดยอธิบายด้วยความสุภาพ อิงพยาธิสรีรวิทยา (Pathophysiology) เป็นหลัก\n\n' +
+        'โจทย์ข้อสอบ: "' + (q.problem || '') + '"\n' +
+        'ตัวเลือก: "' + (q.choices || '') + '"\n' +
+        'เฉลย: "' + (q.answer || '') + '"\n' +
+        'คำอธิบาย: "' + (q.explain || '') + '"\n\n' +
+        'คำถามจากนิสิต: "' + query + '"\n\n' +
+        'กรุณาตอบสั้นๆ กระชับ ตรงประเด็น ภาษาไทย ไม่เกิน 200 คำ';
+
+    try {
+        var res = await window.sendWithRetry({
+            action: 'askAIExpert', prompt: prompt, provider: 'IntelSphere', sessionToken: token, model: model
+        });
+
+        if (res.result === 'success') {
+            var safeAnswer = $('<div>').text(res.answer).html(); // escape AI response too, not just user input
+            var switchNote = res.switched
+                ? '<div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:4px;">' +
+                'ℹ️ โควต้าของโมเดลที่เลือกหมดชั่วคราว ระบบตอบด้วย <b>' + res.servedModel + '</b> แทน</div>'
+                : '';
+            $conv.append(
+                '<div style="align-self:flex-start;background:var(--color-surface-3);color:var(--color-text);' +
+                'padding:8px 12px;border-radius:12px 12px 12px 0;max-width:85%;font-weight:500;font-size:0.95rem;">' +
+                switchNote + safeAnswer + '</div>'
+            );
+        } else {
+            $conv.append(
+                '<div style="align-self:flex-start;background:var(--color-wrong-bg);color:var(--color-wrong);' +
+                'padding:8px 12px;border-radius:12px;max-width:85%;font-size:0.9rem;">⚠️ ' + res.message + '</div>'
+            );
+        }
+    } catch (e) {
+        $conv.append(
+            '<div style="align-self:flex-start;background:var(--color-wrong-bg);color:var(--color-wrong);' +
+            'padding:8px 12px;border-radius:12px;max-width:85%;font-size:0.9rem;">' +
+            '⚠️ เกิดข้อผิดพลาดทางเทคนิค กรุณาลองใหม่อีกครั้ง</div>'
+        );
+    } finally {
+        $('#chatbot-input').prop('disabled', false).focus();
+        $('#btn-send-chat').prop('disabled', false).html('<i class="fas fa-paper-plane"></i>');
+        $conv.scrollTop($conv[0].scrollHeight);
+        if (typeof window.renderAllMath === 'function') setTimeout(window.renderAllMath, 50);
+    }
+};
+
+$(document).on('keypress', '#chatbot-input', function (e) {
+    if (e.which === 13) window.sendChatbotQuery();
+});
+
+$(document).ready(function () { window.loadChatbotModelCatalog(); });
+
+// Hook showQuestion: โชว์ panel + เคลียร์บทสนทนาเมื่อเปลี่ยนข้อ
+(function () {
+    var _orig = window.showQuestion;
+    if (typeof _orig !== 'function') {
+        console.warn('[Chatbot] window.showQuestion not found at hook time — panel will not auto-show');
+        return;
+    }
+    window.showQuestion = function (shouldFocus) {
+        _orig.call(this, shouldFocus);
+        $('#quiz-chatbot-panel').fadeIn(200);
+        $('#chatbot-conversation').html(
+            '<p class="text-muted mb-0" style="font-style:italic;">' +
+            'พิมพ์คำถามเพื่อให้ AI อธิบายกลไกการเกิดโรคหรือขยายความเฉลยได้ทันที...</p>'
+        );
+    };
+})();
