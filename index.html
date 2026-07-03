@@ -562,8 +562,8 @@
 
                 <div class="modal-section"
                     style="background-color: var(--color-surface-2); border: 1px solid var(--color-border);">
-                    <h6 style="font-size: 1.1rem; color: var(--color-text); margin-bottom: 9px;">วิธีขอ API Key (ฟรี สำหรับชาว มข.)</h6>
-                    <ol class="small-text" style="color: var(--color-text-muted); padding-left: 20px; margin-bottom: 9px; line-height: 1.8;">
+                    <h6 style="font-size: 1.1rem; color: var(--color-text); margin-bottom: 9px;">วิธีขอ API Key ฟรีจาก KKU IntelSphere</h6>
+                    <ol style="color: var(--color-text-muted); padding-left: 20px; margin-bottom: 9px; line-height: 1.8;">
                         <li>เข้า <a href="https://gen.ai.kku.ac.th" target="_blank" rel="noopener">gen.ai.kku.ac.th</a> แล้ว login ด้วยบัญชี KKU</li>
                         <li>คลิกไอคอน ⚙️ <b>Settings</b> ที่แถบด้านซ้าย</li>
                         <li>เลือกเมนู <b>API Platform</b> (For developers)</li>
@@ -584,10 +584,9 @@
 
                 <div class="modal-section" style="background-color: #FFFBEB; border: 2px solid #FCD34D;">
                     <h6 style="font-size: 1.1rem; color: #92400E; margin-bottom: 9px;">Key ของคุณจะถูกใช้ทำอะไรบ้าง</h6>
-                    <ul class="small-text" style="color: #92400E; padding-left: 20px; margin-bottom: 0; line-height: 1.8;">
-                        <li>ตอบคำถามของเพื่อนๆ ผ่าน AI Study Assistant บนเว็บนี้</li>
+                    <ul style="color: #92400E; padding-left: 20px; margin-bottom: 0; line-height: 1.8;">
+                        <li>ตอบคำถามของเพื่อนๆ ผ่าน MDKKUQUIZ AI Passport EIEI บนเว็บนี้</li>
                         <li>ทีมพัฒนาใช้โควต้าจาก pool เพื่อปรับปรุงเว็บ (เช่น สร้างคำอธิบายเฉลย)</li>
-                        <li>ระบบเก็บ feedback (ดี/เฉยๆ/แย่) ต่อคำตอบ AI เพื่อพัฒนาต่อ</li>
                         <li>Key ที่บริจาคอาจถูกใช้รันงานสร้างเนื้อหาแบบ batch ช่วงกลางคืน โดยจำกัดการใช้ต่อ Key ต่อคืน</li>
                     </ul>
                 </div>
@@ -595,7 +594,7 @@
                 <div class="modal-section"
                     style="background-color: var(--color-surface-2); border: 1px solid var(--color-border);">
                     <label for="donate-key-name" class="small-text" style="font-weight: 600;">ชื่อผู้บริจาค (แสดงในหน้าขอบคุณ)</label>
-                    <input type="text" id="donate-key-name" class="edit-choice-input" placeholder="เช่น ปอนด์ ปี 2"
+                    <input type="text" id="donate-key-name" class="edit-choice-input" placeholder="เช่น SalmonZ ปี 3"
                         style="width: 100%; margin: 4px 0 8px;">
                     <label class="small-text" style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
                         <input type="checkbox" id="donate-key-anon"> ไม่ประสงค์ออกนาม
@@ -1055,7 +1054,7 @@
     <div id="quiz-chatbot-panel" class="chatbot-drawer" style="text-align: left; font-family: var(--font-primary);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
             <span style="font-weight: 800; font-size: 1.05rem; color: var(--color-primary); display: inline-flex; align-items: center; gap: 8px;">
-                <i class="fas fa-robot"></i> AI Study Assistant (ถามตอบรายข้อ)
+                <i class="fas fa-robot"></i> MDKKUQUIZ AI Passport EIEI
             </span>
             <span style="display: inline-flex; align-items: center; gap: 6px;">
                 <button type="button" onclick="window.showChatbotModelGuide()" title="โมเดลไหนเหมาะกับงานแบบไหน?" style="border: none; background: none; color: var(--color-text-muted); font-size: 1.1rem; cursor: pointer; padding: 2px;"><i class="fas fa-info-circle"></i></button>
@@ -1077,7 +1076,7 @@
             </button>
         </div>
         <div style="margin-top: 8px; font-size: 0.8rem; color: var(--color-text-muted); text-align: right;">
-            ขับเคลื่อนโดย KKU IntelSphere · โควต้าแบ่งปันจากผู้บริจาค · สูงสุด 15 ครั้ง/ชม. ·
+            ขับเคลื่อนโดย KKU IntelSphere · โควต้าแบ่งปันจากผู้บริจาค · 
             <a href="#" onclick="window.openDonateKeyModal(); return false;" style="color: var(--color-primary);">บริจาค Key</a>
         </div>
     </div>
