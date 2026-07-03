@@ -69,4 +69,4 @@ Image URLs from Google Drive are transformed via `window.transformUrl()` to use 
 - 🟡 `auth-edit.js` `setupGoogleSSO` — if GIS init throws, `resumeSessionFromToken` is silently skipped (unverified, presumed unchanged).
 - 🟡 `ui.js:858` — export codes are plain Base64, score tamper possible (unverified, presumed unchanged).
 
-Full cross-repo issue list: parent `Idea/code-review-2026-06-14.md` or `/issuelist`.
+Full cross-repo issue list: parent `Idea/active/code-review-2026-06-14.md` or `/issuelist`.

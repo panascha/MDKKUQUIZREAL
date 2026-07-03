@@ -3523,6 +3523,7 @@
    AI Chatbot Drawer (side panel) + FAB
    z-scale: below --zi-modal-card(1000), SweetAlert2(1060), zoom modals(2000+)
    ========================================= */
+:root { --chatbot-dock-w: 380px; }
 .chatbot-drawer {
     position: fixed;
     top: 0;
@@ -3648,8 +3649,8 @@ body.chatbot-open #chatbot-fab {
     margin: 8px 0;
 }
 
-/* Mobile: bottom sheet instead of right drawer */
-@media (max-width: 1024px) {
+/* Phone only: bottom sheet + scrim overlay (traditional method). ≤767 so iPad portrait (768) gets the docked panel */
+@media (max-width: 767px) {
     .chatbot-drawer {
         top: auto;
         left: 0;
@@ -3665,6 +3666,26 @@ body.chatbot-open #chatbot-fab {
 
     body.chatbot-open .chatbot-drawer {
         transform: none;
+    }
+}
+
+/* Tablet + desktop: Gemini-style docked side panel (content reflows, no scrim).
+   Gutter via body padding-right: the panel is position:fixed (viewport-anchored,
+   ignores body padding), so the centered .container re-centers in the shrunken
+   content area and the fixed panel fills the right gutter — no overflow at any width. */
+@media (min-width: 768px) {
+    .chatbot-drawer {
+        width: var(--chatbot-dock-w);
+        box-shadow: -4px 0 18px rgba(0, 0, 0, 0.10);
+    }
+    body {
+        transition: padding-right 0.25s ease;
+    }
+    body.chatbot-open {
+        padding-right: var(--chatbot-dock-w);
+    }
+    body.chatbot-open #chatbot-scrim {
+        display: none !important;
     }
 }
 /* --- AI answer feedback bar (👍/😐/👎 ใต้ฟองคำตอบ chatbot) --- */

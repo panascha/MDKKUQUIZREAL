@@ -838,6 +838,24 @@ window.loadChatbotModelCatalog = async function () {
 window._chatbotFeedbackCtx = {};
 window._chatbotFeedbackSeq = 0;
 
+// Session memory (in-memory only — cleared on reload). Folded into the prompt because backend is stateless.
+window._chatHistory = []; // [{ role:'user'|'ai', text, questionId }]
+window.CHATBOT_PLACEHOLDER_HTML =
+    '<p class="text-muted mb-0" style="font-style:italic;">พิมพ์คำถามเพื่อให้ AI อธิบายกลไกการเกิดโรคหรือขยายความเฉลยได้ทันที...</p>';
+
+// เริ่มเซสชันใหม่: ล้างประวัติ + รีเซ็ตกล่องสนทนา + ซ่อนแบนเนอร์
+window.startNewChatSession = function () {
+    window._chatHistory = [];
+    $('#chatbot-conversation').html(window.CHATBOT_PLACEHOLDER_HTML);
+    $('#chatbot-newq-banner').hide();
+    $('#chatbot-input').trigger('focus');
+};
+
+// โชว์แบนเนอร์ถามว่าจะเริ่มเซสชันใหม่ไหม เมื่อเปลี่ยนข้อทั้งที่ยังมีบทสนทนาเดิม
+window.showNewQuestionBanner = function () {
+    $('#chatbot-newq-banner').css('display', 'block');
+};
+
 window.submitAiFeedbackRating = function (fbId, rating, btn) {
     $('#ai-fb-' + fbId + ' button').prop('disabled', true).css('opacity', 0.4);
     $(btn).css('opacity', 1);
@@ -882,13 +900,28 @@ window.sendChatbotQuery = async function () {
     );
     $conv.scrollTop($conv[0].scrollHeight);
 
+    // พับประวัติบทสนทนา (session memory) เข้า prompt — backend stateless จึงต้องส่งเป็นข้อความเดียว
+    var histText = '';
+    if (window._chatHistory && window._chatHistory.length) {
+        var turns = window._chatHistory.slice(-6).map(function (t) {
+            return (t.role === 'user' ? 'นิสิต' : 'AI') + ': ' + String(t.text || '').slice(0, 500);
+        });
+        histText = turns.join('\n');
+        while (histText.length > 2500 && turns.length > 1) {
+            turns.shift();
+            histText = turns.join('\n');
+        }
+    }
+
     var prompt =
         'คุณคืออาจารย์แพทย์ ช่วยตอบคำถามของนิสิตแพทย์โดยอธิบายด้วยความสุภาพ อิงพยาธิสรีรวิทยา (Pathophysiology) เป็นหลัก\n\n' +
+        (histText ? ('บทสนทนาก่อนหน้า (ล่าสุดอยู่ล่างสุด):\n' + histText + '\n\n') : '') +
         'โจทย์ข้อสอบ: "' + (q.problem || '') + '"\n' +
         'ตัวเลือก: "' + (q.choices || '') + '"\n' +
         'เฉลย: "' + (q.answer || '') + '"\n' +
-        'คำอธิบาย: "' + (q.explain || '') + '"\n\n' +
-        'คำถามจากนิสิต: "' + query + '"\n\n' +
+        'คำอธิบาย: "' + (q.explain || '') + '"\n' +
+        '(บริบทโจทย์ด้านบนคือข้อปัจจุบันที่นิสิตกำลังดูอยู่ตอนนี้)\n\n' +
+        'คำถามใหม่จากนิสิต: "' + query + '"\n\n' +
         'กรุณาตอบสั้นๆ กระชับ ตรงประเด็น ภาษาไทย ไม่เกิน 200 คำ';
 
     try {
@@ -898,6 +931,10 @@ window.sendChatbotQuery = async function () {
 
         if (res.result === 'success') {
             var safeAnswer = window.renderMarkdownSafe(res.answer); // sanitize-by-construction: escaped text + whitelist tags
+            // เก็บเทิร์นนิสิต + คำตอบ AI (plain text) เข้าประวัติ เฉพาะเมื่อสำเร็จ (เลี่ยง user turn ค้างเมื่อ error)
+            window._chatHistory.push({ role: 'user', text: query, questionId: (q.questionId || '') });
+            window._chatHistory.push({ role: 'ai', text: String(res.answer || ''), questionId: (q.questionId || '') });
+            if (window._chatHistory.length > 20) window._chatHistory.splice(0, window._chatHistory.length - 20);
             var servedSafe = $('<div>').text(res.servedModel || model).html();
             var autoBadge = autoTask
                 ? '<div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:4px;">' +
@@ -964,10 +1001,16 @@ $(document).ready(function () { window.loadChatbotModelCatalog(); });
     window.showQuestion = function (shouldFocus) {
         _orig.call(this, shouldFocus);
         $('#chatbot-fab').css('display', 'flex');
-        $('#chatbot-conversation').html(
-            '<p class="text-muted mb-0" style="font-style:italic;">' +
-            'พิมพ์คำถามเพื่อให้ AI อธิบายกลไกการเกิดโรคหรือขยายความเฉลยได้ทันที...</p>'
-        );
+        // โชว์แบนเนอร์เฉพาะเมื่อ "เปลี่ยนข้อจริง" (questionId เปลี่ยน) ไม่ใช่ตอน re-render ข้อเดิม เช่นหลังตอบ (showQuestion ถูกเรียกซ้ำที่ quiz.js:311,529)
+        var curQid = (window.APP.current_question && window.APP.current_question.questionId) || '';
+        var qChanged = (window._chatLastQid !== undefined && window._chatLastQid !== curQid);
+        window._chatLastQid = curQid;
+        if (window._chatHistory && window._chatHistory.length > 0) {
+            if (qChanged) window.showNewQuestionBanner();
+        } else {
+            $('#chatbot-conversation').html(window.CHATBOT_PLACEHOLDER_HTML);
+            $('#chatbot-newq-banner').hide();
+        }
         // ครั้งแรกเท่านั้น: คืนสถานะ panel จากรอบก่อน
         if (!window._chatbotStateRestored) {
             window._chatbotStateRestored = true;
