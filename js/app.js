@@ -279,16 +279,15 @@ window.runIncrementalSync = async function () {
         }
 
         var lastSync = await window.getLastSyncTime(subjectParam);
-        var url = window.APPSCRIPT_URL
-            + '?action=getChangedSince'
-            + '&since=' + lastSync
-            + (subjectParam ? '&subject=' + subjectParam : '')
-            + '&_=' + Date.now();
-
-        var res = await window.fetchGAS(function () { return url; });
+        var res = await window.fetchGAS(function () {
+            return window.APPSCRIPT_URL
+                + '?action=getChangedSince'
+                + '&since=' + lastSync
+                + (subjectParam ? '&subject=' + subjectParam : '')
+                + '&_=' + Date.now();
+        });
 
         if (!res.changed || res.changed.length === 0) {
-            var structUrl = window.APPSCRIPT_URL + '?action=getStructure' + (subjectParam ? '&subject=' + subjectParam : '') + '&_=' + Date.now();
             var structRes = await window.fetchGAS(function () { return window.APPSCRIPT_URL + '?action=getStructure' + (subjectParam ? '&subject=' + subjectParam : '') + '&_=' + Date.now(); });
 
             if (structRes && structRes.subjects) {
@@ -746,7 +745,6 @@ window.initApp = async function () {
             let incrementalOk = false;
             try {
                 const lastSync = await window.getLastSyncTime(subjectParam);
-                const changedUrl = `${window.APPSCRIPT_URL}?action=getChangedSince&since=${lastSync}${subjectParam ? '&subject=' + subjectParam : ''}&_=${Date.now()}`;
                 const res = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getChangedSince&since=${lastSync}${subjectParam ? '&subject=' + subjectParam : ''}&_=${Date.now()}`);
 
                 if (res.changed && res.changed.length > 0) {
