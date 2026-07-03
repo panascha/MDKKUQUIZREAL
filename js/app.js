@@ -58,7 +58,7 @@ window.populateSubjectSelector = async function (subjectParam) {
     let allSubjects = await window.getCacheDB('all_subjects_list_v2');
     if (!allSubjects) {
         try {
-            const resAllStruct = await fetch(`${window.APPSCRIPT_URL}?action=getStructure`).then(r => r.json());
+            const resAllStruct = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&_=${Date.now()}`);
             if (resAllStruct && resAllStruct.subjects) {
                 const uniqueSubjs = [];
                 const seen = new Set();
@@ -119,8 +119,7 @@ window.checkPendingReports = function () {
     const urlParams = new URLSearchParams(window.location.search);
     const subjectParam = urlParams.get('subject') || '';
 
-    fetch(`${window.APPSCRIPT_URL}?action=getPendingReportCount&subject=${subjectParam}&_=${Date.now()}`)
-        .then(r => r.json())
+    window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getPendingReportCount&subject=${subjectParam}&_=${Date.now()}`)
         .then(data => {
             if (data.count > 0) {
                 const $container = $('#report-notification-container');
@@ -269,9 +268,9 @@ window.runIncrementalSync = async function () {
     var cacheKey = 'data_' + subjectParam;
 
     try {
-        var resVer = await fetch(
-            window.APPSCRIPT_URL + '?action=checkVersion&_=' + Date.now()
-        ).then(function (r) { return r.json(); });
+        var resVer = await window.fetchGAS(function () {
+            return window.APPSCRIPT_URL + '?action=checkVersion&_=' + Date.now();
+        });
 
         var localVer = await window.getCacheDB(verKey);
         if (localVer === resVer.v) {
@@ -286,11 +285,11 @@ window.runIncrementalSync = async function () {
             + (subjectParam ? '&subject=' + subjectParam : '')
             + '&_=' + Date.now();
 
-        var res = await fetch(url).then(function (r) { return r.json(); });
+        var res = await window.fetchGAS(function () { return url; });
 
         if (!res.changed || res.changed.length === 0) {
             var structUrl = window.APPSCRIPT_URL + '?action=getStructure' + (subjectParam ? '&subject=' + subjectParam : '') + '&_=' + Date.now();
-            var structRes = await fetch(structUrl).then(function (r) { return r.json(); });
+            var structRes = await window.fetchGAS(function () { return window.APPSCRIPT_URL + '?action=getStructure' + (subjectParam ? '&subject=' + subjectParam : '') + '&_=' + Date.now(); });
 
             if (structRes && structRes.subjects) {
                 var existingCache = await window.getCacheDB(cacheKey);
@@ -687,19 +686,19 @@ window.initApp = async function () {
 
     try {
         // 2. เปรียบเทียบเวอร์ชันและดึงข้อมูลอัปเดตจากเครื่องเซิร์ฟเวอร์หลัก (GAS) - แนบ cache-buster ป้องกัน browser ค้างไฟล์เก่า
-        const resVer = await fetch(`${window.APPSCRIPT_URL}?action=checkVersion&_=${Date.now()}`).then(r => r.json());
+        const resVer = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=checkVersion&_=${Date.now()}`);
         const serverVersion = resVer.v;
 
         if (!localData) {
             // ─── T3.6: First Run — ดึงทุกอย่างใน Parallel รวม Structure ไม่ filter สำหรับ Dropdown ───
             const initFetchPromises = [
-                fetch(`${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`).then(r => r.json()),
-                fetch(`${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}&_=${Date.now()}`).then(r => r.json())
+                window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`),
+                window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}&_=${Date.now()}`)
             ];
             // ดึง Structure ทั้งหมด (ไม่ filter) พร้อมกันเพื่อ populate dropdown — เฉพาะเมื่อมี subject filter
             if (subjectParam) {
                 initFetchPromises.push(
-                    fetch(`${window.APPSCRIPT_URL}?action=getStructure&_=${Date.now()}`).then(r => r.json())
+                    window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&_=${Date.now()}`)
                 );
             }
             const initResults = await Promise.all(initFetchPromises);
@@ -748,7 +747,7 @@ window.initApp = async function () {
             try {
                 const lastSync = await window.getLastSyncTime(subjectParam);
                 const changedUrl = `${window.APPSCRIPT_URL}?action=getChangedSince&since=${lastSync}${subjectParam ? '&subject=' + subjectParam : ''}&_=${Date.now()}`;
-                const res = await fetch(changedUrl).then(r => r.json());
+                const res = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getChangedSince&since=${lastSync}${subjectParam ? '&subject=' + subjectParam : ''}&_=${Date.now()}`);
 
                 if (res.changed && res.changed.length > 0) {
                     // มีคำถามเปลี่ยนแปลง: merge เข้า cache แล้วอัปเดต memory
@@ -765,8 +764,7 @@ window.initApp = async function () {
                     }
                 } else {
                     // ไม่มีคำถามเปลี่ยน แต่ version ต่าง → Structure/Category เปลี่ยน
-                    const structUrl = `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`;
-                    const structRes = await fetch(structUrl).then(r => r.json());
+                    const structRes = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`);
                     if (structRes && structRes.subjects) {
                         const existingCache = await window.getCacheDB(cacheKey);
                         if (existingCache) {
@@ -791,8 +789,8 @@ window.initApp = async function () {
             if (!incrementalOk) {
                 // Fallback: Full re-download
                 const [resStruct, resQues] = await Promise.all([
-                    fetch(`${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`).then(r => r.json()),
-                    fetch(`${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}&_=${Date.now()}`).then(r => r.json())
+                    window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`),
+                    window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}&_=${Date.now()}`)
                 ]);
                 const newData = {
                     structure: resStruct,

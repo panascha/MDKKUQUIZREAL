@@ -1,6 +1,67 @@
 window.SESSION_ID = 'sess_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
 window.questionStartTime = Date.now();
 
+// ──────────────────────────────────────────────────────────────────────────────
+// fetchGAS — GET wrapper สำหรับ Google Apps Script ที่มี retry อัตโนมัติ
+//
+// สาเหตุที่ต้องมี:
+//   GAS GET request ถูก redirect ผ่าน script.googleusercontent.com/macros/echo
+//   โดยมี user_content_key ที่มีอายุสั้นมาก (< 60s). เมื่อ GAS container cold-start
+//   browser ได้รับ redirect ก่อน container พร้อม ทำให้ echo URL ที่ redirect ไปได้
+//   return 404 + HTML แทน JSON → JSON.parse crash → "Unexpected token '<'"
+//
+// วิธีแก้: retry ด้วย fresh URL (cache-buster ใหม่) แทนที่จะ retry URL เดิม
+//   เพราะ url_content_key ฝัง timestamp อยู่แล้ว — การเรียก exec URL ใหม่จะได้
+//   echo URL ใหม่ที่ยังไม่หมดอายุ
+// ──────────────────────────────────────────────────────────────────────────────
+window.fetchGAS = async function (buildUrl, retries) {
+    retries = (typeof retries === 'number') ? retries : 3;
+    var BASE_MS = 1500;
+    var CAP_MS  = 12000;
+
+    for (var i = 0; i < retries; i++) {
+        var url = typeof buildUrl === 'function' ? buildUrl() : buildUrl;
+        var response;
+        try {
+            response = await fetch(url, { redirect: 'follow' });
+        } catch (netErr) {
+            if (i === retries - 1) throw netErr;
+            var nd = Math.random() * Math.min(BASE_MS * Math.pow(2, i), CAP_MS);
+            console.warn('[fetchGAS] Network error attempt ' + (i + 1) + '. Retry in ' + Math.round(nd) + 'ms');
+            await new Promise(function(r){ setTimeout(r, nd); });
+            continue;
+        }
+
+        // GAS cold-start / stale echo key → 404 หรือ 5xx
+        if (!response.ok) {
+            if (i === retries - 1) throw new Error('[fetchGAS] HTTP ' + response.status + ' after ' + retries + ' attempts');
+            var hd = Math.random() * Math.min(BASE_MS * Math.pow(2, i), CAP_MS);
+            console.warn('[fetchGAS] HTTP ' + response.status + ' attempt ' + (i + 1) + '. Retry in ' + Math.round(hd) + 'ms');
+            await new Promise(function(r){ setTimeout(r, hd); });
+            continue;
+        }
+
+        var text;
+        try {
+            text = await response.text();
+        } catch (readErr) {
+            if (i === retries - 1) throw readErr;
+            continue;
+        }
+
+        // GAS อาจ redirect ไป echo แล้วได้รับ HTML (overload / transient error)
+        if (!text || text.trimStart().startsWith('<')) {
+            if (i === retries - 1) throw new SyntaxError('[fetchGAS] Got HTML instead of JSON after ' + retries + ' attempts');
+            var pd = Math.random() * Math.min(BASE_MS * Math.pow(2, i), CAP_MS);
+            console.warn('[fetchGAS] Got HTML body attempt ' + (i + 1) + '. Retry in ' + Math.round(pd) + 'ms');
+            await new Promise(function(r){ setTimeout(r, pd); });
+            continue;
+        }
+
+        return JSON.parse(text);
+    }
+};
+
 window.sendWithRetry = async function (payload, retries = 3) {
     // T2.2: Exponential backoff with full jitter; 4xx (ยกเว้น 429) ไม่ retry; 429/5xx/network retry
     const BASE_MS = 1000;

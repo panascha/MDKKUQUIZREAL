@@ -10,8 +10,7 @@ window.fetchPendingVotes = function (questionId) {
     if (window.activeVoteFetches.has(questionId)) return;
     window.activeVoteFetches.add(questionId);
 
-    fetch(`${window.APPSCRIPT_URL}?action=getPendingVotes&qid=${questionId}&_=${Date.now()}`)
-        .then(res => res.json())
+    window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getPendingVotes&qid=${questionId}&_=${Date.now()}`)
         .then(data => {
             window.APP.pendingVotesCache[questionId] = data;
             window.renderVoteNotificationUI(questionId, data, false);
@@ -575,8 +574,7 @@ window.fetchPendingReports = function (questionId) {
     if (window.activeReportFetches.has(questionId)) return;
     window.activeReportFetches.add(questionId);
 
-    fetch(`${window.APPSCRIPT_URL}?action=getPendingReports&qid=${questionId}&_=${Date.now()}`)
-        .then(res => res.json())
+    window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getPendingReports&qid=${questionId}&_=${Date.now()}`)
         .then(data => {
             window.APP.pendingReportsCache[questionId] = data;
             window.renderReportNotificationUI(questionId, data);
@@ -712,10 +710,9 @@ window.submitReportVote = async function (reportTimestamp, delta, questionId) {
 window.fetchAllPendingVotesReports = async function (subjectParam) {
     if (!subjectParam) return;
     try {
-        const res = await fetch(
-            `${window.APPSCRIPT_URL}?action=getPendingVotesReports&subject=${encodeURIComponent(subjectParam)}&_=${Date.now()}`
+        const json = await window.fetchGAS(
+            () => `${window.APPSCRIPT_URL}?action=getPendingVotesReports&subject=${encodeURIComponent(subjectParam)}&_=${Date.now()}`
         );
-        const json = await res.json();
         if (!json || json.status !== 'success' || !json.data) return;
 
         const votesMap = json.data.votes || {};
