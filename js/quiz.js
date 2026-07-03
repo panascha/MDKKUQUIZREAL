@@ -605,14 +605,212 @@ window.renderExplainMediaInQuiz = function (explainRaw, containerSelector) {
    =========================================
 */
 
+// แปลง Markdown จาก AI เป็น HTML แบบปลอดภัย (whitelist tags, ไม่มี attribute ใดๆ)
+// ลำดับสำคัญ: ดึง code ออกก่อน → ดึงสูตรคณิต ($...$) → escape ทั้งหมด → parse markdown → คืน code/math กลับ
+window.renderMarkdownSafe = function (mdText) {
+    if (mdText == null) return '';
+    var text = String(mdText).replace(/\r\n/g, '\n');
+
+    var escapeHtml = function (s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    };
+
+    var codeStore = [];
+    var mathStore = [];
+
+    text = text.replace(/```[\w-]*\n?([\s\S]*?)```/g, function (_m, code) {
+        codeStore.push({ block: true, code: code.replace(/\n$/, '') });
+        return '\u0000C' + (codeStore.length - 1) + '\u0000';
+    });
+    text = text.replace(/`([^`\n]+)`/g, function (_m, code) {
+        codeStore.push({ block: false, code: code });
+        return '\u0000C' + (codeStore.length - 1) + '\u0000';
+    });
+    // เก็บสูตรทั้ง delimiter ไว้ — KaTeX (renderAllMath) จะอ่านจาก textContent หลัง insert
+    text = text.replace(/\$\$[\s\S]+?\$\$/g, function (m) {
+        mathStore.push(m);
+        return '\u0000M' + (mathStore.length - 1) + '\u0000';
+    });
+    text = text.replace(/\$[^$\n]+?\$/g, function (m) {
+        mathStore.push(m);
+        return '\u0000M' + (mathStore.length - 1) + '\u0000';
+    });
+
+    text = escapeHtml(text);
+
+    var inlineMd = function (s) {
+        return s
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/(^|[^*\w])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>')
+            .replace(/(^|\s)_([^_\n]+)_/g, '$1<em>$2</em>')
+            .replace(/~~([^~]+)~~/g, '<del>$1</del>');
+    };
+
+    var lines = text.split('\n');
+    var out = [];
+    var para = [];
+    var flushPara = function () {
+        if (para.length) out.push('<p>' + inlineMd(para.join('<br>')) + '</p>');
+        para = [];
+    };
+
+    var i = 0;
+    while (i < lines.length) {
+        var trimmed = lines[i].trim();
+
+        if (!trimmed) { flushPara(); i++; continue; }
+
+        // code block ที่อยู่บรรทัดเดี่ยว — วางนอก <p> กัน nesting เพี้ยน
+        var soloCode = trimmed.match(/^\u0000C(\d+)\u0000$/);
+        if (soloCode && codeStore[+soloCode[1]].block) { flushPara(); out.push(trimmed); i++; continue; }
+
+        if (/^#{1,3}\s+/.test(trimmed)) {
+            flushPara();
+            var tag = trimmed.match(/^(#{1,3})/)[1].length >= 3 ? 'h5' : 'h4';
+            out.push('<' + tag + '>' + inlineMd(trimmed.replace(/^#{1,3}\s+/, '')) + '</' + tag + '>');
+            i++; continue;
+        }
+        if (/^---+$/.test(trimmed)) { flushPara(); out.push('<hr>'); i++; continue; }
+        if (/^&gt;\s?/.test(trimmed)) {
+            flushPara();
+            var bq = [];
+            while (i < lines.length && /^&gt;\s?/.test(lines[i].trim())) {
+                bq.push(lines[i].trim().replace(/^&gt;\s?/, ''));
+                i++;
+            }
+            out.push('<blockquote>' + inlineMd(bq.join('<br>')) + '</blockquote>');
+            continue;
+        }
+        if (/^[-*]\s+/.test(trimmed) || /^\d+[.)]\s+/.test(trimmed)) {
+            flushPara();
+            var ordered = /^\d+[.)]\s+/.test(trimmed);
+            var itemRe = ordered ? /^\d+[.)]\s+/ : /^[-*]\s+/;
+            var items = [];
+            while (i < lines.length && itemRe.test(lines[i].trim())) {
+                items.push('<li>' + inlineMd(lines[i].trim().replace(itemRe, '')) + '</li>');
+                i++;
+            }
+            out.push(ordered ? '<ol>' + items.join('') + '</ol>' : '<ul>' + items.join('') + '</ul>');
+            continue;
+        }
+        if (/^\|.*\|$/.test(trimmed)) {
+            flushPara();
+            var rows = [];
+            while (i < lines.length && /^\|.*\|$/.test(lines[i].trim())) {
+                rows.push(lines[i].trim());
+                i++;
+            }
+            var hasSep = rows.length > 1 && /^\|[\s:|-]+\|$/.test(rows[1]);
+            var tableHtml = '<table>';
+            rows.forEach(function (row, idx) {
+                if (hasSep && idx === 1) return;
+                var cellTag = (hasSep && idx === 0) ? 'th' : 'td';
+                tableHtml += '<tr>' + row.slice(1, -1).split('|').map(function (c) {
+                    return '<' + cellTag + '>' + inlineMd(c.trim()) + '</' + cellTag + '>';
+                }).join('') + '</tr>';
+            });
+            out.push(tableHtml + '</table>');
+            continue;
+        }
+
+        para.push(trimmed);
+        i++;
+    }
+    flushPara();
+
+    var html = out.join('');
+    html = html.replace(/\u0000C(\d+)\u0000/g, function (_m, n) {
+        var c = codeStore[+n];
+        return c.block
+            ? '<pre><code>' + escapeHtml(c.code) + '</code></pre>'
+            : '<code>' + escapeHtml(c.code) + '</code>';
+    });
+    // escape entities ใน math ด้วย — textContent ใน DOM จะกลับเป็นอักขระจริงให้ KaTeX เอง
+    html = html.replace(/\u0000M(\d+)\u0000/g, function (_m, n) {
+        return escapeHtml(mathStore[+n]);
+    });
+    return html;
+};
+
+// จำแนกประเภทคำถามนิสิต (keyword heuristic ไทย/อังกฤษ) → ใช้เลือกโมเดลอัตโนมัติ
+window.classifyQueryTask = function (query) {
+    var q = String(query || '').toLowerCase();
+    if (/คำนวณ|โด[สซ]|dose|dosage|gfr|clearance|anion gap|กี่\s*(มก|มล|กรัม|เท่า)|\d+\s*(mg|ml|meq|mmol|kg|%)/.test(q))
+        return { key: 'calculation', labelTh: 'คำนวณ' };
+    if (/ทำไม(ถึง)?ไม่ใช่|ไม่ใช่ข้อ|ข้อ\s*[a-e1-5ก-จ]|ผิดตรงไหน|ตัด\s*choice|choice\s*[a-e]|ต่างจากข้อ|ข้อไหนถูก/.test(q))
+        return { key: 'choice_analysis', labelTh: 'วิเคราะห์ตัวเลือก' };
+    if (/ช่วยจำ|วิธีจำ|จำยังไง|จำง่าย|mnemonic|ท่องจำ|เทคนิค(การ)?จำ/.test(q))
+        return { key: 'mnemonic', labelTh: 'เทคนิคช่วยจำ' };
+    if (/แปลว่า|แปลเป็น|ช่วยแปล|หมายถึงอะไร|หมายความว่า|translate|ภาษาอังกฤษเรียก|ศัพท์/.test(q))
+        return { key: 'translate', labelTh: 'แปล/ความหมายศัพท์' };
+    if (q.length <= 40 && /คืออะไร|นิยาม|definition|ค่าปกติ|normal (value|range)|เรียกว่าอะไร/.test(q))
+        return { key: 'quick_fact', labelTh: 'ข้อเท็จจริงสั้น' };
+    return { key: 'reasoning_deep', labelTh: 'อธิบายกลไก/วิเคราะห์เชิงลึก' };
+};
+
+// ตาราง preference: งานแต่ละแบบ → ลำดับ family โมเดลที่เหมาะ (match กับ catalog สดจาก backend)
+window.TASK_MODEL_PREFS = {
+    reasoning_deep: [/^deepseek-v4-pro$/, /^deepseek-.*pro/, /^claude-sonnet/, /^gemini-.*pro/, /^grok-4/, /^gpt-5$/, /^deepseek-/],
+    choice_analysis: [/^deepseek-v4-pro$/, /^deepseek-.*pro/, /^claude-sonnet/, /^gemini-.*pro/, /^grok-4/, /^gpt-5$/, /^deepseek-/],
+    calculation: [/^deepseek-v4-pro$/, /^gpt-5$/, /^claude-sonnet/, /^gemini-.*pro/, /^qwen.*max/],
+    quick_fact: [/^claude-haiku/, /^gemini-.*flash-lite/, /^gemini-.*flash/, /^gpt-5-(nano|mini)/, /^deepseek-.*flash/],
+    translate: [/^gemini-.*flash/, /^claude-haiku/, /^gpt-5-mini/, /^qwen/],
+    mnemonic: [/^claude-sonnet/, /^gpt-5$/, /^grok-4/, /^gemini-.*pro/]
+};
+
+// เลือกโมเดลจริงจาก catalog ตามประเภทงาน — fallback เป็น deepseek-v4-pro เสมอ ห้ามคืน __auto__
+window.pickAutoModel = function (taskKey) {
+    var ids = [];
+    var cat = window._chatbotCatalog;
+    if (cat) Object.keys(cat).forEach(function (p) { (cat[p] || []).forEach(function (id) { ids.push(id); }); });
+    var prefs = window.TASK_MODEL_PREFS[taskKey] || [];
+    for (var i = 0; i < prefs.length; i++) {
+        for (var j = 0; j < ids.length; j++) {
+            if (prefs[i].test(ids[j])) return ids[j];
+        }
+    }
+    if (ids.indexOf('deepseek-v4-pro') >= 0) return 'deepseek-v4-pro';
+    return ids[0] || 'deepseek-v4-pro';
+};
+
+// เปิด/ปิด side panel — สถานะจำไว้ใน localStorage
+window.toggleChatbotPanel = function (force) {
+    var open = (typeof force === 'boolean') ? force : !document.body.classList.contains('chatbot-open');
+    document.body.classList.toggle('chatbot-open', open);
+    try { localStorage.setItem('mdkku_chatbot_open', open ? '1' : '0'); } catch (e) { }
+    if (open) setTimeout(function () { $('#chatbot-input').trigger('focus'); }, 260);
+};
+
+// คู่มือ: โมเดลไหนเหมาะกับงานแบบไหน
+window.showChatbotModelGuide = function () {
+    if (typeof Swal === 'undefined') return;
+    Swal.fire({
+        title: 'โมเดลไหนเหมาะกับงานแบบไหน?',
+        html:
+            '<div style="text-align:left;font-size:0.95rem;line-height:1.8;">' +
+            '<b>🤖 Auto (แนะนำ)</b> — ระบบวิเคราะห์คำถามแล้วเลือกโมเดลที่เหมาะให้อัตโนมัติ<hr style="margin:8px 0;">' +
+            '🧠 <b>อธิบายกลไก / วิเคราะห์เชิงลึก</b> → Deepseek V4 Pro, Claude Sonnet<br>' +
+            '🔍 <b>วิเคราะห์ตัวเลือก (ทำไมไม่ใช่ข้อ X)</b> → Deepseek V4 Pro, Claude Sonnet<br>' +
+            '🧮 <b>คำนวณ (dose, GFR, ค่าแลบ)</b> → Deepseek V4 Pro, GPT-5<br>' +
+            '⚡ <b>ข้อเท็จจริงสั้น / นิยาม</b> → Claude Haiku, Gemini Flash (เร็ว ประหยัดโควต้า)<br>' +
+            '🌐 <b>แปลศัพท์ / ความหมาย</b> → Gemini Flash, Claude Haiku<br>' +
+            '💡 <b>เทคนิคช่วยจำ (mnemonic)</b> → Claude Sonnet, GPT-5, Grok' +
+            '</div>',
+        confirmButtonText: 'เข้าใจแล้ว'
+    });
+};
+
 // โหลด catalog โมเดลจาก backend (listModels) มาเติม dropdown
 window.loadChatbotModelCatalog = async function () {
     try {
         var res = await window.sendWithRetry({ action: 'listModels' });
         if (res.result !== 'success') throw new Error('catalog fetch failed');
 
+        window._chatbotCatalog = res.catalog;
+
         var $select = $('#chatbot-model-select');
         $select.empty();
+        $select.append($('<option>').val('__auto__').text('🤖 Auto — เลือกโมเดลอัตโนมัติ (แนะนำ)'));
 
         var providerOrder = ["Deepseek", "Gemini", "Meta", "Nova", "xAI", "Qwen", "OpenAI", "Claude", "Mistral", "MiniMax"];
         providerOrder.forEach(function (provider) {
@@ -623,13 +821,14 @@ window.loadChatbotModelCatalog = async function () {
             $select.append($group);
         });
 
-        var deepseekModels = res.catalog["Deepseek"];
-        if (deepseekModels && deepseekModels.indexOf("deepseek-v4-pro") >= 0) {
-            $select.val("deepseek-v4-pro");
-        }
+        $select.val('__auto__');
     } catch (e) {
         console.warn('[Chatbot] Model catalog load failed, using minimal fallback list', e);
-        $('#chatbot-model-select').html('<option value="deepseek-v4-pro">Deepseek V4 Pro</option>');
+        window._chatbotCatalog = null;
+        $('#chatbot-model-select').html(
+            '<option value="__auto__" selected>🤖 Auto — เลือกโมเดลอัตโนมัติ (แนะนำ)</option>' +
+            '<option value="deepseek-v4-pro">Deepseek V4 Pro</option>'
+        );
     }
 };
 
@@ -640,7 +839,11 @@ window.sendChatbotQuery = async function () {
 
     var q = window.APP.current_question;
     var model = $('#chatbot-model-select').val();
-    if (!model) { alert('กรุณาเลือกโมเดล AI ก่อน'); return; }
+    var autoTask = null;
+    if (!model || model === '__auto__') {
+        autoTask = window.classifyQueryTask(query);
+        model = window.pickAutoModel(autoTask.key);
+    }
     var token = localStorage.getItem("mdkku_session_token") || "guest_user";
 
     $('#chatbot-input').val('').prop('disabled', true);
@@ -669,20 +872,26 @@ window.sendChatbotQuery = async function () {
         });
 
         if (res.result === 'success') {
-            var safeAnswer = $('<div>').text(res.answer).html(); // escape AI response too, not just user input
+            var safeAnswer = window.renderMarkdownSafe(res.answer); // sanitize-by-construction: escaped text + whitelist tags
+            var servedSafe = $('<div>').text(res.servedModel || model).html();
+            var autoBadge = autoTask
+                ? '<div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:4px;">' +
+                '🤖 Auto เลือก <b>' + servedSafe + '</b> · ประเภทคำถาม: ' + autoTask.labelTh + '</div>'
+                : '';
             var switchNote = res.switched
                 ? '<div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:4px;">' +
-                'ℹ️ โควต้าของโมเดลที่เลือกหมดชั่วคราว ระบบตอบด้วย <b>' + res.servedModel + '</b> แทน</div>'
+                'ℹ️ โควต้าของโมเดลที่เลือกหมดชั่วคราว ระบบตอบด้วย <b>' + servedSafe + '</b> แทน</div>'
                 : '';
             $conv.append(
-                '<div style="align-self:flex-start;background:var(--color-surface-3);color:var(--color-text);' +
+                '<div class="chat-md" style="align-self:flex-start;background:var(--color-surface-3);color:var(--color-text);' +
                 'padding:8px 12px;border-radius:12px 12px 12px 0;max-width:85%;font-weight:500;font-size:0.95rem;">' +
-                switchNote + safeAnswer + '</div>'
+                autoBadge + switchNote + safeAnswer + '</div>'
             );
         } else {
             $conv.append(
                 '<div style="align-self:flex-start;background:var(--color-wrong-bg);color:var(--color-wrong);' +
-                'padding:8px 12px;border-radius:12px;max-width:85%;font-size:0.9rem;">⚠️ ' + res.message + '</div>'
+                'padding:8px 12px;border-radius:12px;max-width:85%;font-size:0.9rem;">⚠️ ' +
+                $('<div>').text(res.message || '').html() + '</div>'
             );
         }
     } catch (e) {
@@ -705,7 +914,7 @@ $(document).on('keypress', '#chatbot-input', function (e) {
 
 $(document).ready(function () { window.loadChatbotModelCatalog(); });
 
-// Hook showQuestion: โชว์ panel + เคลียร์บทสนทนาเมื่อเปลี่ยนข้อ
+// Hook showQuestion: โชว์ FAB + เคลียร์บทสนทนาเมื่อเปลี่ยนข้อ (สถานะเปิด/ปิด panel คงไว้ตาม localStorage)
 (function () {
     var _orig = window.showQuestion;
     if (typeof _orig !== 'function') {
@@ -714,10 +923,17 @@ $(document).ready(function () { window.loadChatbotModelCatalog(); });
     }
     window.showQuestion = function (shouldFocus) {
         _orig.call(this, shouldFocus);
-        $('#quiz-chatbot-panel').fadeIn(200);
+        $('#chatbot-fab').css('display', 'flex');
         $('#chatbot-conversation').html(
             '<p class="text-muted mb-0" style="font-style:italic;">' +
             'พิมพ์คำถามเพื่อให้ AI อธิบายกลไกการเกิดโรคหรือขยายความเฉลยได้ทันที...</p>'
         );
+        // ครั้งแรกเท่านั้น: คืนสถานะ panel จากรอบก่อน
+        if (!window._chatbotStateRestored) {
+            window._chatbotStateRestored = true;
+            try {
+                if (localStorage.getItem('mdkku_chatbot_open') === '1') window.toggleChatbotPanel(true);
+            } catch (e) { }
+        }
     };
 })();
