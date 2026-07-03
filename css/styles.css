@@ -2091,7 +2091,7 @@
     .fab-container {
         position: fixed;
         right: 2%;
-        top: 40%;
+        top: 30%;
         z-index: var(--zi-fab);
         display: flex;
         flex-direction: column;
