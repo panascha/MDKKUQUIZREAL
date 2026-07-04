@@ -58,10 +58,13 @@ self.addEventListener('fetch', (event) => {
         return; // ปล่อยผ่าน — browser จัดการเอง
     }
 
-    // สำหรับไฟล์ static ของแอป: cache-first
+    // สำหรับไฟล์ static ของแอป: cache-first พร้อม ignoreSearch เพื่อให้รองรับ query parameters เช่น ?subject=...
     event.respondWith(
-        caches.match(event.request).then((cached) => {
+        caches.match(event.request, { ignoreSearch: true }).then((cached) => {
             return cached || fetch(event.request);
+        }).catch(() => {
+            // ป้องกันข้อยกเว้น TypeError จากการดึงข้อมูลเครือข่ายล้มเหลว
+            return fetch(event.request);
         })
     );
 });
