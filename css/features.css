@@ -191,56 +191,6 @@ body.chatbot-open #chatbot-fab {
 }
 
 /* =========================================
-   Feature 2 — Glossary (panel tabs / floating "แปล" chip / popup)
-   ========================================= */
-#glossary-translate-chip {
-    position: fixed;
-    z-index: 1200;
-    display: none;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 11px;
-    font-family: var(--font-primary);
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: #fff;
-    background: var(--color-primary);
-    border: none;
-    border-radius: 14px;
-    box-shadow: var(--shadow-md);
-    cursor: pointer;
-    white-space: nowrap;
-}
-#glossary-translate-chip:hover { background: var(--color-primary-hover); }
-
-#glossary-popup {
-    position: fixed;
-    z-index: 1210;
-    display: none;
-    width: min(320px, 92vw);
-    background: var(--color-surface);
-    border: 1.5px solid var(--color-border);
-    border-radius: 12px;
-    box-shadow: var(--shadow-md);
-    padding: 12px 14px;
-    font-family: var(--font-primary);
-    color: var(--color-text);
-}
-
-.glossary-tab-btn {
-    background: var(--color-surface-3);
-    color: var(--color-text-muted);
-}
-.glossary-tab-btn.active {
-    background: var(--color-primary);
-    color: #fff;
-}
-.glossary-row:hover,
-.glossary-cluster-cell:hover {
-    border-color: var(--color-primary) !important;
-}
-
-/* =========================================
    Feature 3 — High-yield cram sheet (summary / keywords chips / mnemonics + vote)
    ========================================= */
 #highyield-content .hy-summary {
