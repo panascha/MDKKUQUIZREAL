@@ -1,0 +1,79 @@
+/* CSS Variables & Claude Warm Palette */
+    /* =========================================
+       1. CSS Variables — Claude Warm Style
+       ========================================= */
+    :root {
+        /* Typography */
+        --font-primary: 'TH Sarabun New', 'Roboto', sans-serif;
+
+        /* General Colors */
+        --color-background: #f8fafc;
+        --color-surface: #ffffff;
+        --color-surface-2: #f1f5f9;
+        --color-surface-3: #e2e8f0;
+        --color-text: #0f172a;
+        --color-text-muted: #475569;
+        --color-border: #cbd5e1;
+        --color-border-soft: #e2e8f0;
+
+        /* Primary & Interaction Colors */
+        --color-primary: #2563eb;
+        --color-primary-hover: #1d4ed8;
+        --color-primary-light: #dbeafe;
+        --color-primary-pale: #eff6ff;
+
+        /* Dark & Light UI Colors */
+        --color-dark: #1e293b;
+        --color-dark-hover: #334155;
+        --color-light: #e2e8f0;
+        --color-light-hover: #cbd5e1;
+
+        /* Feedback Colors */
+        --color-correct: #16a34a;
+        --color-correct-bg: #dcfce7;
+        --color-wrong: #dc2626;
+        --color-wrong-bg: #fee2e2;
+
+        /* Toggle Button Colors */
+        --color-toggle-red: #FF0000;
+        --color-toggle-default: #f8f9fa;
+        --color-toggle-hover: #e9ecef;
+        --color-toggle-mcq: #28a745;
+        --color-toggle-ai: #6f42c1;
+
+        /* Category pastels */
+        --pastel-anatomy: #FFF0F0;
+        --active-anatomy: #FFC1C1;
+        --text-anatomy: #000000;
+        --pastel-physio: #F0F7FF;
+        --active-physio: #B3D7FF;
+        --text-physio: #000000;
+        --pastel-micro: #F5F0FF;
+        --active-micro: #D1C4E9;
+        --text-micro: #000000;
+        --pastel-patho: #F0FFF4;
+        --active-patho: #C1EFC4;
+        --text-patho: #000000;
+        --pastel-pharm: #FFF9F0;
+        --active-pharm: #FFE0B2;
+        --text-pharm: #000000;
+        --pastel-clinical: #F0FFFF;
+        --active-clinical: #B2EBF2;
+        --text-clinical: #000000;
+        --color-toggle-non: #ffffff;
+
+        /* Layout */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+        --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+        --shadow-card: var(--shadow-sm);
+        --border-radius: 10px;
+        --border-radius-lg: 14px;
+
+        /* Z-Index */
+        --zi-fab: 100;
+        --zi-modal-card: 1000;
+        --zi-report-card: 1100;
+        --zi-overlay: 9999;
+        --zi-confirm: 10000;
+    }
+

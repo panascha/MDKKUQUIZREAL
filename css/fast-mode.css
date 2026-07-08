@@ -1,0 +1,37 @@
+/* Fast Mode Styling */
+/* =========================================
+   19. Fast Mode Styling
+   ========================================= */
+.faded-choice {
+    opacity: 0.15 !important;
+    pointer-events: none !important;
+    filter: grayscale(90%);
+    transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+.fast-mode-on {
+    background: linear-gradient(135deg, #ef4444, #f97316, #eab308, #ef4444) !important;
+    background-size: 300% 300% !important;
+    animation: fireGradient 3s ease infinite, fireFlicker 1.2s infinite alternate !important;
+    color: white !important;
+    border: none !important;
+}
+
+@keyframes fireGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes fireFlicker {
+    0% {
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.6), 0 0 3px rgba(234, 179, 8, 0.4);
+        transform: scale(1);
+    }
+    100% {
+        box-shadow: 0 0 18px rgba(249, 115, 22, 0.9), 0 0 8px rgba(239, 68, 68, 0.6);
+        transform: scale(1.02);
+    }
+}
+
+/* =========================================

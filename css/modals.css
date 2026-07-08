@@ -1,0 +1,539 @@
+/* Modals: Shell, Vote, Report, Import */
+       8. Modal Styles
+       ========================================= */
+    .modal-card {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: var(--zi-modal-card);
+        background: var(--color-surface);
+        border-radius: var(--border-radius-lg);
+        box-shadow: 0 20px 40px rgba(28, 25, 23, 0.18);
+        border: 1px solid var(--color-border);
+        width: 90%;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-body {
+        padding: 1.75rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .modal-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.01em;
+    }
+
+    .modal-section {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: var(--border-radius);
+        width: 100%;
+        box-sizing: border-box;
+        box-shadow: 0 1px 3px rgba(28, 25, 23, 0.05);
+    }
+
+    /* =========================================
+       9. Vote Modal
+       ========================================= */
+    #vote-category-modal .modal-title {
+        font-size: 1.7rem !important;
+        font-weight: 800;
+    }
+
+    #vote-category-modal p.small-text {
+        font-size: 1.1rem;
+        color: var(--color-text-muted);
+    }
+
+    #vote-question-preview {
+        font-size: 1.15rem !important;
+        line-height: 1.6;
+        color: var(--color-text);
+        background: var(--color-surface-2);
+        border: none !important;
+        border-left: 5px solid var(--color-primary) !important;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        padding: 16px !important;
+    }
+
+    #quick-cat-container {
+        width: 100%;
+        max-width: 860px;
+        margin-top: 0.75rem;
+        padding: 14px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius);
+        background: var(--color-surface-2);
+        display: none;
+    }
+
+    .quick-cat-group {
+        margin-bottom: 12px;
+        text-align: left;
+    }
+
+    .quick-cat-group-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--color-text-muted);
+        margin-bottom: 7px;
+        border-left: 3px solid var(--color-primary);
+        padding-left: 8px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .quick-cat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+        gap: 7px;
+    }
+
+    .btn-quick-cat {
+        padding: 5px 9px;
+        font-size: 0.95rem;
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        background: var(--color-surface);
+        cursor: pointer;
+        transition: all 0.15s;
+        text-align: left;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 600;
+        font-family: var(--font-primary);
+    }
+
+    .btn-quick-cat:hover {
+        background: var(--color-primary);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    .q-ana {
+        border-left: 4px solid #F87171;
+    }
+
+    .q-physio {
+        border-left: 4px solid #60A5FA;
+    }
+
+    .q-micro {
+        border-left: 4px solid #A78BFA;
+    }
+
+    .q-patho {
+        border-left: 4px solid #78350F;
+    }
+
+    .q-pharm {
+        border-left: 4px solid #FCD34D;
+    }
+
+    .q-radio {
+        border-left: 4px solid #34D399;
+    }
+
+    #toggle-quick-cat {
+        background: #44403C;
+        color: white;
+    }
+
+    /* Custom Confirm Modal */
+    .custom-confirm-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(28, 25, 23, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: var(--zi-confirm);
+        opacity: 0;
+        animation: fadeInOverlay 0.2s ease-in-out forwards;
+    }
+
+    @keyframes fadeInOverlay {
+        to {
+            opacity: 1;
+        }
+    }
+
+    .custom-confirm-card {
+        background: var(--color-surface);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--color-border);
+        padding: 20px;
+        max-width: 90%;
+        width: 360px;
+        box-shadow: var(--shadow-md);
+        font-family: var(--font-primary);
+    }
+
+    .custom-confirm-card p {
+        margin: 0 0 14px;
+        font-size: 1.2rem;
+        color: var(--color-text);
+        line-height: 1.5;
+    }
+
+    .confirm-actions {
+        text-align: right;
+    }
+
+    .confirm-button {
+        border: none;
+        padding: 9px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.98rem;
+        transition: all 0.15s;
+    }
+
+    .confirm-no {
+        background: var(--color-light);
+        color: var(--color-dark);
+        margin-right: 8px;
+    }
+
+    .confirm-no:hover {
+        background: var(--color-light-hover);
+    }
+
+    .confirm-yes {
+        background: #16A34A;
+        color: white;
+    }
+
+    .confirm-yes:hover {
+        background: #15803D;
+    }
+
+    /* Category Badges */
+    .category-badge-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        min-height: 38px;
+        align-items: center;
+    }
+
+    .category-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .category-badge.approved {
+        background: linear-gradient(135deg, #BBF7D0, #86EFAC);
+        color: #166534;
+        border: none;
+        box-shadow: 0 2px 6px rgba(22, 101, 52, 0.2);
+    }
+
+    .category-badge.suggested {
+        background: linear-gradient(135deg, #FB923C, #EA580C);
+        color: white;
+        border: 2px solid #C2410C;
+        cursor: pointer;
+        box-shadow: 0 3px 10px rgba(234, 88, 12, 0.2);
+    }
+
+    .category-badge.suggested:hover {
+        transform: translateY(-4px) scale(1.06);
+        box-shadow: 0 8px 20px rgba(234, 88, 12, 0.35);
+    }
+
+    .vote-count-badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        margin-left: 8px;
+    }
+
+    .votes-remaining-text {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .vote-row {
+        background: var(--color-surface);
+        border: 1px dashed var(--color-border);
+        padding: 12px;
+        border-radius: var(--border-radius);
+        margin-bottom: 10px;
+        transition: border-color 0.2s;
+        gap: 12px;
+    }
+
+    .vote-row:hover {
+        border-color: var(--color-primary);
+        background: var(--color-primary-pale);
+    }
+
+    .vote-select {
+        height: 46px;
+        font-size: 1.05rem;
+        border-radius: 7px;
+        border: 1px solid var(--color-border);
+        background: var(--color-surface);
+        padding: 0 12px;
+        cursor: pointer;
+        transition: border-color 0.15s;
+        font-family: var(--font-primary);
+    }
+
+    .vote-select:focus {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(192, 86, 33, 0.12);
+        outline: none;
+    }
+
+    .btn-remove-row {
+        background: #DC2626;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        margin: auto;
+        transition: all 0.15s;
+    }
+
+    .btn-remove-row:hover {
+        background: #B91C1C;
+        transform: translateY(-1px);
+    }
+
+    #btn-add-vote-row {
+        padding: 9px 18px;
+        font-size: 1.1rem;
+        border-radius: 50px;
+        background: var(--color-primary-light);
+        color: var(--color-primary);
+        border: 1.5px solid var(--color-primary);
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    #btn-add-vote-row:hover {
+        background: var(--color-primary-pale);
+        transform: translateY(-1px);
+    }
+
+    #btn-submit-vote,
+    #btn-close-vote-modal {
+        padding: 11px 26px;
+        font-size: 1.2rem;
+        border-radius: 50px;
+    }
+
+    #btn-submit-vote {
+        background: var(--color-primary);
+        box-shadow: 0 3px 10px rgba(192, 86, 33, 0.3);
+    }
+
+    #btn-submit-vote:hover {
+        background: var(--color-primary-hover);
+    }
+
+    .empty-state-text {
+        font-size: 1.05rem;
+        color: #A8A29E;
+        font-weight: 400;
+        padding: 8px 0;
+    }
+
+    .warning-text {
+        font-size: 0.82rem;
+        color: #B45309;
+        margin-top: 2px;
+        display: block;
+        font-weight: 700;
+        animation: fadeIn 0.3s;
+    }
+
+    #vote-message-container {
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        display: none;
+    }
+
+    /* =========================================
+       10. Report Modal
+       ========================================= */
+    #report-question-details {
+        background: #FFF7F7;
+        border: 1px solid var(--color-wrong);
+    }
+
+    #report-question-details h6 {
+        color: var(--color-wrong);
+        font-size: 1.2rem;
+        margin-top: 0;
+        margin-bottom: 0.4rem;
+    }
+
+    #report-question-text {
+        font-size: 1.1rem !important;
+        line-height: 1.5;
+        text-align: left;
+        color: var(--color-text);
+    }
+
+    .report-img-preview {
+        max-width: 100%;
+        max-height: 200px;
+        width: auto;
+        display: block;
+        margin: 5px auto;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+    }
+
+    .report-choice-img {
+        max-height: 90px;
+        max-width: 100%;
+        display: block;
+        margin-top: 6px;
+        border-radius: 4px;
+        border: 1px solid var(--color-border);
+    }
+
+    #report-choices-list {
+        margin-top: 8px;
+        padding-left: 0;
+        list-style: none;
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+
+    #report-choices-list p {
+        margin: 4px 0;
+        padding: 3px 5px;
+        border-left: 3px solid var(--color-border-soft);
+    }
+
+    .report-choice-svg-container {
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #FAFAF9;
+        border: 1px solid var(--color-border-soft);
+        border-radius: 4px;
+        margin-top: 6px;
+    }
+
+    .report-choice-svg-container svg {
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .modal-section:nth-of-type(1) {
+        background: #F0F4FF;
+        border: 1px solid #818CF8;
+    }
+
+    .modal-section:nth-of-type(1) h6 {
+        color: #4338CA;
+        font-size: 1.2rem;
+    }
+
+    .modal-section:nth-of-type(2) {
+        background: #F0FFF4;
+        border: 1px solid #4ADE80;
+    }
+
+    .modal-section:nth-of-type(2) h6 {
+        color: var(--color-correct);
+        font-size: 1.2rem;
+    }
+
+    .modal-section:nth-of-type(3) {
+        background: #F9F0FF;
+        border: 1px solid #C084FC;
+    }
+
+    .modal-section:nth-of-type(3) h6 {
+        color: #7C3AED;
+        font-size: 1.2rem;
+    }
+
+    #report-correct-choice-select,
+    #report-new-choice-textarea {
+        width: 100%;
+        padding: 9px;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--color-border);
+        font-family: var(--font-primary);
+        font-size: 1rem;
+        box-sizing: border-box;
+        transition: border-color 0.15s;
+        background: var(--color-surface);
+    }
+
+    #report-correct-choice-select:focus,
+    #report-new-choice-textarea:focus {
+        border-color: var(--color-primary);
+        outline: none;
+    }
+
+    #report_text {
+        min-height: 95px !important;
+        width: 100%;
+        padding: 0.7rem;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--color-border);
+        font-family: var(--font-primary);
+        font-size: 1rem;
+        box-sizing: border-box;
+        background: var(--color-surface);
+    }
+
+    /* =========================================
+       11. Import Modal
+       ========================================= */
+    #modal-import-code {
+        width: 95%;
+        min-height: 75px;
+        padding: 0.7rem;
+        font-size: 0.95rem;
+        font-family: var(--font-primary);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--color-border);
+        margin-bottom: 0.75rem;
+        background: var(--color-surface-2);
+    }
+
+    #modal-import-file-label {
+        cursor: pointer;
+    }
+
+    /* =========================================

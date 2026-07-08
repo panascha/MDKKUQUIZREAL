@@ -1,0 +1,382 @@
+/* Theme Overrides: Dark, Claude, Stranger */
+       17. Theme Overrides
+       ========================================= */
+
+    /* DARK theme Overrides */
+    [data-theme="dark"] {
+        --color-background: #0f172a;
+        --color-surface: #1e293b;
+        --color-surface-2: #263145;
+        --color-surface-3: #2d3a52;
+        --color-text: #f8fafc;
+        --color-text-muted: #94a3b8;
+        --color-border: #334155;
+        --color-border-soft: #2d3a52;
+        --color-primary: #38bdf8;
+        --color-primary-hover: #0ea5e9;
+        --color-primary-light: #0c2340;
+        --color-primary-pale: #082030;
+        --color-dark: #475569;
+        --color-dark-hover: #64748b;
+        --color-light: #1e293b;
+        --color-light-hover: #263145;
+        --color-correct: #34d399;
+        --color-correct-bg: #064e3b;
+        --color-wrong: #f43f5e;
+        --color-wrong-bg: #4c0519;
+        --color-toggle-default: #1e293b;
+        --color-toggle-hover: #263145;
+        --color-toggle-non: #1e293b;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+        --pastel-anatomy: #2a1a1a;
+        --active-anatomy: #5a2a2a;
+        --pastel-physio: #0c1f35;
+        --active-physio: #1e3a5a;
+        --pastel-micro: #1f1a2a;
+        --active-micro: #3a2a5a;
+        --pastel-patho: #0a2a1a;
+        --active-patho: #064e3b;
+        --pastel-pharm: #2a251a;
+        --active-pharm: #4a3a10;
+        --pastel-clinical: #0a2a2a;
+        --active-clinical: #0a3a3a;
+    }
+
+    [data-theme="dark"] body {
+        background-image: none;
+    }
+
+    /* Dark theme: fix hardcoded light colors */
+    [data-theme="dark"] .toggle-button.cat-anatomy,
+    [data-theme="dark"] .toggle-button.cat-anatomy:hover {
+        background: #3b1f1f;
+        border-color: #7f3333;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] .toggle-button.cat-physio,
+    [data-theme="dark"] .toggle-button.cat-physio:hover {
+        background: #1a2d42;
+        border-color: #2563a8;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] .toggle-button.cat-micro,
+    [data-theme="dark"] .toggle-button.cat-micro:hover {
+        background: #251d3a;
+        border-color: #5b3f9e;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] .toggle-button.cat-patho,
+    [data-theme="dark"] .toggle-button.cat-patho:hover {
+        background: #1a2e1e;
+        border-color: #2d6b3a;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] .toggle-button.cat-pharm,
+    [data-theme="dark"] .toggle-button.cat-pharm:hover {
+        background: #2e2510;
+        border-color: #7a5c10;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] .toggle-button.cat-clinical,
+    [data-theme="dark"] .toggle-button.cat-clinical:hover {
+        background: #0f2a2e;
+        border-color: #1a6570;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] input[type="checkbox"]:checked+.toggle-button.cat-anatomy {
+        background: #5a2a2a;
+        border-color: #ef4444;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] input[type="checkbox"]:checked+.toggle-button.cat-physio {
+        background: #1e3a5a;
+        border-color: #38bdf8;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] input[type="checkbox"]:checked+.toggle-button.cat-micro {
+        background: #3a2a5a;
+        border-color: #a78bfa;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] input[type="checkbox"]:checked+.toggle-button.cat-patho {
+        background: #064e3b;
+        border-color: #34d399;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] input[type="checkbox"]:checked+.toggle-button.cat-pharm {
+        background: #4a3a10;
+        border-color: #fcd34d;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] input[type="checkbox"]:checked+.toggle-button.cat-clinical {
+        background: #0a3a3a;
+        border-color: #22d3ee;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] #choices button {
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] #choices button:hover {
+        color: #38bdf8;
+    }
+
+    [data-theme="dark"] #choices button.correct {
+        color: #34d399;
+    }
+
+    [data-theme="dark"] #choices button.wrong {
+        color: #f43f5e;
+    }
+
+    [data-theme="dark"] table th {
+        background: #1e293b;
+        color: #f8fafc;
+        border-color: #334155;
+    }
+
+    [data-theme="dark"] table td {
+        border-color: #334155;
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] .search-card-relevance {
+        background: #0c2340;
+        color: #38bdf8;
+    }
+
+    [data-theme="dark"] .info-banner {
+        background: #2a250a;
+        border-color: #7a5c10;
+        color: #fcd34d;
+    }
+
+    [data-theme="dark"] .accordion-header {
+        color: #f8fafc;
+    }
+
+    [data-theme="dark"] select,
+    [data-theme="dark"] textarea,
+    [data-theme="dark"] input[type="text"] {
+        background: #1e293b;
+        color: #f8fafc;
+        border-color: #334155;
+    }
+
+    /* --- ส่วนที่เพิ่มประสิทธิภาพการแสดงผลระดับสูงใน Dark Theme --- */
+    
+    /* แก้ปัญหาพื้นหลังของหน้าต่าง Modal ย่อยที่เดิมติดสไตล์ inline ของ Light theme มา */
+    [data-theme="dark"] #report-question-details {
+        background-color: #2a1a1a !important;
+        border-color: #f43f5e !important;
+    }
+    [data-theme="dark"] .modal-section {
+        background-color: #263145 !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(1) {
+        background-color: #0c2340 !important;
+        border-color: #38bdf8 !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(1) h6 {
+        color: #38bdf8 !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(2) {
+        background-color: #064e3b !important;
+        border-color: #34d399 !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(2) h6 {
+        color: #34d399 !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(3) {
+        background-color: #1f1a2a !important;
+        border-color: #a78bfa !important;
+    }
+    [data-theme="dark"] .modal-section:nth-of-type(3) h6 {
+        color: #a78bfa !important;
+    }
+    [data-theme="dark"] #report-correct-choice-select,
+    [data-theme="dark"] #report-new-choice-input,
+    [data-theme="dark"] #report-new-choice-textarea,
+    [data-theme="dark"] #report_text {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+        border-color: #334155 !important;
+    }
+    [data-theme="dark"] .modal-section[style*="#FFFBEB"],
+    [data-theme="dark"] #omr-extras {
+        background-color: #2a251a !important;
+        border-color: #fcd34d !important;
+        color: #fcd34d !important;
+    }
+    [data-theme="dark"] #omr-extras p,
+    [data-theme="dark"] #omr-extras label {
+        color: #fcd34d !important;
+    }
+
+    /* ปรับปรุงจุดสถานะคำตอบ (Index Dots) และคำอธิบายบอกสถานะด้านล่าง */
+    [data-theme="dark"] .index-dot.idx-correct {
+        border-color: #34d399 !important;
+        background: #064e3b !important;
+        color: #34d399 !important;
+    }
+    [data-theme="dark"] .index-dot.idx-wrong {
+        border-color: #f43f5e !important;
+        background: #4c0519 !important;
+        color: #f43f5e !important;
+    }
+    [data-theme="dark"] .index-legend-item {
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] #index-panel-header .index-score-badge {
+        border-color: #38bdf8 !important;
+        color: #38bdf8 !important;
+        background-color: #0c2340 !important;
+    }
+
+    /* ปรับแต่งการแสดงผลกล่องคะแนนเฉลยในส่วนตารางสรุปผลและแถบโหวตด่วน */
+    [data-theme="dark"] .result-ans-box.correct-ans {
+        border-color: #34d399 !important;
+    }
+    [data-theme="dark"] #quick-vote-badge {
+        background-color: #2a251a !important;
+        border-color: #fcd34d !important;
+        color: #fcd34d !important;
+    }
+
+    /* แก้ปัญหากล่องแสดงผลเวิร์กสเปซ SVG (ภาพลายเส้นทางการแพทย์) ให้เป็นโทนสีมืด พร้อมสลับสีเส้นสีดำเป็นสีขาวแบบสบายตา */
+    [data-theme="dark"] .svg-render-area,
+    [data-theme="dark"] .svg-choice-container {
+        background-color: #1e293b !important;
+        border: 1.5px solid #334155 !important;
+    }
+    [data-theme="dark"] .svg-render-area svg,
+    [data-theme="dark"] .svg-choice-container svg {
+        filter: invert(0.9) hue-rotate(180deg);
+    }
+
+    /* CLAUDE theme */
+    [data-theme="claude"] {
+        --color-background: #f7f4ef;
+        --color-surface: #fdfbfa;
+        --color-surface-2: #f2ede6;
+        --color-surface-3: #ece6dc;
+        --color-text: #27272a;
+        --color-text-muted: #78716c;
+        --color-border: #e0d8cc;
+        --color-border-soft: #ede8df;
+        --color-primary: #c05621;
+        --color-primary-hover: #9a4318;
+        --color-primary-light: #fff0e6;
+        --color-primary-pale: #fff7f0;
+        --color-dark: #292524;
+        --color-dark-hover: #3c3735;
+        --color-light: #ece6dc;
+        --color-light-hover: #e0d8cc;
+        --color-correct: #15803d;
+        --color-correct-bg: #dcfce7;
+        --color-wrong: #991b1b;
+        --color-wrong-bg: #fee2e2;
+        --color-toggle-default: #f2ede6;
+        --color-toggle-hover: #ece6dc;
+        --color-toggle-non: #fdfbfa;
+        --shadow-sm: 0 1px 3px rgba(28, 25, 23, 0.08), 0 1px 2px rgba(28, 25, 23, 0.04);
+        --shadow-md: 0 4px 12px rgba(28, 25, 23, 0.08), 0 2px 6px rgba(28, 25, 23, 0.05);
+        --pastel-anatomy: #FFF1F0;
+        --active-anatomy: #FECACA;
+        --pastel-physio: #EFF6FF;
+        --active-physio: #BFDBFE;
+        --pastel-micro: #F5F3FF;
+        --active-micro: #DDD6FE;
+        --pastel-patho: #F0FDF4;
+        --active-patho: #BBF7D0;
+        --pastel-pharm: #FFFBEB;
+        --active-pharm: #FDE68A;
+        --pastel-clinical: #ECFEFF;
+        --active-clinical: #A5F3FC;
+    }
+
+    [data-theme="claude"] body {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+    }
+
+    /* STRANGER THINGS theme */
+    [data-theme="stranger"] {
+        --color-background: #ffffff;
+        --color-surface: #f9fafb;
+        --color-surface-2: #f3f4f6;
+        --color-surface-3: #e5e7eb;
+        --color-text: #111827;
+        --color-text-muted: #6b7280;
+        --color-border: #111827;
+        --color-border-soft: #374151;
+        --color-primary: #e50914;
+        --color-primary-hover: #b80710;
+        --color-primary-light: #fff0f0;
+        --color-primary-pale: #fff5f5;
+        --color-dark: #111827;
+        --color-dark-hover: #1f2937;
+        --color-light: #e5e7eb;
+        --color-light-hover: #d1d5db;
+        --color-correct: #22c55e;
+        --color-correct-bg: #dcfce7;
+        --color-wrong: #ef4444;
+        --color-wrong-bg: #fee2e2;
+        --color-toggle-default: #f9fafb;
+        --color-toggle-hover: #f3f4f6;
+        --color-toggle-non: #ffffff;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.15);
+        --shadow-md: 2px 2px 0px #111827, 4px 4px 0px #e50914;
+        --pastel-anatomy: #fff0f0;
+        --active-anatomy: #fca5a5;
+        --pastel-physio: #e0f9ff;
+        --active-physio: #67e8f9;
+        --pastel-micro: #f5f3ff;
+        --active-micro: #c4b5fd;
+        --pastel-patho: #f0fdf4;
+        --active-patho: #86efac;
+        --pastel-pharm: #fffbeb;
+        --active-pharm: #fcd34d;
+        --pastel-clinical: #ecfeff;
+        --active-clinical: #67e8f9;
+    }
+
+    [data-theme="stranger"] body {
+        background-image: none;
+    }
+
+    [data-theme="stranger"] .container {
+        border: 2px solid #111827;
+        box-shadow: 4px 4px 0px #e50914;
+    }
+
+    [data-theme="stranger"] #quiz-container {
+        border: 2px solid #111827;
+        box-shadow: 3px 3px 0px #06b6d4;
+    }
+
+    /* Theme toggle button */
+    #theme-toggle-btn {
+        background: #6B21A8;
+        font-size: 18px;
+    }
+
+    #theme-toggle-btn:hover {
+        background: #7C3AED;
+    }
+
+    /* =========================================

@@ -1,0 +1,666 @@
+/* Study Features: Chatbot, Glossary, High-Yield, Keyword Index, Study Panel */
+   AI Chatbot Drawer (side panel) + FAB
+   z-scale: below --zi-modal-card(1000), SweetAlert2(1060), zoom modals(2000+)
+   ========================================= */
+:root { --chatbot-dock-w: 380px; }
+.chatbot-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100dvh;
+    width: min(420px, 92vw);
+    background: var(--color-surface-2);
+    border-left: 1.5px solid var(--color-border);
+    box-shadow: var(--shadow-md);
+    z-index: 950;
+    transform: translateX(105%);
+    transition: transform 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    padding: 14px;
+    box-sizing: border-box;
+}
+
+body.chatbot-open .chatbot-drawer {
+    transform: none;
+}
+
+#chatbot-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 940;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+
+body.chatbot-open #chatbot-scrim {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#chatbot-fab {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 1.3rem;
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    z-index: 930;
+    display: none; /* shown by JS once a question is visible */
+    align-items: center;
+    justify-content: center;
+}
+
+body.chatbot-open #chatbot-fab {
+    display: none !important;
+}
+
+/* Markdown styling inside chat bubbles */
+.chat-md h4,
+.chat-md h5 {
+    margin: 8px 0 4px;
+    font-size: 1rem;
+}
+
+.chat-md p {
+    margin: 4px 0;
+}
+
+.chat-md ul,
+.chat-md ol {
+    margin: 4px 0 4px 20px;
+    padding: 0;
+}
+
+.chat-md pre {
+    background: var(--color-surface-3);
+    padding: 8px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+}
+
+.chat-md code {
+    background: var(--color-surface-3);
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-size: 0.88em;
+}
+
+.chat-md pre code {
+    background: none;
+    padding: 0;
+}
+
+.chat-md table {
+    border-collapse: collapse;
+    margin: 6px 0;
+    font-size: 0.9rem;
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.chat-md th,
+.chat-md td {
+    border: 1px solid var(--color-border);
+    padding: 3px 8px;
+}
+
+.chat-md blockquote {
+    border-left: 3px solid var(--color-border);
+    margin: 6px 0;
+    padding: 2px 10px;
+    color: var(--color-text-muted);
+}
+
+.chat-md hr {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: 8px 0;
+}
+
+/* Phone only: bottom sheet + scrim overlay (traditional method). ≤767 so iPad portrait (768) gets the docked panel */
+@media (max-width: 767px) {
+    .chatbot-drawer {
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 78dvh;
+        border-left: none;
+        border-top: 1.5px solid var(--color-border);
+        border-radius: 16px 16px 0 0;
+        transform: translateY(105%);
+    }
+
+    body.chatbot-open .chatbot-drawer {
+        transform: none;
+    }
+}
+
+/* Tablet + desktop: Gemini-style docked side panel (content reflows, no scrim).
+   Gutter via body padding-right: the panel is position:fixed (viewport-anchored,
+   ignores body padding), so the centered .container re-centers in the shrunken
+   content area and the fixed panel fills the right gutter — no overflow at any width. */
+@media (min-width: 768px) {
+    .chatbot-drawer {
+        width: var(--chatbot-dock-w);
+        box-shadow: -4px 0 18px rgba(0, 0, 0, 0.10);
+    }
+    body {
+        transition: padding-right 0.25s ease;
+    }
+    body.chatbot-open {
+        padding-right: var(--chatbot-dock-w);
+    }
+    body.chatbot-open #chatbot-scrim {
+        display: none !important;
+    }
+}
+/* --- AI answer feedback bar (👍/😐/👎 ใต้ฟองคำตอบ chatbot) --- */
+.ai-fb-bar {
+    margin-top: 6px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.ai-fb-bar button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 2px;
+    line-height: 1;
+}
+
+.ai-fb-bar button:disabled {
+    cursor: default;
+}
+
+/* =========================================
+   Feature 2 — Glossary (panel tabs / floating "แปล" chip / popup)
+   ========================================= */
+#glossary-translate-chip {
+    position: fixed;
+    z-index: 1200;
+    display: none;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    font-family: var(--font-primary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--color-primary);
+    border: none;
+    border-radius: 14px;
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    white-space: nowrap;
+}
+#glossary-translate-chip:hover { background: var(--color-primary-hover); }
+
+#glossary-popup {
+    position: fixed;
+    z-index: 1210;
+    display: none;
+    width: min(320px, 92vw);
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    padding: 12px 14px;
+    font-family: var(--font-primary);
+    color: var(--color-text);
+}
+
+.glossary-tab-btn {
+    background: var(--color-surface-3);
+    color: var(--color-text-muted);
+}
+.glossary-tab-btn.active {
+    background: var(--color-primary);
+    color: #fff;
+}
+.glossary-row:hover,
+.glossary-cluster-cell:hover {
+    border-color: var(--color-primary) !important;
+}
+
+/* =========================================
+   Feature 3 — High-yield cram sheet (summary / keywords chips / mnemonics + vote)
+   ========================================= */
+#highyield-content .hy-summary {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-soft);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    line-height: 1.55;
+}
+.hy-section-title {
+    font-weight: 800;
+    color: var(--color-primary);
+    font-size: 0.95rem;
+    margin: 14px 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.hy-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.hy-chip {
+    display: inline-block;
+    font-size: 0.82rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: var(--color-primary-pale);
+    color: var(--color-primary);
+    border: 1px solid var(--color-border-soft);
+}
+.hy-mnemonic {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--color-border-soft);
+    border-radius: 8px;
+    background: var(--color-surface);
+    margin-bottom: 6px;
+}
+.hy-mnemonic-text {
+    font-size: 0.92rem;
+    line-height: 1.45;
+    flex: 1;
+}
+.hy-mnemonic-votes {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.hy-vote-btn {
+    background: none;
+    border: 1px solid var(--color-border-soft);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 4px 7px;
+}
+.hy-vote-btn:hover:not(:disabled) {
+    border-color: var(--color-primary);
+}
+.hy-vote-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.hy-vote-count {
+    min-width: 20px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--color-text);
+}
+
+/* =========================================
+   Feature 6 — Keyword index (frequently-tested keyword review list)
+   ========================================= */
+.kw-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+}
+.kw-filter-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+.kw-select {
+    height: 30px;
+    padding: 0 8px;
+    max-width: 220px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-family: var(--font-primary);
+    font-size: 0.85rem;
+}
+.kw-num {
+    width: 70px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.85rem;
+}
+.kw-hide-reviewed-label {
+    cursor: pointer;
+}
+.kw-row {
+    border: 1px solid var(--color-border-soft);
+    border-radius: 8px;
+    background: var(--color-surface);
+    margin-bottom: 6px;
+    padding: 6px 8px;
+}
+.kw-row.kw-reviewed {
+    opacity: 0.55;
+}
+.kw-row-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.kw-review {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    cursor: pointer;
+}
+.kw-expand-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    padding: 2px 4px;
+    font-size: 0.95rem;
+    line-height: 1;
+}
+.kw-label {
+    flex: 1;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+.kw-th {
+    color: var(--color-text-muted);
+    font-weight: 400;
+    font-size: 0.85rem;
+}
+.kw-freq {
+    min-width: 26px;
+    text-align: center;
+    font-weight: 800;
+    font-size: 0.82rem;
+    color: var(--color-primary);
+    background: var(--color-primary-pale);
+    border-radius: 10px;
+    padding: 1px 8px;
+    white-space: nowrap;
+}
+.kw-expand {
+    padding: 6px 4px 2px 30px;
+}
+.kw-exp-row {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin: 4px 0;
+}
+.kw-more {
+    font-style: italic;
+    opacity: 0.85;
+}
+.kw-glossary-chip {
+    background: var(--color-primary-pale);
+    color: var(--color-primary);
+    border: 1px solid var(--color-border-soft);
+}
+.kw-row:hover {
+    border-color: var(--color-primary);
+}
+
+/* =========================================
+   Feature 5 — Unified study side panel "ผู้ช่วยติว" (§5.1 resizable drawer)
+   default: 380px กว้าง (desktop) / 60dvh สูง (mobile bottom sheet) — JS ตั้ง
+   --studypanel-w / --studypanel-h บน :root ตอนลาก (rAF-throttled) + ตอนเปิด (re-clamp)
+   z-scale เดียวกับ chatbot drawer (950/940/930) — เปิดพร้อม chatbot ไม่ได้ (mutual exclusion ใน JS)
+   ========================================= */
+.studypanel-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100dvh;
+    width: min(420px, 92vw);
+    background: var(--color-surface-2);
+    border-left: 1.5px solid var(--color-border);
+    box-shadow: var(--shadow-md);
+    z-index: 950;
+    transform: translateX(105%);
+    transition: transform 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+body.studypanel-open .studypanel-drawer {
+    transform: none;
+}
+
+.studypanel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+#study-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 940;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+
+body.studypanel-open #study-scrim {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#study-fab {
+    position: fixed;
+    bottom: 84px;
+    right: 22px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 1.25rem;
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    z-index: 930;
+    display: none; /* shown by JS once a question is visible */
+    align-items: center;
+    justify-content: center;
+}
+
+body.studypanel-open #study-fab {
+    display: none !important;
+}
+
+/* Drag handle — แถบจับ ~8px ที่ขอบด้านใน (ซ้ายบน desktop / ขอบบนบน mobile)
+   touch-action:none เฉพาะ handle (§5.3) — กันลากแล้วสู้กับ page scroll บนจอสัมผัส */
+#study-resize-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    touch-action: none;
+    z-index: 6;
+    background: transparent;
+}
+
+#study-resize-handle::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 44px;
+    border-radius: 3px;
+    background: var(--color-border);
+}
+
+#study-resize-handle:hover::after,
+body.studypanel-resizing #study-resize-handle::after {
+    background: var(--color-primary);
+}
+
+/* ระหว่างลาก: ปิด transition ที่ผูกกับขนาด (body padding / drawer) — กันหน่วง + กันเลือกข้อความ */
+body.studypanel-resizing,
+body.studypanel-resizing .studypanel-drawer {
+    transition: none !important;
+}
+
+body.studypanel-resizing {
+    user-select: none;
+}
+
+/* Sections (accordion, fluid — เนื้อหา reflow ตามความกว้าง §5.1) */
+.sp-section {
+    border: 1px solid var(--color-border-soft);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: var(--color-surface);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.sp-section-head {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 9px 10px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--color-text);
+    text-align: left;
+    font-family: inherit;
+}
+
+.sp-section-head .sp-caret {
+    margin-left: auto;
+    transition: transform 0.15s ease;
+}
+
+.sp-section.sp-open .sp-section-head .sp-caret {
+    transform: rotate(180deg);
+}
+
+.sp-section-body {
+    padding: 0 10px 10px;
+}
+
+.sp-muted {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.sp-chat-conv {
+    max-height: 40vh;
+    min-height: 60px;
+    overflow-y: auto;
+    background: var(--color-surface);
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border-soft);
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.95rem;
+}
+
+/* Phone (≤767 — breakpoint เดียวกับ chatbot dock): bottom sheet เต็มความกว้างเสมอ
+   (ค่า width ที่จำไว้ถูก "ไม่ใช้" ตาม §5.3) — มิติที่ลากได้คือความสูง [35vh, 85vh] ผ่านขอบบน */
+@media (max-width: 767px) {
+    .studypanel-drawer {
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: var(--studypanel-h, 60dvh);
+        border-left: none;
+        border-top: 1.5px solid var(--color-border);
+        border-radius: 16px 16px 0 0;
+        transform: translateY(105%);
+    }
+
+    body.studypanel-open .studypanel-drawer {
+        transform: none;
+    }
+
+    #study-resize-handle {
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: auto;
+        width: auto;
+        height: 12px;
+        cursor: row-resize;
+    }
+
+    #study-resize-handle::after {
+        left: 50%;
+        top: 4px;
+        transform: translateX(-50%);
+        width: 44px;
+        height: 4px;
+    }
+}
+
+/* Tablet + desktop (≥768): docked panel — เนื้อหาหลัก reflow ผ่าน body padding-right
+   (กลไกเดียวกับ chatbot dock; body มี transition padding-right อยู่แล้วจาก block ของ chatbot) */
+@media (min-width: 768px) {
+    .studypanel-drawer {
+        width: var(--studypanel-w, 380px);
+        box-shadow: -4px 0 18px rgba(0, 0, 0, 0.10);
+    }
+
+    body.studypanel-open {
+        padding-right: var(--studypanel-w, 380px);
+    }
+
+    body.studypanel-open #study-scrim {
+        display: none !important;
+    }
+}

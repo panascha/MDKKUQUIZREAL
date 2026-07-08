@@ -1,0 +1,341 @@
+/* Category/Selection UI, MCQ/Lecture Wrapper */
+       4. Category/Selection UI
+       ========================================= */
+    .selection-container {
+        width: 90%;
+        padding: 1.25rem;
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius);
+        background: var(--color-surface-2);
+    }
+
+    .selection-container h2 {
+        font-size: 1.3rem;
+        margin-top: 0;
+        margin-bottom: 1.25rem;
+        color: var(--color-primary);
+        font-weight: 700;
+        text-align: center;
+        letter-spacing: -0.01em;
+    }
+
+    #selected-category-status {
+        margin-top: 12px;
+        margin-bottom: 16px;
+        padding: 10px 12px;
+        border: 1px dashed var(--color-border);
+        border-radius: var(--border-radius);
+        background: var(--color-surface);
+        min-height: 42px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        align-items: center;
+    }
+
+    .status-category-button {
+        padding: 3px 10px;
+        border: 1px solid var(--color-primary);
+        border-radius: 20px;
+        background: var(--color-surface);
+        color: var(--color-primary);
+        cursor: pointer;
+        transition: all 0.15s;
+        font-size: 0.95rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .status-category-button:hover {
+        background: var(--color-wrong-bg);
+        color: var(--color-wrong);
+        border-color: var(--color-wrong);
+    }
+
+    /* =========================================
+   Super-group: MCQ / Lecture wrapper
+   ========================================= */
+.super-group {
+    border: 1px solid var(--color-border);
+    margin-bottom: 10px;
+    border-radius: var(--border-radius);
+    background: var(--color-surface);
+    overflow: hidden;
+}
+
+.super-group-header {
+    font-weight: 700;
+    font-size: 1.2rem;
+    padding: 12px 16px;
+    color: var(--color-surface);
+    background: var(--color-dark);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    transition: background-color 0.15s;
+}
+
+.super-group-header:hover {
+    background: var(--color-dark-hover);
+}
+
+.super-group-header .super-group-badge {
+    margin-left: auto;
+    background: rgba(255,255,255,0.18);
+    color: white;
+    border-radius: 10px;
+    padding: 1px 9px;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.super-group-header .super-group-arrow {
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+    opacity: 0.7;
+}
+
+.super-group-header.open .super-group-arrow {
+    transform: rotate(180deg);
+}
+
+.super-group-body {
+    display: none;
+    padding: 10px 12px;
+    background: var(--color-surface-2);
+    border-top: 1px solid var(--color-border-soft);
+}
+
+.super-group-body.open {
+    display: block;
+}
+
+/* MCQ header variant */
+.super-group-header.mcq-header {
+    background: #1e3a5f;
+}
+.super-group-header.mcq-header:hover {
+    background: #254876;
+}
+
+/* Lecture header variant */
+.super-group-header.lec-header {
+    background: #2d4a3e;
+}
+.super-group-header.lec-header:hover {
+    background: #3a5e50;
+}
+
+/* dark theme overrides */
+[data-theme="dark"] .super-group-header.mcq-header { background: #0c2340; color: #f8fafc !important; }
+[data-theme="dark"] .super-group-header.mcq-header:hover { background: #0f2d52; }
+[data-theme="dark"] .super-group-header.lec-header { background: #0a2a1e; color: #f8fafc !important; }
+[data-theme="dark"] .super-group-header.lec-header:hover { background: #0e3528; }
+
+/* claude theme overrides */
+[data-theme="claude"] .super-group-header.mcq-header { background: #7c3d1a; }
+[data-theme="claude"] .super-group-header.lec-header { background: #1a4a2e; }
+
+
+    .accordion-group {
+        border: 1px solid var(--color-border);
+        margin-bottom: 8px;
+        border-radius: var(--border-radius);
+        background: var(--color-surface);
+        padding: 0;
+        transition: border-color 0.2s;
+    }
+
+    .accordion-header {
+        font-weight: 600;
+        font-size: 1.2rem;
+        padding: 12px 16px;
+        color: var(--color-text);
+        background: var(--color-surface-2);
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        list-style: none;
+        transition: background-color 0.15s;
+        display: flex;
+        align-items: center;
+    }
+
+    .accordion-header::before {
+        content: '\f055';
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        margin-right: 10px;
+        font-size: 1em;
+        color: var(--color-primary);
+    }
+
+    .accordion-group[open]>.accordion-header::before {
+        content: '\f056';
+        color: var(--color-wrong);
+    }
+
+    .accordion-header:hover {
+        background: var(--color-light-hover);
+    }
+
+    .accordion-group>.button-grid {
+        padding: 12px 16px;
+        border-top: 1px solid var(--color-border-soft);
+    }
+
+    .selected-count-badge {
+        background: var(--color-primary);
+        color: white;
+        border-radius: 10px;
+        padding: 1px 8px;
+        font-size: 0.85rem;
+        margin-left: auto;
+        font-weight: 700;
+        display: none;
+    }
+
+    .button-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px; /* เพิ่มระยะห่างระหว่างปุ่มเป็น 12px */
+        justify-content: flex-start;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .category-label {
+        display: inline-flex;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .toggle-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 16px; /* เพิ่มพื้นที่ padding ภายในปุ่มให้อ่านและคลิกง่ายขึ้น */
+        border: 1.5px solid var(--color-border);
+        border-radius: 20px;
+        background: var(--color-toggle-default);
+        color: var(--color-text);
+        cursor: pointer;
+        transition: all 0.15s;
+        font-size: 1.05rem;
+        font-weight: 600;
+        white-space: normal; /* ยอมให้ข้อความยาวขึ้นบรรทัดใหม่ได้ ป้องกันปุ่มดันหลุดขอบจอ */
+        word-break: break-word; /* ตัดคำอัตโนมัติหากชื่อยาวเกินไป */
+        text-align: center;
+        font-family: var(--font-primary);
+        box-sizing: border-box;
+        line-height: 1.25;
+    }
+
+    .toggle-button:hover {
+        background: var(--color-toggle-hover);
+        border-color: #A8A29E;
+    }
+
+    .toggle-button.cat-anatomy {
+        background: var(--pastel-anatomy);
+        border-color: #FECACA;
+    }
+
+    .toggle-button.cat-physio {
+        background: var(--pastel-physio);
+        border-color: #BFDBFE;
+    }
+
+    .toggle-button.cat-micro {
+        background: var(--pastel-micro);
+        border-color: #DDD6FE;
+    }
+
+    .toggle-button.cat-patho {
+        background: var(--pastel-patho);
+        border-color: #BBF7D0;
+    }
+
+    .toggle-button.cat-pharm {
+        background: var(--pastel-pharm);
+        border-color: #FDE68A;
+    }
+
+    .toggle-button.cat-clinical {
+        background: var(--pastel-clinical);
+        border-color: #A5F3FC;
+    }
+
+    .toggle-button.cat-non {
+        background: var(--color-toggle-non);
+        border-color: #A8A29E;
+        color: var(--color-text);
+    }
+
+    .toggle-button.cat-anatomy:hover {
+        background: #FFE4E6;
+    }
+
+    .toggle-button.cat-physio:hover {
+        background: #DBEAFE;
+    }
+
+    .toggle-button.cat-micro:hover {
+        background: #EDE9FE;
+    }
+
+    .toggle-button.cat-patho:hover {
+        background: #DCFCE7;
+    }
+
+    .toggle-button.cat-pharm:hover {
+        background: #FEF9C3;
+    }
+
+    .toggle-button.cat-clinical:hover {
+        background: #CFFAFE;
+    }
+
+    .toggle-button.cat-non:hover {
+        background: var(--color-light-hover);
+    }
+
+    input[type="checkbox"]:checked+.toggle-button.cat-anatomy {
+        background: var(--active-anatomy);
+        border-color: #F87171;
+    }
+
+    input[type="checkbox"]:checked+.toggle-button.cat-physio {
+        background: var(--active-physio);
+        border-color: #60A5FA;
+    }
+
+    input[type="checkbox"]:checked+.toggle-button.cat-micro {
+        background: var(--active-micro);
+        border-color: #A78BFA;
+    }
+
+    input[type="checkbox"]:checked+.toggle-button.cat-patho {
+        background: var(--active-patho);
+        border-color: #4ADE80;
+    }
+
+    input[type="checkbox"]:checked+.toggle-button.cat-pharm {
+        background: var(--active-pharm);
+        border-color: #FCD34D;
+    }
+
+    input[type="checkbox"]:checked+.toggle-button.cat-clinical {
+        background: var(--active-clinical);
+        border-color: #22D3EE;
+    }
+
+    input[type="checkbox"]:checked+.toggle-button.cat-non {
+        background: var(--color-dark);
+        color: white;
+        border-color: var(--color-dark);
+    }
+

@@ -1,0 +1,25 @@
+/* Info Banner */
+       16. Info Banner & Misc
+       ========================================= */
+    .info-banner {
+        background: #FFFBEB;
+        border: 1px solid #FCD34D;
+        border-radius: var(--border-radius);
+        padding: 10px 14px;
+        margin-top: 12px;
+        font-size: 1.25rem;
+        color: #78350F;
+        font-weight: 700;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    /* =========================================
