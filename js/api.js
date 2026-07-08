@@ -87,11 +87,14 @@ window.sendWithRetry = async function (payload, retries = 3) {
 
         if (!response.ok) {
             const status = response.status;
-            // 4xx (ยกเว้น 429): ข้อผิดพลาดถาวร ไม่ retry
-            if (status >= 400 && status < 500 && status !== 429) {
+            // 4xx (ยกเว้น 429 และ 404): ข้อผิดพลาดถาวร ไม่ retry
+            // 404 เป็นข้อยกเว้น: POST ไป GAS ถูก 302 redirect ไป script.googleusercontent.com/macros/echo
+            //   ตอน container cold-start echo URL ยังไม่พร้อม → 404 ชั่วคราว (transient) → ต้อง retry
+            //   (เหมือน fetchGAS ด้านบนที่ retry ทุก !response.ok)
+            if (status >= 400 && status < 500 && status !== 429 && status !== 404) {
                 throw new Error('Client error ' + status);
             }
-            // 429 หรือ 5xx: retry ด้วย backoff
+            // 429, 404 หรือ 5xx: retry ด้วย backoff
             if (i === retries - 1) throw new Error('Server error ' + status + ' after ' + retries + ' attempts');
             let retryDelay;
             if (status === 429) {
