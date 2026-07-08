@@ -1028,66 +1028,6 @@
             <div id="search-results-container"></div>
         </section>
 
-        <!-- =========================================
-         V-d. High-yield cram sheet (Feature 3) — ชีทสรุปต่อหัวข้อ (สรุป + ตัวช่วยจำ + คีย์เวิร์ด) ของข้อปัจจุบัน
-         ========================================= -->
-        <div style="text-align: center; margin: 10px 20px;">
-            <button type="button" class="quiz-button btn-dark" onclick="window.toggleHighYieldPanel()">
-                <i class="fas fa-bolt"></i> สรุป High-yield (หัวข้อข้อปัจจุบัน)
-            </button>
-        </div>
-        <div id="highyield-panel" style="display:none; margin:10px 20px; border:1.5px solid var(--color-border);
-             border-radius:var(--border-radius); background:var(--color-surface-2); padding:14px;
-             text-align:left; font-family:var(--font-primary);">
-            <div style="font-weight:800; font-size:1.15rem; color:var(--color-primary);
-                 display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                <i class="fas fa-bolt"></i> สรุป High-yield
-            </div>
-            <div id="highyield-subtitle" style="font-size:0.82rem; color:var(--color-text-muted); margin-bottom:10px;">
-                หัวข้อของข้อที่กำลังดูอยู่
-            </div>
-            <div id="highyield-content"></div>
-            <div style="margin-top:10px; font-size:0.8rem; color:var(--color-text-muted); text-align:right;">
-                สร้างจากคลังข้อสอบที่ตรวจแล้ว · แบ่งปันโควต้าจาก KKU IntelSphere
-            </div>
-        </div>
-
-        <!-- =========================================
-         V-e. Keyword index (Feature 6) — คำสำคัญที่ออกบ่อยต่อหมวด (ทวนก่อนสอบ, จัดอันดับตามความถี่)
-         ========================================= -->
-        <div style="text-align: center; margin: 10px 20px;">
-            <button type="button" class="quiz-button btn-dark" onclick="window.toggleKeywordIndexPanel()">
-                <i class="fas fa-list-ol"></i> คำสำคัญที่ออกบ่อย (หัวข้อข้อปัจจุบัน)
-            </button>
-        </div>
-        <div id="keyword-index-panel" style="display:none; margin:10px 20px; border:1.5px solid var(--color-border);
-             border-radius:var(--border-radius); background:var(--color-surface-2); padding:14px;
-             text-align:left; font-family:var(--font-primary);">
-            <div style="font-weight:800; font-size:1.15rem; color:var(--color-primary);
-                 display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                <i class="fas fa-list-ol"></i> คำสำคัญที่ออกบ่อย
-            </div>
-            <div style="font-size:0.82rem; color:var(--color-text-muted); margin-bottom:10px;">
-                จัดอันดับตามจำนวนข้อสอบที่ทดสอบคำนั้น (ออกบ่อยสุดอยู่บน) — แตะปุ่ม ▸ เพื่อดูข้ออ้างอิง/รากศัพท์
-            </div>
-            <div class="kw-filters">
-                <label class="kw-filter-item">หมวด:
-                    <select id="kw-category-select" class="kw-select"></select>
-                </label>
-                <label class="kw-filter-item">ความถี่ขั้นต่ำ:
-                    <input type="number" id="kw-min-freq" class="kw-num" min="1" value="1">
-                </label>
-                <label class="kw-filter-item kw-hide-reviewed-label">
-                    <input type="checkbox" id="kw-hide-reviewed"> ซ่อนที่ทบทวนแล้ว
-                </label>
-            </div>
-            <div id="keyword-index-content"></div>
-            <div style="margin-top:10px; font-size:0.78rem; color:var(--color-text-muted); text-align:right;">
-                เครื่องหมาย "ทบทวนแล้ว" บันทึกบนอุปกรณ์นี้เท่านั้น · นับจากคลังข้อสอบที่ตรวจแล้ว
-            </div>
-        </div>
-    </div>
-
     <!-- =========================================
          VI. Floating Action Buttons
          ========================================= -->
@@ -1250,7 +1190,6 @@
     <script src="js/quiz-core.js"></script>
     <script src="js/quiz-render.js"></script>
     <script src="js/chatbot.js"></script>
-    <script src="js/study-aids-hy.js"></script>
     <script src="js/study-panel.js"></script>
     <script src="js/vote.js"></script>
     <script src="js/report.js"></script>
