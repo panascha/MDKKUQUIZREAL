@@ -928,6 +928,8 @@
 
             <p id="feedback"></p>
             <div id="quiz-explain-container" style="margin: 0 20px 10px;"></div>
+            <!-- Feature 4: chip row ข้อสอบที่เกี่ยวข้อง (เติมโดย window.showQuestion hook, ว่างเมื่อไม่มี relation) -->
+            <div id="quiz-related-container" style="margin: 0 20px 10px;"></div>
 
             <div class="nav-container">
                 <button id="prev-question" class="quiz-button btn-dark">
@@ -1016,6 +1018,130 @@
             <button id="search-btn" class="quiz-button btn-dark">ค้นหา</button>
             <div id="search-results-container"></div>
         </section>
+
+        <!-- =========================================
+         V-b. Standalone RAG Chat — grounded in the vetted question bank. NOT the per-question assistant.
+         ========================================= -->
+        <div style="text-align: center; margin: 10px 20px;">
+            <button type="button" class="quiz-button btn-dark" onclick="window.toggleRagPanel()">
+                <i class="fas fa-book-medical"></i> ถาม AI (ค้นจากคลังข้อสอบ)
+            </button>
+        </div>
+        <div id="rag-chat-panel" style="display:none; margin:10px 20px; border:1.5px solid var(--color-border);
+             border-radius:var(--border-radius); background:var(--color-surface-2); padding:14px;
+             text-align:left; font-family:var(--font-primary);">
+            <div style="font-weight:800; font-size:1.15rem; color:var(--color-primary);
+                 display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                <i class="fas fa-book-medical"></i> ถาม AI (ค้นจากคลังข้อสอบ)
+            </div>
+            <div id="rag-conversation" style="max-height:260px; overflow-y:auto; background:var(--color-surface);
+                 padding:10px; border-radius:8px; border:1px solid var(--color-border-soft); margin-bottom:12px;
+                 display:flex; flex-direction:column; gap:8px;">
+                <p class="text-muted mb-0" style="font-style:italic;">
+                    ถามคำถามแพทย์ทั่วไป ระบบจะค้นจากคลังข้อสอบที่ตรวจแล้วมาตอบพร้อมอ้างอิง...</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="rag-input" class="edit-choice-input" style="flex:1;"
+                    placeholder="เช่น ความแตกต่างระหว่าง MI กับ angina คืออะไร">
+                <button type="button" class="btn-xs teal" id="btn-rag-send" onclick="window.sendRagQuery()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div style="margin-top:8px; font-size:0.8rem; color:var(--color-text-muted); text-align:right;">
+                อ้างอิงจากคลังข้อสอบที่ตรวจแล้วเท่านั้น · แบ่งปันโควต้าจาก KKU IntelSphere
+            </div>
+        </div>
+
+        <!-- =========================================
+         V-c. Glossary (Feature 2) — คลังศัพท์แพทย์ (แตะ/ลากคำเพื่อแปล + ค้นหา + ดัชนีรากศัพท์)
+         ========================================= -->
+        <div style="text-align: center; margin: 10px 20px;">
+            <button type="button" class="quiz-button btn-dark" onclick="window.toggleGlossaryPanel()">
+                <i class="fas fa-language"></i> คลังศัพท์แพทย์ (Glossary)
+            </button>
+        </div>
+        <div id="glossary-panel" style="display:none; margin:10px 20px; border:1.5px solid var(--color-border);
+             border-radius:var(--border-radius); background:var(--color-surface-2); padding:14px;
+             text-align:left; font-family:var(--font-primary);">
+            <div style="font-weight:800; font-size:1.15rem; color:var(--color-primary);
+                 display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <i class="fas fa-language"></i> คลังศัพท์แพทย์
+            </div>
+            <div style="font-size:0.8rem; color:var(--color-text-muted); margin-bottom:10px;">
+                เคล็ดลับ: แตะหรือลากเลือกคำในโจทย์/ตัวเลือก/เฉลย แล้วกด "แปล" เพื่อดูความหมายและรากศัพท์
+            </div>
+            <div class="glossary-tabs" style="display:flex; gap:6px; margin-bottom:10px;">
+                <button type="button" class="btn-xs glossary-tab-btn active" data-gtab="list">รายการศัพท์</button>
+                <button type="button" class="btn-xs glossary-tab-btn" data-gtab="cluster">ดัชนีรากศัพท์</button>
+            </div>
+            <div id="glossary-tab-list">
+                <input type="text" id="glossary-search" class="edit-choice-input" style="width:100%; margin-bottom:10px;"
+                    placeholder="ค้นหาศัพท์ (ไทย/อังกฤษ)...">
+                <div id="glossary-list-container" style="max-height:320px; overflow-y:auto;"></div>
+            </div>
+            <div id="glossary-tab-cluster" style="display:none;">
+                <div id="glossary-cluster-container" style="max-height:340px; overflow-y:auto;"></div>
+            </div>
+        </div>
+
+        <!-- =========================================
+         V-d. High-yield cram sheet (Feature 3) — ชีทสรุปต่อหัวข้อ (สรุป + ตัวช่วยจำ + คีย์เวิร์ด) ของข้อปัจจุบัน
+         ========================================= -->
+        <div style="text-align: center; margin: 10px 20px;">
+            <button type="button" class="quiz-button btn-dark" onclick="window.toggleHighYieldPanel()">
+                <i class="fas fa-bolt"></i> สรุป High-yield (หัวข้อข้อปัจจุบัน)
+            </button>
+        </div>
+        <div id="highyield-panel" style="display:none; margin:10px 20px; border:1.5px solid var(--color-border);
+             border-radius:var(--border-radius); background:var(--color-surface-2); padding:14px;
+             text-align:left; font-family:var(--font-primary);">
+            <div style="font-weight:800; font-size:1.15rem; color:var(--color-primary);
+                 display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                <i class="fas fa-bolt"></i> สรุป High-yield
+            </div>
+            <div id="highyield-subtitle" style="font-size:0.82rem; color:var(--color-text-muted); margin-bottom:10px;">
+                หัวข้อของข้อที่กำลังดูอยู่
+            </div>
+            <div id="highyield-content"></div>
+            <div style="margin-top:10px; font-size:0.8rem; color:var(--color-text-muted); text-align:right;">
+                สร้างจากคลังข้อสอบที่ตรวจแล้ว · แบ่งปันโควต้าจาก KKU IntelSphere
+            </div>
+        </div>
+
+        <!-- =========================================
+         V-e. Keyword index (Feature 6) — คำสำคัญที่ออกบ่อยต่อหมวด (ทวนก่อนสอบ, จัดอันดับตามความถี่)
+         ========================================= -->
+        <div style="text-align: center; margin: 10px 20px;">
+            <button type="button" class="quiz-button btn-dark" onclick="window.toggleKeywordIndexPanel()">
+                <i class="fas fa-list-ol"></i> คำสำคัญที่ออกบ่อย (หัวข้อข้อปัจจุบัน)
+            </button>
+        </div>
+        <div id="keyword-index-panel" style="display:none; margin:10px 20px; border:1.5px solid var(--color-border);
+             border-radius:var(--border-radius); background:var(--color-surface-2); padding:14px;
+             text-align:left; font-family:var(--font-primary);">
+            <div style="font-weight:800; font-size:1.15rem; color:var(--color-primary);
+                 display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                <i class="fas fa-list-ol"></i> คำสำคัญที่ออกบ่อย
+            </div>
+            <div style="font-size:0.82rem; color:var(--color-text-muted); margin-bottom:10px;">
+                จัดอันดับตามจำนวนข้อสอบที่ทดสอบคำนั้น (ออกบ่อยสุดอยู่บน) — แตะปุ่ม ▸ เพื่อดูข้ออ้างอิง/รากศัพท์
+            </div>
+            <div class="kw-filters">
+                <label class="kw-filter-item">หมวด:
+                    <select id="kw-category-select" class="kw-select"></select>
+                </label>
+                <label class="kw-filter-item">ความถี่ขั้นต่ำ:
+                    <input type="number" id="kw-min-freq" class="kw-num" min="1" value="1">
+                </label>
+                <label class="kw-filter-item kw-hide-reviewed-label">
+                    <input type="checkbox" id="kw-hide-reviewed"> ซ่อนที่ทบทวนแล้ว
+                </label>
+            </div>
+            <div id="keyword-index-content"></div>
+            <div style="margin-top:10px; font-size:0.78rem; color:var(--color-text-muted); text-align:right;">
+                เครื่องหมาย "ทบทวนแล้ว" บันทึกบนอุปกรณ์นี้เท่านั้น · นับจากคลังข้อสอบที่ตรวจแล้ว
+            </div>
+        </div>
     </div>
 
     <!-- =========================================
@@ -1087,6 +1213,89 @@
             <a href="#" onclick="window.openDonateKeyModal(); return false;" style="color: var(--color-primary);">บริจาค Key</a>
         </div>
     </div>
+
+    <!-- Feature 5 — Unified study side panel "ผู้ช่วยติว: เกี่ยวกับข้อนี้" (§5.1) — UI composition ของ F3/F4/F6 + assistant.
+         4 section แบบ lazy (โหลดตอนกาง, cache-first) reuse ตัวโหลด/ตัววาด/แคชเดิมทั้งหมด — ไม่มี backend ใหม่.
+         ลากขอบด้านใน (ซ้าย/บน) เพื่อปรับขนาด, จำขนาดใน localStorage, ดับเบิลคลิกรีเซ็ต -->
+    <div id="study-scrim" onclick="window.toggleStudyPanel(false)"></div>
+    <button id="study-fab" type="button" onclick="window.toggleStudyPanel()" title="ผู้ช่วยติว — เกี่ยวกับข้อนี้">
+        <i class="fas fa-graduation-cap"></i>
+    </button>
+    <div id="study-panel" class="studypanel-drawer" style="text-align:left; font-family:var(--font-primary);">
+        <div id="study-resize-handle" title="ลากเพื่อปรับขนาด · ดับเบิลคลิกเพื่อกลับค่าเริ่มต้น"></div>
+        <div class="studypanel-body">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
+                <span style="font-weight:800; font-size:1.05rem; color:var(--color-primary); display:inline-flex; align-items:center; gap:8px;">
+                    <i class="fas fa-graduation-cap"></i> ผู้ช่วยติว — เกี่ยวกับข้อนี้
+                </span>
+                <button type="button" onclick="window.toggleStudyPanel(false)" title="ปิด"
+                    style="border:none; background:none; color:var(--color-text-muted); font-size:1.4rem; cursor:pointer; line-height:1; padding:2px 6px;">&times;</button>
+            </div>
+
+            <div class="sp-section" data-spsec="hy">
+                <button type="button" class="sp-section-head">
+                    <i class="fas fa-bolt"></i> สรุป High-yield (หมวดนี้)
+                    <i class="fas fa-caret-down sp-caret"></i>
+                </button>
+                <div class="sp-section-body" style="display:none;">
+                    <div id="sp-hy-subtitle" class="sp-muted" style="margin-bottom:8px;"></div>
+                    <div id="sp-hy-content"></div>
+                </div>
+            </div>
+
+            <div class="sp-section sp-open" data-spsec="rel">
+                <button type="button" class="sp-section-head">
+                    <i class="fas fa-link"></i> ข้อสอบที่เกี่ยวข้อง
+                    <i class="fas fa-caret-down sp-caret"></i>
+                </button>
+                <div class="sp-section-body">
+                    <div id="sp-related-container"></div>
+                </div>
+            </div>
+
+            <div class="sp-section" data-spsec="kw">
+                <button type="button" class="sp-section-head">
+                    <i class="fas fa-list-ol"></i> คำสำคัญหมวดนี้
+                    <i class="fas fa-caret-down sp-caret"></i>
+                </button>
+                <div class="sp-section-body" style="display:none;">
+                    <div id="sp-kw-subtitle" class="sp-muted" style="margin-bottom:8px;"></div>
+                    <div id="sp-kw-content"></div>
+                </div>
+            </div>
+
+            <div class="sp-section" data-spsec="ai">
+                <button type="button" class="sp-section-head">
+                    <i class="fas fa-robot"></i> ถาม AI เกี่ยวกับข้อนี้
+                    <i class="fas fa-caret-down sp-caret"></i>
+                </button>
+                <div class="sp-section-body" style="display:none;">
+                    <div id="sp-chat-conversation" class="sp-chat-conv">
+                        <p class="text-muted mb-0" style="font-style:italic;">ถาม AI เกี่ยวกับข้อที่กำลังดูอยู่ เช่น "ทำไมไม่ใช่ข้อ C?"</p>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="sp-chat-input" class="edit-choice-input" style="flex:1;"
+                            placeholder="เช่น อธิบาย mechanism ของข้อนี้หน่อย">
+                        <button type="button" class="btn-xs teal" id="btn-sp-chat-send"
+                            onclick="window.sendChatbotQuery(window._spChatOpts())">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div style="margin-top:6px; font-size:0.75rem; color:var(--color-text-muted); text-align:right;">
+                        ใช้โมเดล/โควต้าเดียวกับ AI Study Assistant · แบ่งปันจาก KKU IntelSphere
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:auto; padding-top:8px; font-size:0.75rem; color:var(--color-text-muted); text-align:right;">
+                เนื้อหาจากคลังข้อสอบที่ตรวจแล้ว · ลากขอบเพื่อปรับขนาด
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature 2 Glossary: floating "แปล" chip + popup (ตัวเรนเดอร์เดียวใช้ทั้ง tap/miss/panel/cluster) -->
+    <button id="glossary-translate-chip" type="button"><i class="fas fa-language"></i> แปล</button>
+    <div id="glossary-popup"></div>
 
     <!-- =========================================
          VII. Modular Scripts Import
