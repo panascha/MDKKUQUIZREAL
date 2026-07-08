@@ -1098,85 +1098,6 @@
         </div>
     </div>
 
-    <!-- Feature 5 — Unified study side panel "ผู้ช่วยติว: เกี่ยวกับข้อนี้" (§5.1) — UI composition ของ F3/F4/F6 + assistant.
-         4 section แบบ lazy (โหลดตอนกาง, cache-first) reuse ตัวโหลด/ตัววาด/แคชเดิมทั้งหมด — ไม่มี backend ใหม่.
-         ลากขอบด้านใน (ซ้าย/บน) เพื่อปรับขนาด, จำขนาดใน localStorage, ดับเบิลคลิกรีเซ็ต -->
-    <div id="study-scrim" onclick="window.toggleStudyPanel(false)"></div>
-    <button id="study-fab" type="button" onclick="window.toggleStudyPanel()" title="ผู้ช่วยติว — เกี่ยวกับข้อนี้">
-        <i class="fas fa-graduation-cap"></i>
-    </button>
-    <div id="study-panel" class="studypanel-drawer" style="text-align:left; font-family:var(--font-primary);">
-        <div id="study-resize-handle" title="ลากเพื่อปรับขนาด · ดับเบิลคลิกเพื่อกลับค่าเริ่มต้น"></div>
-        <div class="studypanel-body">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
-                <span style="font-weight:800; font-size:1.05rem; color:var(--color-primary); display:inline-flex; align-items:center; gap:8px;">
-                    <i class="fas fa-graduation-cap"></i> ผู้ช่วยติว — เกี่ยวกับข้อนี้
-                </span>
-                <button type="button" onclick="window.toggleStudyPanel(false)" title="ปิด"
-                    style="border:none; background:none; color:var(--color-text-muted); font-size:1.4rem; cursor:pointer; line-height:1; padding:2px 6px;">&times;</button>
-            </div>
-
-            <div class="sp-section" data-spsec="hy">
-                <button type="button" class="sp-section-head">
-                    <i class="fas fa-bolt"></i> สรุป High-yield (หมวดนี้)
-                    <i class="fas fa-caret-down sp-caret"></i>
-                </button>
-                <div class="sp-section-body" style="display:none;">
-                    <div id="sp-hy-subtitle" class="sp-muted" style="margin-bottom:8px;"></div>
-                    <div id="sp-hy-content"></div>
-                </div>
-            </div>
-
-            <div class="sp-section sp-open" data-spsec="rel">
-                <button type="button" class="sp-section-head">
-                    <i class="fas fa-link"></i> ข้อสอบที่เกี่ยวข้อง
-                    <i class="fas fa-caret-down sp-caret"></i>
-                </button>
-                <div class="sp-section-body">
-                    <div id="sp-related-container"></div>
-                </div>
-            </div>
-
-            <div class="sp-section" data-spsec="kw">
-                <button type="button" class="sp-section-head">
-                    <i class="fas fa-list-ol"></i> คำสำคัญหมวดนี้
-                    <i class="fas fa-caret-down sp-caret"></i>
-                </button>
-                <div class="sp-section-body" style="display:none;">
-                    <div id="sp-kw-subtitle" class="sp-muted" style="margin-bottom:8px;"></div>
-                    <div id="sp-kw-content"></div>
-                </div>
-            </div>
-
-            <div class="sp-section" data-spsec="ai">
-                <button type="button" class="sp-section-head">
-                    <i class="fas fa-robot"></i> ถาม AI เกี่ยวกับข้อนี้
-                    <i class="fas fa-caret-down sp-caret"></i>
-                </button>
-                <div class="sp-section-body" style="display:none;">
-                    <div id="sp-chat-conversation" class="sp-chat-conv">
-                        <p class="text-muted mb-0" style="font-style:italic;">ถาม AI เกี่ยวกับข้อที่กำลังดูอยู่ เช่น "ทำไมไม่ใช่ข้อ C?"</p>
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <input type="text" id="sp-chat-input" class="edit-choice-input" style="flex:1;"
-                            placeholder="เช่น อธิบาย mechanism ของข้อนี้หน่อย">
-                        <button type="button" class="btn-xs teal" id="btn-sp-chat-send"
-                            onclick="window.sendChatbotQuery(window._spChatOpts())">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                    <div style="margin-top:6px; font-size:0.75rem; color:var(--color-text-muted); text-align:right;">
-                        ใช้โมเดล/โควต้าเดียวกับ AI Study Assistant · แบ่งปันจาก KKU IntelSphere
-                    </div>
-                </div>
-            </div>
-
-            <div style="margin-top:auto; padding-top:8px; font-size:0.75rem; color:var(--color-text-muted); text-align:right;">
-                เนื้อหาจากคลังข้อสอบที่ตรวจแล้ว · ลากขอบเพื่อปรับขนาด
-            </div>
-        </div>
-    </div>
-
     <!-- =========================================
          VII. Modular Scripts Import
          ========================================= -->
@@ -1190,7 +1111,6 @@
     <script src="js/quiz-core.js"></script>
     <script src="js/quiz-render.js"></script>
     <script src="js/chatbot.js"></script>
-    <script src="js/study-panel.js"></script>
     <script src="js/vote.js"></script>
     <script src="js/report.js"></script>
     <script src="js/ui.js"></script>
