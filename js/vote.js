@@ -490,7 +490,7 @@ window.addVoteRow = function (preSelectedSubjectId = null) {
 };
 
 $(function () {
-    window.MAX_AUTO_VOTE = 2;
+    window.MAX_AUTO_VOTE = 0; // ปิด auto-vote popup — จะแยกหัวข้อด้วย AI batch แทน
 
     $('#btn-open-vote').on('click', () => {
         window.openVoteModal(window.APP.currentQuestions[window.APP.questionIndex], false);
