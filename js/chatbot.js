@@ -287,3 +287,4 @@ $(document).ready(function () { window.loadChatbotModelCatalog(); });
             } catch (e) { }
         }
     };
+})();
