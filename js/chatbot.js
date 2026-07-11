@@ -171,11 +171,11 @@ window.sendChatbotQuery = async function () {
     // พับประวัติบทสนทนา (session memory) เข้า prompt — backend stateless จึงต้องส่งเป็นข้อความเดียว
     var histText = '';
     if (window._chatHistory && window._chatHistory.length) {
-        var turns = window._chatHistory.slice(-6).map(function (t) {
-            return (t.role === 'user' ? 'นิสิต' : 'AI') + ': ' + String(t.text || '').slice(0, 500);
+        var turns = window._chatHistory.slice(-10).map(function (t) {
+            return (t.role === 'user' ? 'นิสิต' : 'AI') + ': ' + String(t.text || '').slice(0, 1000);
         });
         histText = turns.join('\n');
-        while (histText.length > 2500 && turns.length > 1) {
+        while (histText.length > 5000 && turns.length > 1) {
             turns.shift();
             histText = turns.join('\n');
         }
@@ -190,7 +190,7 @@ window.sendChatbotQuery = async function () {
         'คำอธิบาย: "' + (q.explain || '') + '"\n' +
         '(บริบทโจทย์ด้านบนคือข้อปัจจุบันที่นิสิตกำลังดูอยู่ตอนนี้)\n\n' +
         'คำถามใหม่จากนิสิต: "' + query + '"\n\n' +
-        'กรุณาตอบสั้นๆ กระชับ ตรงประเด็น ภาษาไทย ไม่เกิน 200 คำ';
+        'กรุณาตอบกระชับ ตรงประเด็น ภาษาไทย';
 
     try {
         var res = await window.sendWithRetry({
