@@ -908,6 +908,11 @@ window.saveEditChanges = async function () {
 
                 await window.syncQuestionsToCache();
 
+                // Rebuild currentQuestions from fresh allQuestions to pick up edits, preserve position & answer order
+                const savedIdx = window.APP.questionIndex;
+                window.updateQuestionSet(false, false);
+                window.APP.questionIndex = Math.min(savedIdx, window.APP.currentQuestions.length - 1);
+
                 // วาดการแสดงผลใหม่อีกครั้งอย่างเงียบๆ (Silent Re-render) ด้วยข้อมูล URL สมบูรณ์
                 window.showQuestion(false);
                 window.showSubmission($('#submission-filter').val());
