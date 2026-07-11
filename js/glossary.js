@@ -56,6 +56,7 @@ window.loadGlossary = async function (subject) {
         window.APP._glossaryLoading = false;
     }
     if ($('#glossary-panel').is(':visible')) { window.renderGlossaryList(); }
+    if (window.APP._glossaryLoaded && typeof window.markGlossaryTerms === 'function') window.markGlossaryTerms();
 };
 
 // ค้นหา term จากคำ (normalize ก่อน) — คืน object หรือ null
@@ -179,6 +180,7 @@ window.resolveGlossaryTerm = async function (pending) {
             if (!window.APP.glossaryMap[key]) window.APP.glossaryMap[key] = res.term;
             window.hideGlossaryChip();
             window.renderGlossaryPopup(res.term, rect);
+            window.markGlossaryTerms(); // คำใหม่เข้า map แล้ว — ขีดเส้นใต้ในข้อปัจจุบันทันที
             if ($('#glossary-panel').is(':visible')) { window.renderGlossaryList(); window.renderGlossaryClusters(); }
         } else {
             window.hideGlossaryChip();
@@ -373,7 +375,79 @@ $(document).on('click', '#glossary-tap-hint-close', function () {
 });
 $(function () { window.initGlossaryTapHint(); });
 
-// เปลี่ยนข้อ → ปิด popup/ชิปที่ค้าง (chips อ้าง currentQuestions ของข้อเดิม)
+/* ---- Known-term marking: ขีดเส้นใต้คำที่เคยแปลแล้วในโจทย์/ตัวเลือก/เฉลย — แตะ = popup ทันที ---- */
+
+// regex รวมทุก term (en+th, ยาวก่อนสั้น กัน partial match) — memoize บน glossaryTermsVersion
+window._glossaryMarkRegex = function () {
+    var ver = window.APP._glossaryTermsVersion || 0;
+    if (window.APP._gMarkRe && window.APP._gMarkReVer === ver) return window.APP._gMarkRe;
+    var words = [];
+    (window.APP.glossaryTerms || []).forEach(function (t) {
+        [t.term_en, t.term_th].forEach(function (w) {
+            w = (w == null ? '' : String(w)).trim();
+            if (w.length >= 3) words.push(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        });
+    });
+    if (!words.length) { window.APP._gMarkRe = null; window.APP._gMarkReVer = ver; return null; }
+    words.sort(function (a, b) { return b.length - a.length; });
+    // lookaround กันจับกลางคำละติน; อักษรไทยไม่ใช่ [a-z0-9] จึงผ่าน boundary เสมอ
+    window.APP._gMarkRe = new RegExp('(?<![a-zA-Z0-9])(' + words.join('|') + ')(?![a-zA-Z0-9])', 'gi');
+    window.APP._gMarkReVer = ver;
+    return window.APP._gMarkRe;
+};
+
+// เดิน text node ในเขต scope แล้วห่อคำที่รู้จักด้วย span.glossary-known (ข้าม math/$, node ที่ mark แล้ว)
+window.markGlossaryTerms = function () {
+    var re = window._glossaryMarkRegex();
+    if (!re) return;
+    document.querySelectorAll(window._glossaryScopeSel).forEach(function (container) {
+        var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+            acceptNode: function (n) {
+                if (!n.nodeValue || !n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+                if (n.nodeValue.indexOf('$') >= 0) return NodeFilter.FILTER_REJECT; // อาจเป็น KaTeX ที่ยังไม่ render
+                var p = n.parentElement;
+                while (p && p !== container) {
+                    if (p.classList && (p.classList.contains('glossary-known') || p.classList.contains('katex'))) return NodeFilter.FILTER_REJECT;
+                    if (p.tagName === 'SCRIPT' || p.tagName === 'STYLE') return NodeFilter.FILTER_REJECT;
+                    p = p.parentElement;
+                }
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        });
+        var nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach(function (node) {
+            re.lastIndex = 0;
+            if (!re.test(node.nodeValue)) return;
+            re.lastIndex = 0;
+            var frag = document.createDocumentFragment();
+            var text = node.nodeValue, last = 0, m;
+            while ((m = re.exec(text)) !== null) {
+                if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+                var span = document.createElement('span');
+                span.className = 'glossary-known';
+                span.setAttribute('data-gkey', window.normalizeGlossaryKey(m[0]));
+                span.textContent = m[0];
+                frag.appendChild(span);
+                last = m.index + m[0].length;
+            }
+            if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+            node.parentNode.replaceChild(frag, node);
+        });
+    });
+};
+
+// แตะคำที่ขีดเส้นใต้ → popup ทันที; stopPropagation กันไปโดน choice-select/outside-hide
+$(document).on('click', '.glossary-known', function (e) {
+    var term = window.APP.glossaryMap && window.APP.glossaryMap[this.dataset.gkey];
+    if (!term) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var r = this.getBoundingClientRect();
+    window.renderGlossaryPopup(term, { left: r.left, top: r.top, bottom: r.bottom, right: r.right });
+});
+
+// เปลี่ยนข้อ → ปิด popup/ชิปที่ค้าง (chips อ้าง currentQuestions ของข้อเดิม) + mark คำที่เคยแปล
 (function () {
     var _orig = window.showQuestion;
     if (typeof _orig !== 'function') return;
@@ -386,5 +460,7 @@ $(function () { window.initGlossaryTapHint(); });
             (!window.APP._glossaryLastAttempt || Date.now() - window.APP._glossaryLastAttempt > 60000)) {
             window.loadGlossary(new URLSearchParams(location.search).get('subject') || '');
         }
+        // mark หลัง DOM ของข้อวาดเสร็จ (100ms > renderAllMath ที่ 50ms — ให้ KaTeX เสร็จก่อน)
+        setTimeout(window.markGlossaryTerms, 120);
     };
 })();
