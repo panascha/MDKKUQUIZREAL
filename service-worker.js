@@ -3,7 +3,7 @@
 // และ cache เฉพาะไฟล์ static ของตัวเอง
 // ไม่แตะ requests ไปหา Google Apps Script (script.google.com) เด็ดขาด
 
-const CACHE_NAME = 'mdkkuquiz-v17'; // bump ทุกครั้งที่ deploy JS ใหม่ เพื่อให้ SW cache-first ส่งไฟล์ใหม่ถึงผู้ใช้
+const CACHE_NAME = 'mdkkuquiz-v18'; // bump ทุกครั้งที่ deploy JS ใหม่ เพื่อให้ SW cache-first ส่งไฟล์ใหม่ถึงผู้ใช้
 const STATIC_ASSETS = [
     './',
     'index.html',
@@ -20,6 +20,7 @@ const STATIC_ASSETS = [
     'css/fast-mode.css',
     'css/features.css',
     'js/config.js',
+    'js/version.js',
     'js/db.js',
     'js/api.js',
     'js/search.js',
@@ -54,6 +55,13 @@ self.addEventListener('activate', (event) => {
         )
     );
     self.clients.claim();
+});
+
+// Message: หน้าเว็บถาม version ปัจจุบันผ่าน MessageChannel — CACHE_NAME คือ source of truth เดียว
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'GET_VERSION' && event.ports[0]) {
+        event.ports[0].postMessage({ version: CACHE_NAME });
+    }
 });
 
 // Fetch: Network-first สำหรับ API calls, Cache-first สำหรับ static assets

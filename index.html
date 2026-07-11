@@ -870,12 +870,16 @@
                                 style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;">
                                 <i class="fas fa-key" style="color: #0d9488;"></i> บริจาค API Key (AI)
                             </button>
+                            <button id="btn-check-update" class="quiz-button"
+                                style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;">
+                                <i class="fas fa-cloud-download-alt" style="color: #16a34a;"></i> <span id="btn-check-update-text">ตรวจสอบอัปเดต</span>
+                            </button>
                         </div>
                     </details>
             </div>
             <div class="small-text" style="margin-top: 9px; color: var(--color-text-muted);">
                 หมายเหตุ : ถ้าเจอโจทย์มีปัญหาพิมพ์เข้ามาใน report ได้เลย | คีย์ลัด: ← (ก่อนหน้า), → (ถัดไป), Enter
-                (ส่งคำตอบ)
+                (ส่งคำตอบ) | <span id="app-version-label" style="cursor: pointer; text-decoration: underline dotted;" title="กดเพื่อตรวจสอบอัปเดต">เวอร์ชัน: -</span>
             </div>
             <!-- กล่องสำหรับเรนเดอร์ Banner ประกาศข่าวสารแบบ Dynamic พลิกแพลงตามข้อมูลใน Sheet -->
             <div id="dynamic-announcements-container" style="display: none; flex-direction: column; gap: 10px; text-align: left; width: 100%; margin-top: 12px;"></div>
@@ -1151,6 +1155,7 @@
          VII. Modular Scripts Import
          ========================================= -->
     <script src="js/config.js"></script>
+    <script src="js/version.js"></script>
     <script src="js/db.js"></script>
     <script src="js/api.js"></script>
     <script src="js/search.js"></script>
@@ -1170,6 +1175,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./service-worker.js');
+            window.initVersionUpdater();
         }
     </script>
 
