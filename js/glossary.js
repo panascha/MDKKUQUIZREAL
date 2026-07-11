@@ -15,6 +15,11 @@ window._glossaryInsertTerm = function (term) {
     var kTh = window.normalizeGlossaryKey(term.term_th);
     var existing = (kEn && window.APP.glossaryMap[kEn]) || (kTh && window.APP.glossaryMap[kTh]) || null;
     if (existing) {
+        // ลบคีย์เก่าของ object เดิมก่อน (en/th อาจเปลี่ยน) — กัน map ชี้ object ที่หลุดจาก array แล้ว
+        var oldEn = window.normalizeGlossaryKey(existing.term_en);
+        var oldTh = window.normalizeGlossaryKey(existing.term_th);
+        if (oldEn && window.APP.glossaryMap[oldEn] === existing) delete window.APP.glossaryMap[oldEn];
+        if (oldTh && window.APP.glossaryMap[oldTh] === existing) delete window.APP.glossaryMap[oldTh];
         var idx = window.APP.glossaryTerms.indexOf(existing);
         if (idx >= 0) window.APP.glossaryTerms[idx] = term; else window.APP.glossaryTerms.push(term);
     } else {
@@ -29,22 +34,25 @@ window._glossaryInsertTerm = function (term) {
 window.loadGlossary = async function (subject) {
     if (window.APP._glossaryLoading) return;
     window.APP._glossaryLoading = true;
+    window.APP._glossaryLastAttempt = Date.now(); // throttle retry จาก showQuestion hook
     try {
         var res = await window.fetchGAS(function () {
             return window.APPSCRIPT_URL + '?action=getGlossary' +
                 (subject ? '&subject=' + encodeURIComponent(subject) : '') + '&_=' + Date.now();
         });
-        var terms = (res && res.result === 'success' && Array.isArray(res.terms)) ? res.terms : [];
+        if (!res || res.result !== 'success' || !Array.isArray(res.terms)) throw new Error('bad response');
         window.APP.glossaryTerms = [];
         window.APP.glossaryMap = {};
         window.APP._glossaryTermsVersion = 0;
-        terms.forEach(function (t) { window._glossaryInsertTerm(t); });
+        res.terms.forEach(function (t) { window._glossaryInsertTerm(t); });
+        window.APP._glossaryLoaded = true;   // ตั้งเฉพาะตอนสำเร็จ — ล้มเหลวแล้วค่อย retry ได้ (Playwright: inject synthetic หลัง _glossaryLoaded===true)
+        window.APP._glossaryLoadFailed = false;
     } catch (e) {
         console.warn('[Glossary] load failed:', e && e.message);
         window.APP.glossaryTerms = window.APP.glossaryTerms || [];
         window.APP.glossaryMap = window.APP.glossaryMap || {};
+        window.APP._glossaryLoadFailed = true;
     } finally {
-        window.APP._glossaryLoaded = true;   // กัน refetch วน (Playwright: inject synthetic หลัง _glossaryLoaded===true)
         window.APP._glossaryLoading = false;
     }
     if ($('#glossary-panel').is(':visible')) { window.renderGlossaryList(); }
@@ -130,6 +138,7 @@ window._glossaryHandleSelection = function () {
     var text = sel.toString().trim();
     if (!text) { window.hideGlossaryChip(); return; }
     if (text.split(/\s+/).filter(Boolean).length > 4) { window.hideGlossaryChip(); return; } // ≤ ~4 คำ (ไทยไม่มีช่องว่าง = 1)
+    if (text.length > 60) { window.hideGlossaryChip(); return; } // กันลากทั้งย่อหน้าไทย (ไม่มีช่องว่าง → นับคำไม่ได้)
     var node = sel.anchorNode;
     var el = node && (node.nodeType === 3 ? node.parentElement : node);
     var container = el && el.closest ? el.closest(window._glossaryScopeSel) : null;
@@ -202,7 +211,8 @@ window.renderGlossaryList = function () {
     var terms = window.APP.glossaryTerms || [];
     if (!terms.length) {
         $c.html('<div style="color:var(--color-text-muted);font-style:italic;font-size:0.9rem;">' +
-            (window.APP._glossaryLoaded ? 'ยังไม่มีศัพท์ในวิชานี้ — ลองแตะคำในโจทย์เพื่อเพิ่มศัพท์' : 'กำลังโหลด...') + '</div>');
+            (window.APP._glossaryLoaded ? 'ยังไม่มีศัพท์ในวิชานี้ — ลองแตะคำในโจทย์เพื่อเพิ่มศัพท์'
+                : (window.APP._glossaryLoadFailed ? 'โหลดไม่สำเร็จ — ปิดแล้วเปิดคลังศัพท์ใหม่เพื่อลองอีกครั้ง' : 'กำลังโหลด...')) + '</div>');
         return;
     }
     var q = window.normalizeGlossaryKey(($('#glossary-search').val() || '').trim());
@@ -266,7 +276,8 @@ window.renderGlossaryClusters = function () {
     var terms = window.APP.glossaryTerms || [];
     if (!terms.length) {
         $c.html('<div style="color:var(--color-text-muted);font-style:italic;font-size:0.9rem;">' +
-            (window.APP._glossaryLoaded ? 'ยังไม่มีศัพท์ในวิชานี้' : 'กำลังโหลด...') + '</div>');
+            (window.APP._glossaryLoaded ? 'ยังไม่มีศัพท์ในวิชานี้'
+                : (window.APP._glossaryLoadFailed ? 'โหลดไม่สำเร็จ — ปิดแล้วเปิดคลังศัพท์ใหม่เพื่อลองอีกครั้ง' : 'กำลังโหลด...')) + '</div>');
         return;
     }
     var data = window.buildGlossaryClusters();
@@ -351,6 +362,17 @@ $(document).on('click', '.glossary-row, .glossary-cluster-cell', function () {
     window.renderGlossaryPopup(term, { left: r.left, top: r.top, bottom: r.bottom, right: r.right });
 });
 
+// Onboarding hint (English, dismissible) — โชว์จนกด × แล้วจำใน localStorage; display:flex เพราะ CSS จัด layout ด้วย flex
+window.initGlossaryTapHint = function () {
+    try { if (localStorage.getItem('glossary_tip_dismissed_v1')) return; } catch (e) { }
+    $('#glossary-tap-hint').css('display', 'flex');
+};
+$(document).on('click', '#glossary-tap-hint-close', function () {
+    $('#glossary-tap-hint').hide();
+    try { localStorage.setItem('glossary_tip_dismissed_v1', '1'); } catch (e) { }
+});
+$(function () { window.initGlossaryTapHint(); });
+
 // เปลี่ยนข้อ → ปิด popup/ชิปที่ค้าง (chips อ้าง currentQuestions ของข้อเดิม)
 (function () {
     var _orig = window.showQuestion;
@@ -359,16 +381,10 @@ $(document).on('click', '.glossary-row, .glossary-cluster-cell', function () {
         _orig.call(this, shouldFocus);
         window.hideGlossaryPopup();
         window.hideGlossaryChip();
+        // preload glossary ครั้งเดียวต่อวิชา — hit-path (0 network) ต้องมี map ก่อนผู้ใช้แตะคำ; throttle 60s กันยิงรัวตอน backend ล่ม
+        if (!window.APP._glossaryLoaded && !window.APP._glossaryLoading &&
+            (!window.APP._glossaryLastAttempt || Date.now() - window.APP._glossaryLastAttempt > 60000)) {
+            window.loadGlossary(new URLSearchParams(location.search).get('subject') || '');
+        }
     };
 })();
-
-$(document).on('keypress', '#rag-input', function (e) { if (e.which === 13) window.sendRagQuery(); });
-
-/* =========================================
-   Feature 3 — High-yield cram sheet (§3.1–§3.6) — สรุป + ตัวช่วยจำ (mnemonics) + คีย์เวิร์ด ต่อ "หัวข้อของข้อปัจจุบัน"
-   serving: GET getHighYield&category=X (client cache ต่อ categoryId); miss = ปุ่มสร้าง → POST generateHighYield (~30s)
-   render: summary_md ผ่าน renderMarkdownSafe + renderAllMath (deterministic), keywords=chips, mnemonics=👍/🚩 (localStorage re-vote guard)
-   multi-category (§5): ใช้ category[0] เป็น primary (v1). AI badge เมื่อ status==='auto'. ทุกฟังก์ชันแชร์เป็น window.* (กฎ REAL)
-   ========================================= */
-
-// หา "หมวดหลัก" ของข้อปัจจุบัน (primary = category[0]) + subject + ชื่อหมวด — null เมื่อยังไม่มีข้อ/ไม่มีหมวด

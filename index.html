@@ -921,8 +921,14 @@
                     <i class="fas fa-copy"></i> คัดลอกคำถาม
                 </button>
             </div>
+            <!-- Glossary onboarding hint (English, dismissible ครั้งเดียว — glossary.js ควบคุม show/hide ผ่าน localStorage) -->
+            <div id="glossary-tap-hint" style="display:none;">
+                <i class="fas fa-language"></i>
+                <span>Tip: Double-tap or select any word in the question or choices to translate instantly.</span>
+                <button type="button" id="glossary-tap-hint-close" title="Dismiss">&times;</button>
+            </div>
             <p id="question"></p>
-            
+
             <div id="image-container-div" style="display: none;">
                 <button id="prev-img-btn" class="img-nav-btn"><i class="fas fa-chevron-left"></i></button>
                 <img id="question-image" src="" alt="Question Image" />

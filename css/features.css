@@ -240,3 +240,34 @@ body.chatbot-open #chatbot-fab {
     border-color: var(--color-primary) !important;
 }
 
+/* ให้เลือกข้อความในตัวเลือกได้ (ปกติ browser ปิด selection ใน <button>) — จำเป็นต่อ tap-translate ในตัวเลือก */
+#choices button,
+#choices button * {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Onboarding hint (English, dismissible) — โชว์ครั้งแรกจนกด × (glossary.js + localStorage) */
+#glossary-tap-hint {
+    align-items: center;
+    gap: 8px;
+    margin: 8px 20px 0;
+    padding: 7px 12px;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    background: var(--color-surface-2);
+    border: 1px dashed var(--color-border);
+    border-radius: 8px;
+}
+#glossary-tap-hint > i { color: var(--color-primary); }
+#glossary-tap-hint > span { flex: 1; text-align: left; }
+#glossary-tap-hint > button {
+    border: none;
+    background: none;
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+}
+
