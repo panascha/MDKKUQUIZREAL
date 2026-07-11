@@ -1170,6 +1170,9 @@ $(function () {
     // --- ระบบดักจับการคลิกเลือกตัวเลือก (Choices Selection) ---
     $('#choices').on("click", "button", function () {
         if (window.APP.currentQuestions[window.APP.questionIndex]?.state) return;
+        // กำลังลากเลือกคำในตัวเลือก (glossary tap-translate) — ไม่ใช่ตั้งใจเลือกคำตอบ
+        var sel = window.getSelection && window.getSelection();
+        if (sel && !sel.isCollapsed && this.contains(sel.anchorNode)) return;
         $(this).addClass("selected").siblings().removeClass("selected");
     });
 

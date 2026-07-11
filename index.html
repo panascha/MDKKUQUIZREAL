@@ -934,8 +934,14 @@
                     <i class="fas fa-copy"></i> คัดลอกคำถาม
                 </button>
             </div>
+            <!-- Glossary onboarding hint (English, dismissible ครั้งเดียว — glossary.js ควบคุม show/hide ผ่าน localStorage) -->
+            <div id="glossary-tap-hint" style="display:none;">
+                <i class="fas fa-language"></i>
+                <span>Tip: Double-tap or select any word in the question or choices to translate instantly.</span>
+                <button type="button" id="glossary-tap-hint-close" title="Dismiss">&times;</button>
+            </div>
             <p id="question"></p>
-            
+
             <div id="image-container-div" style="display: none;">
                 <button id="prev-img-btn" class="img-nav-btn"><i class="fas fa-chevron-left"></i></button>
                 <img id="question-image" src="" alt="Question Image" />
@@ -1041,6 +1047,38 @@
             <div id="search-results-container"></div>
         </section>
 
+        <!-- =========================================
+         V-c. Glossary (Feature 2) — คลังศัพท์แพทย์ (แตะ/ลากคำเพื่อแปล + ค้นหา + ดัชนีรากศัพท์)
+         ========================================= -->
+        <div style="text-align: center; margin: 10px 20px;">
+            <button type="button" class="quiz-button btn-dark" onclick="window.toggleGlossaryPanel()">
+                <i class="fas fa-language"></i> คลังศัพท์แพทย์ (Glossary)
+            </button>
+        </div>
+        <div id="glossary-panel" style="display:none; margin:10px 20px; border:1.5px solid var(--color-border);
+             border-radius:var(--border-radius); background:var(--color-surface-2); padding:14px;
+             text-align:left; font-family:var(--font-primary);">
+            <div style="font-weight:800; font-size:1.15rem; color:var(--color-primary);
+                 display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <i class="fas fa-language"></i> คลังศัพท์แพทย์
+            </div>
+            <div style="font-size:0.8rem; color:var(--color-text-muted); margin-bottom:10px;">
+                เคล็ดลับ: แตะหรือลากเลือกคำในโจทย์/ตัวเลือก/เฉลย แล้วกด "แปล" เพื่อดูความหมายและรากศัพท์
+            </div>
+            <div class="glossary-tabs" style="display:flex; gap:6px; margin-bottom:10px;">
+                <button type="button" class="btn-xs glossary-tab-btn active" data-gtab="list">รายการศัพท์</button>
+                <button type="button" class="btn-xs glossary-tab-btn" data-gtab="cluster">ดัชนีรากศัพท์</button>
+            </div>
+            <div id="glossary-tab-list">
+                <input type="text" id="glossary-search" class="edit-choice-input" style="width:100%; margin-bottom:10px;"
+                    placeholder="ค้นหาศัพท์ (ไทย/อังกฤษ)...">
+                <div id="glossary-list-container" style="max-height:320px; overflow-y:auto;"></div>
+            </div>
+            <div id="glossary-tab-cluster" style="display:none;">
+                <div id="glossary-cluster-container" style="max-height:340px; overflow-y:auto;"></div>
+            </div>
+        </div>
+
     <!-- =========================================
          VI. Floating Action Buttons
          ========================================= -->
@@ -1111,6 +1149,9 @@
         </div>
     </div>
 
+    <!-- Feature 2 Glossary: floating "แปล" chip + popup (ตัวเรนเดอร์เดียวใช้ทั้ง tap/miss/panel/cluster) -->
+    <button id="glossary-translate-chip" type="button"><i class="fas fa-language"></i> แปล</button>
+    <div id="glossary-popup"></div>
     <!-- =========================================
          VII. Modular Scripts Import
          ========================================= -->
@@ -1124,6 +1165,7 @@
     <script src="js/quiz-core.js"></script>
     <script src="js/quiz-render.js"></script>
     <script src="js/chatbot.js"></script>
+    <script src="js/glossary.js"></script>
     <script src="js/vote.js"></script>
     <script src="js/report.js"></script>
     <script src="js/ui.js"></script>

@@ -26,6 +26,7 @@ const STATIC_ASSETS = [
     'js/quiz-core.js',
     'js/quiz-render.js',
     'js/chatbot.js',
+    'js/glossary.js',
     'js/vote.js',
     'js/report.js',
     'js/ui.js',
