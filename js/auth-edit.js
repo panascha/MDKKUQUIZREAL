@@ -24,6 +24,11 @@ window.showGoogleSignInModal = function (titleText = 'เข้าสู่ร�
             <p style="font-size: 0.9rem; color: var(--color-text-muted);">
                 *ผู้ที่อยู่ใน Whitelist แอดมินจะได้รับสิทธิ์แก้ไขข้อสอบและ AI Assistant โดยอัตโนมัติ
             </p>
+            <p style="font-size: 0.95rem; margin-top: 8px;">
+                <a href="javascript:void(0)" onclick="window.showSyncHelpModal()" style="color: #0ea5e9; text-decoration: underline;">
+                    <i class="fas fa-circle-question"></i> วิธีใช้การซิงค์ข้ามอุปกรณ์
+                </a>
+            </p>
         `,
         showConfirmButton: false,
         showCancelButton: true,
@@ -255,7 +260,10 @@ window.enableStudentModeUI = function () {
     const nameDisplay = window.EDIT_SESSION.displayName || window.EDIT_SESSION.email;
     $("#edit-mode-badge > span").html(
         '<i class="fas fa-cloud" style="color: #38bdf8;"></i> ซิงค์ความคืบหน้า: เปิดใช้งาน <span style="color: #475569;">|</span> ' +
-        '<span id="edit-mode-username" style="font-weight: 600; color: #f1f5f9;"></span>'
+        '<span id="edit-mode-username" style="font-weight: 600; color: #f1f5f9;"></span> ' +
+        '<button onclick="window.showSyncHelpModal()" title="วิธีใช้การซิงค์ข้ามอุปกรณ์" ' +
+        'style="background: none; border: none; color: #38bdf8; cursor: pointer; font-size: 1rem; padding: 0 4px;">' +
+        '<i class="fas fa-circle-question"></i></button>'
     );
     $("#edit-mode-username").text(nameDisplay);
     $("#edit-mode-badge").css("display", "flex");

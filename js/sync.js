@@ -108,6 +108,38 @@ window.checkCloudProgress = async function (subjectParam, sessionKey) {
     return null;
 };
 
+// คู่มือการใช้งานซิงค์ข้ามอุปกรณ์ (เปิดจากลิงก์ในหน้าล็อกอิน และปุ่ม ? บนป้ายสถานะ)
+window.showSyncHelpModal = function () {
+    Swal.fire({
+        title: '<i class="fas fa-cloud" style="color:#38bdf8;"></i> วิธีใช้การซิงค์ข้ามอุปกรณ์',
+        html: `
+            <div style="text-align: left; font-size: 1rem; line-height: 1.8;">
+                <p><strong>ทำข้อสอบต่อจากที่ค้างไว้ ไม่ว่าจะเปิดจากมือถือหรือคอม</strong></p>
+                <ol style="padding-left: 20px; margin: 10px 0;">
+                    <li>กดปุ่มโลโก้ <strong>KKU</strong> (มุมขวาล่าง) แล้วล็อกอินด้วยบัญชี
+                        <strong>@kkumail.com</strong> หรือ <strong>@kku.ac.th</strong></li>
+                    <li>ทำข้อสอบตามปกติ — ระบบบันทึกความคืบหน้าให้อัตโนมัติ
+                        (อัปโหลดทุก ~2 นาที และตอนสลับแอป/ปิดแท็บ)</li>
+                    <li>ที่เครื่องอีกเครื่อง ล็อกอิน<strong>บัญชีเดียวกัน</strong>แล้วเปิดวิชาเดิม</li>
+                    <li>ระบบจะถาม "พบความคืบหน้าจากอุปกรณ์อื่น" —
+                        กด <strong>ทำต่อจากอุปกรณ์อื่น</strong> เพื่อทำต่อจากข้อที่ค้างไว้
+                        หรือ <strong>ใช้ของเครื่องนี้</strong> เพื่อใช้ข้อมูลในเครื่องแทน</li>
+                </ol>
+                <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-top: 10px;">
+                    <i class="fas fa-info-circle"></i> ความคืบหน้าแยกเก็บรายวิชา ·
+                    ล็อกอินค้างไว้ได้สูงสุด 5 เครื่อง (เครื่องเก่าสุดจะหลุดเอง) ·
+                    ถ้าไม่ล็อกอิน ข้อมูลยังบันทึกในเครื่องตามปกติ แต่จะไม่ซิงค์ข้ามอุปกรณ์
+                </p>
+            </div>
+        `,
+        confirmButtonText: 'เข้าใจแล้ว',
+        width: 600
+    }).then(function () {
+        // เปิดจากหน้าล็อกอิน (Swal เปิดซ้อนไม่ได้ — หน้าล็อกอินถูกแทนที่) → พากลับไปล็อกอินต่อ
+        if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn) window.showGoogleSignInModal();
+    });
+};
+
 // เรียกจาก auth-edit.js หลังล็อกอิน/กู้ session สำเร็จ — ดัน state ที่ค้างอยู่ขึ้นทันที
 window.onSyncSessionReady = function () {
     window.flushProgressSync(true);
