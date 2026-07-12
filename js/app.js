@@ -681,8 +681,9 @@ window.initApp = async function () {
 
     if (localData) {
         window.APP.globalStructure = localData.structure;
-        window.APP.allQuestions = localData.questions.map(q => ({
+        window.APP.allQuestions = localData.questions.map((q, index) => ({
             ...q,
+            _originalIndex: (q._originalIndex !== undefined) ? q._originalIndex : index, // backfill cache เก่าที่ merge แล้ว _originalIndex หาย
             category: Array.isArray(q.category) ? q.category : (q.category ? [q.category] : [])
         }));
         window.renderAccordionUI(window.APP.globalStructure);
@@ -769,12 +770,14 @@ window.initApp = async function () {
 
                     const mergedCache = await window.getCacheDB(cacheKey);
                     if (mergedCache) {
-                        window.APP.allQuestions = mergedCache.questions.map(q => ({
+                        window.APP.allQuestions = mergedCache.questions.map((q, index) => ({
                             ...q,
+                            _originalIndex: (q._originalIndex !== undefined) ? q._originalIndex : index, // backfill cache เก่า
                             category: Array.isArray(q.category) ? q.category : (q.category ? [q.category] : [])
                         }));
                         window.searchDictionaryDirty = true; // T3.2
-                        window.updateQuestionSet(false, true);
+                        // ห้ามเรียก updateQuestionSet ตรงนี้ — จะ saveProgressToCache ทับ session เดิม (ลำดับข้อ+คำตอบ)
+                        // ก่อนที่ checkAndPromptRestoreProgress จะได้อ่าน ให้ flow กู้คืนที่ท้าย initApp เป็นคนสร้างชุดข้อสอบเอง
                     }
                 } else {
                     // ไม่มีคำถามเปลี่ยน แต่ version ต่าง → Structure/Category เปลี่ยน
@@ -824,7 +827,7 @@ window.initApp = async function () {
                 window.renderAnnouncementsUI(window.APP.globalStructure.announcements || []);
                 window.renderAttributeFilterUI();
                 window.searchDictionaryDirty = true; // T3.2
-                window.updateQuestionSet(false, true);
+                // ไม่เรียก updateQuestionSet — เหตุผลเดียวกับ branch ด้านบน (กัน clobber session ก่อนกู้คืน)
             }
             loadedSuccessfully = true;
         }

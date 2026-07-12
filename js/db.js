@@ -149,8 +149,8 @@ window.loadProgressFromCache = async function () {
             });
         }
 
-        // ซิงค์ UI การแสดงผลของโหมดตัวเลือก
-        window.setFilterMode(window.APP.filterMode);
+        // ซิงค์ UI การแสดงผลของโหมดตัวเลือก (skipUpdate: ด้านล่างจะกู้คืนลำดับข้อจาก savedState เอง)
+        window.setFilterMode(window.APP.filterMode, true);
 
         const reorderedQuestions = [];
         savedState.currentQuestionsState.forEach(savedQ => {
@@ -200,6 +200,9 @@ window.loadProgressFromCache = async function () {
         if (typeof window.updateFastModeButtonUI === 'function') {
             window.updateFastModeButtonUI();
         }
+
+        // บันทึก state ที่กู้คืนสำเร็จกลับลง cache ทันที — กันกรณีมี save อื่นเขียนทับระหว่าง init
+        window.saveProgressToCache();
 
         return true;
     } catch (e) {
@@ -260,11 +263,15 @@ window.mergeChangedQuestionsToCache = async function (changedQuestions, subject)
         }
 
         if (qMap[newQ.questionId] !== undefined) {
-            // อัปเดต: เขียนทับข้อมูลเดิม
-            questions[qMap[newQ.questionId]] = newQ;
+            // อัปเดต: เขียนทับข้อมูลเดิม — ต้องคง _originalIndex ไว้ ไม่งั้นโหมดเรียงลำดับ
+            // (sortCurrentQuestions เทียบ a._originalIndex - b._originalIndex) จะได้ NaN แล้วลำดับพัง
+            var idx = qMap[newQ.questionId];
+            newQ._originalIndex = (questions[idx]._originalIndex !== undefined) ? questions[idx]._originalIndex : idx;
+            questions[idx] = newQ;
             updated++;
         } else {
-            // เพิ่มใหม่: push เข้า array และอัปเดต map
+            // เพิ่มใหม่: push เข้า array และอัปเดต map พร้อมตั้ง _originalIndex ต่อท้าย
+            newQ._originalIndex = questions.length;
             qMap[newQ.questionId] = questions.length;
             questions.push(newQ);
             added++;

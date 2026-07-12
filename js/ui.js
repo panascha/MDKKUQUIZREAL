@@ -291,7 +291,7 @@ window.renderAttributeFilterUI = function () {
     });
 };
 
-window.setFilterMode = function (mode) {
+window.setFilterMode = function (mode, skipUpdate) {
     window.APP.filterMode = mode;
     if (mode === "category") {
         $('#btn-mode-category').addClass('btn-dark').removeClass('btn-light').css('background-color', '');
@@ -309,8 +309,12 @@ window.setFilterMode = function (mode) {
             window.renderAttributeFilterUI();
         }
     }
-    window.updateQuestionSet();
-    window.updateSelectedCategoryStatus();
+    // skipUpdate = true เมื่อผู้เรียกจะสร้าง/กู้คืน currentQuestions เอง (เช่น loadProgressFromCache)
+    // ป้องกัน updateQuestionSet(สุ่ม) + saveProgressToCache ทับ session ระหว่างกู้คืน
+    if (!skipUpdate) {
+        window.updateQuestionSet();
+        window.updateSelectedCategoryStatus();
+    }
 };
 
 window.clearAllAttributeFilters = function () {
@@ -1024,7 +1028,7 @@ $(function () {
                 });
             }
 
-            window.setFilterMode(window.APP.filterMode);
+            window.setFilterMode(window.APP.filterMode, true); // skipUpdate — ด้านล่างเรียก updateQuestionSet(false) แล้วเรียงตาม state.order เอง
 
             window.APP.isRandomized = state.isRandom;
             $('#toggle-random-btn').text(window.APP.isRandomized ? 'โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : 'โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)');
