@@ -611,6 +611,22 @@ window.renderExplainHtmlForCard = function (explainRaw) {
 // =========================================================
 
 window.checkAndPromptRestoreProgress = async function (sessionKey) {
+    // Cross-device: เช็ค cloud ก่อน (no-op ถ้าไม่ได้ล็อกอิน) — ถ้า cloud ใหม่กว่าและผู้ใช้ยืนยัน
+    // sync.js จะเขียน state ลง IndexedDB แล้วเราโหลดต่อเลยโดยไม่ถามซ้ำ
+    if (typeof window.checkCloudProgress === 'function') {
+        const subjectParam = new URLSearchParams(window.location.search).get('subject') || 'default';
+        const cloudRestored = await window.checkCloudProgress(subjectParam, sessionKey);
+        if (cloudRestored === 'restored') {
+            const restored = await window.loadProgressFromCache();
+            if (restored) {
+                window.showQuestion();
+                window.updateProgressHeader();
+                window.showSubmission($('#submission-filter').val());
+                window.bgToast.fire({ icon: 'success', title: 'โหลดความคืบหน้าจากอุปกรณ์อื่นสำเร็จ' });
+                return;
+            }
+        }
+    }
     const savedState = await window.getCacheDB(sessionKey);
     if (savedState && savedState.currentQuestionsState && savedState.currentQuestionsState.length > 0) {
         $('#loading-overlay').hide();
