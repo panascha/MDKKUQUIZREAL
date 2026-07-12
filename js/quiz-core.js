@@ -194,7 +194,9 @@ window.showQuestion = function (shouldFocus = true) {
         const $btn = $('<button></button>');
         // เก็บคำตอบต้นฉบับเต็มไว้ใช้ตรวจสอบกับคำเฉลย (ห้ามตัด Prefix ออกจากแอตทริบิวต์ data-answer เพื่อความถูกต้องในการตรวจเฉลย)
         $btn.attr('data-answer', choiceText);
-        $btn.html(content);
+        // ห่อใน .choice-content เดียว — glossary <span> ที่ markGlossaryTerms แทรก จะอยู่ inline ข้างใน
+        // ไม่กลายเป็น flex item แยกของปุ่ม (ปุ่มเป็น display:flex) ที่ทำให้ตัวเลือกแตกเป็นคอลัมน์
+        $btn.html('<span class="choice-content">' + content + '</span>');
 
         if (window.APP.isFastMode && !window.APP.current_question.state && allowedOriginalIndices.length > 0) {
             if (!allowedOriginalIndices.includes(i)) {

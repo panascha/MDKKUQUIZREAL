@@ -307,6 +307,13 @@
         line-height: 1.45;
     }
 
+    /* ห่อเนื้อหาตัวเลือกใน flex item เดียว — กัน glossary <span> ที่ markGlossaryTerms แทรกเข้ามา
+       ไม่ให้กลายเป็น flex item แยก (จะทำให้ข้อความแตกเป็นคอลัมน์) */
+    #choices button .choice-content {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
     #choices button img {
         max-width: 100%;
         max-height: 120px;
