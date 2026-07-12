@@ -175,6 +175,11 @@ window.handleCredentialResponse = async function (response) {
                 showConfirmButton: false
             });
             if (typeof window.onSyncSessionReady === 'function') window.onSyncSessionReady();
+            // Pull cloud progress after login — user may have progress from another device
+            if (isStudent && typeof window.checkAndPromptRestoreProgress === 'function') {
+                var sp = new URLSearchParams(window.location.search).get('subject') || '';
+                window.checkAndPromptRestoreProgress('session_state_' + (sp || 'default'));
+            }
         } else {
             Swal.fire("สิทธิ์ไม่ถูกต้อง", res.message || "บัญชีนี้ไม่มีสิทธิ์การแก้ไขระบบ", "error");
         }
