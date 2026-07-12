@@ -12,16 +12,17 @@ window.EDIT_SESSION = {
 
 window.GOOGLE_CLIENT_ID = "409421225331-envq9b2dg6d2tbq2681c097j4h1qinv4.apps.googleusercontent.com";
 
-window.showGoogleSignInModal = function (titleText = 'เข้าสู่ระบบแก้ไขข้อสอบ') {
+window.showGoogleSignInModal = function (titleText = 'เข้าสู่ระบบ MDKKUQUIZ') {
     Swal.fire({
         title: titleText,
         html: `
             <p style="font-size: 1.1rem; color: var(--color-text-muted); margin-bottom: 15px;">
-                กรุณาลงชื่อเข้าใช้ด้วยบัญชี Google ของทางมหาวิทยาลัยขอนแก่น (@kkumail.com หรือ @kku.ac.th) เพื่อรับสิทธิ์การแก้ไขและเข้าถึงระบบ AI Assistant
+                กรุณาลงชื่อเข้าใช้ด้วยบัญชี Google ของทางมหาวิทยาลัยขอนแก่น (@kkumail.com หรือ @kku.ac.th)
+                เพื่อซิงค์ความคืบหน้าข้ามอุปกรณ์ (ทำต่อจากที่ค้างไว้บนเครื่องอื่น)
             </p>
             <div id="google-signin-button-swal" style="display: flex; justify-content: center; margin: 20px 0; min-height: 44px;"></div>
             <p style="font-size: 0.9rem; color: var(--color-text-muted);">
-                *ระบบจะตรวจสอบสิทธิ์แอดมิน (Whitelist) ในระบบหลังบ้านโดยอัตโนมัติ
+                *ผู้ที่อยู่ใน Whitelist แอดมินจะได้รับสิทธิ์แก้ไขข้อสอบและ AI Assistant โดยอัตโนมัติ
             </p>
         `,
         showConfirmButton: false,
@@ -91,8 +92,13 @@ window.resumeSessionFromToken = async function (token) {
                 sessionToken: token,
                 role: res.user.role
             };
-            window.enableEditModeUI();
+            if (res.user.role === 'Student') {
+                window.enableStudentModeUI();
+            } else {
+                window.enableEditModeUI();
+            }
             console.log("Session restored for:", res.user.displayName);
+            if (typeof window.onSyncSessionReady === 'function') window.onSyncSessionReady();
         } else {
             localStorage.removeItem("mdkku_session_token");
             console.log("Session expired, user must re-login.");
@@ -124,7 +130,7 @@ window.handleCredentialResponse = async function (response) {
     if (!idToken) return;
 
     Swal.fire({
-        title: "กำลังตรวจสอบสิทธิ์แก้ไข...",
+        title: "กำลังตรวจสอบบัญชี...",
         toast: true,
         position: "top-end",
         showConfirmButton: false,
@@ -150,14 +156,20 @@ window.handleCredentialResponse = async function (response) {
             };
             localStorage.setItem("mdkku_session_token", res.sessionToken);
             sessionStorage.removeItem("mdkku_edit_session");
-            window.enableEditModeUI();
+            const isStudent = res.user.role === 'Student';
+            if (isStudent) {
+                window.enableStudentModeUI();
+            } else {
+                window.enableEditModeUI();
+            }
             Swal.fire({
                 icon: "success",
-                title: "เข้าสู่ระบบแก้ไขข้อสอบแล้ว",
+                title: isStudent ? "เข้าสู่ระบบแล้ว — ซิงค์ความคืบหน้าเปิดใช้งาน" : "เข้าสู่ระบบแก้ไขข้อสอบแล้ว",
                 text: `ยินดีต้อนรับคุณ ${res.user.displayName}`,
                 timer: 2000,
                 showConfirmButton: false
             });
+            if (typeof window.onSyncSessionReady === 'function') window.onSyncSessionReady();
         } else {
             Swal.fire("สิทธิ์ไม่ถูกต้อง", res.message || "บัญชีนี้ไม่มีสิทธิ์การแก้ไขระบบ", "error");
         }
@@ -192,7 +204,7 @@ window.logoutEditMode = function () {
     try { google.accounts.id.disableAutoSelect(); } catch (e) { }
     Swal.fire({
         icon: "success",
-        title: "ออกจากระบบแก้ไขแล้ว",
+        title: "ออกจากระบบแล้ว",
         timer: 1500,
         showConfirmButton: false
     });
@@ -205,7 +217,7 @@ window.initiateGoogleLogin = function () {
             window.showGoogleSignInModal('Session หมดอายุการใช้งาน');
         } else {
             Swal.fire({
-                title: "คุณอยู่ในระบบแก้ไขแล้ว",
+                title: window.EDIT_SESSION.role === 'Student' ? "คุณเข้าสู่ระบบแล้ว (ซิงค์ความคืบหน้าเปิดอยู่)" : "คุณอยู่ในระบบแก้ไขแล้ว",
                 text: `ล็อกอินในชื่อ: ${window.EDIT_SESSION.displayName}`,
                 icon: "info",
                 showCancelButton: true,
@@ -222,6 +234,11 @@ window.initiateGoogleLogin = function () {
 
 window.enableEditModeUI = function () {
     $("body").addClass("edit-mode-active");
+    // รีเซ็ต HTML ป้าย (อาจถูก enableStudentModeUI เขียนทับไว้ในหน้าเดียวกัน)
+    $("#edit-mode-badge > span").html(
+        '<i class="fas fa-edit" style="color: #38bdf8;"></i> EDIT MODE ACTIVE <span style="color: #475569;">|</span> ' +
+        '<span id="edit-mode-username" style="font-weight: 600; color: #f1f5f9;"></span>'
+    );
     $("#edit-mode-badge").css("display", "flex");
     const nameDisplay = window.EDIT_SESSION.fullName || window.EDIT_SESSION.displayName || window.EDIT_SESSION.email;
     const infoText = window.EDIT_SESSION.studentId
@@ -230,6 +247,19 @@ window.enableEditModeUI = function () {
     $("#edit-mode-username").text(infoText);
     $("#btn-edit-current-q").fadeIn(200);
     $("#toggle-edit-mode-btn").css("background", "#16a34a").html('<i class="fas fa-check-circle"></i>');
+};
+
+// โหมดนักศึกษา (role=Student): ไม่มีสิทธิ์แก้ไข — แสดงแค่สถานะล็อกอิน + ซิงค์ความคืบหน้า
+window.enableStudentModeUI = function () {
+    // ห้ามใส่ class edit-mode-active (เป็นตัวเปิด UI แก้ไขทั้งหมด)
+    const nameDisplay = window.EDIT_SESSION.displayName || window.EDIT_SESSION.email;
+    $("#edit-mode-badge > span").html(
+        '<i class="fas fa-cloud" style="color: #38bdf8;"></i> ซิงค์ความคืบหน้า: เปิดใช้งาน <span style="color: #475569;">|</span> ' +
+        '<span id="edit-mode-username" style="font-weight: 600; color: #f1f5f9;"></span>'
+    );
+    $("#edit-mode-username").text(nameDisplay);
+    $("#edit-mode-badge").css("display", "flex");
+    $("#toggle-edit-mode-btn").css("background", "#0369a1").html('<i class="fas fa-cloud"></i>');
 };
 
 $(function () {

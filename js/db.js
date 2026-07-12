@@ -89,6 +89,10 @@ window.saveProgressToCache = async function () {
     };
 
     await window.setCacheDB(sessionKey, state);
+    // Cross-device sync: ตั้งธงให้ sync.js อัปโหลดแบบ debounced (no-op ถ้าไม่ได้ล็อกอิน)
+    if (typeof window.markProgressDirty === 'function') {
+        window.markProgressDirty(subjectParam, state);
+    }
     console.log("Progress Auto-Saved");
 };
 
