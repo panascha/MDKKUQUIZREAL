@@ -92,7 +92,12 @@ window.initVersionUpdater = function () {
             return;
         }
         const newVersion = await window.getAppVersion(); // controller ตอนนี้คือตัวใหม่แล้ว
-        const doReload = () => { window._swRefreshing = true; location.reload(); };
+        const doReload = () => {
+            window._swRefreshing = true;
+            // ธง one-shot: หลัง reload จากการอัปเดตเวอร์ชัน ให้กู้คืนชุดข้อสอบอัตโนมัติโดยไม่ถาม
+            try { sessionStorage.setItem('mdkku_resume_after_update', '1'); } catch (e) { }
+            location.reload();
+        };
         if (window.Swal) {
             Swal.fire({
                 icon: 'success',

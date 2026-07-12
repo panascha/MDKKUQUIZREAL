@@ -611,6 +611,24 @@ window.renderExplainHtmlForCard = function (explainRaw) {
 // =========================================================
 
 window.checkAndPromptRestoreProgress = async function (sessionKey) {
+    // reload จากการอัปเดตเวอร์ชันแอป (version.js doReload) → กู้คืนเงียบๆ ไม่ต้องถาม
+    // กันชุดข้อสอบรีเซ็ตเพราะผู้ใช้เผลอกด "เริ่มใหม่ทั้งหมด" หลังอัปเดต
+    let resumeAfterUpdate = false;
+    try {
+        resumeAfterUpdate = sessionStorage.getItem('mdkku_resume_after_update') === '1';
+        if (resumeAfterUpdate) sessionStorage.removeItem('mdkku_resume_after_update');
+    } catch (e) { }
+    if (resumeAfterUpdate) {
+        const restored = await window.loadProgressFromCache();
+        if (restored) {
+            window.showQuestion();
+            window.updateProgressHeader();
+            window.showSubmission($('#submission-filter').val());
+            window.bgToast.fire({ icon: 'success', title: 'อัปเดตเวอร์ชันสำเร็จ ทำต่อจากเดิมได้เลย' });
+            return;
+        }
+        // กู้คืนไม่ได้ (เช่นไม่มี session) → ตกลงไปใช้ flow ปกติด้านล่าง
+    }
     // Cross-device: เช็ค cloud ก่อน (no-op ถ้าไม่ได้ล็อกอิน) — ถ้า cloud ใหม่กว่าและผู้ใช้ยืนยัน
     // sync.js จะเขียน state ลง IndexedDB แล้วเราโหลดต่อเลยโดยไม่ถามซ้ำ
     if (typeof window.checkCloudProgress === 'function') {
