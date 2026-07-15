@@ -421,29 +421,6 @@ body.chatbot-open #chatbot-fab {
     color: var(--color-text-muted);
 }
 
-/* ป้ายเตือน "ออกซ้ำจากปีอื่น" — สัญญาณหลักของระบบ มองเห็นได้ตั้งแต่ header ยังไม่กาง */
-#similar-panel-crossyear {
-    background: #F59E0B;
-    color: #fff;
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 12px;
-    margin-left: 6px;
-    white-space: nowrap;
-    vertical-align: middle;
-}
-
-.similar-item.similar-same-year { opacity: 0.6; }
-
-.similar-divider {
-    margin: 6px 4px 2px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-text-muted);
-    border-top: 1px dashed var(--color-border);
-    padding-top: 6px;
-}
 
 /* รายงานข้อออกบ่อย — full-screen overlay (z ต่ำกว่า .modal-card เพื่อให้ preview modal ซ้อนทับได้) */
 #similar-report-overlay {

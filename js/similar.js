@@ -106,20 +106,17 @@ window.renderSimilarPanel = function () {
         $panel.hide();
         return;
     }
-    const sims = window.getSimilarQuestions(q);
-    // จุดประสงค์หลักของระบบ: เช็คว่าข้อนี้มีโอกาสออกซ้ำจากปีอื่นไหม — แยกข้อที่มาจาก "ปีอื่น" ขึ้นก่อน
+    // จุดประสงค์ของระบบ: เช็คว่าข้อนี้มีโอกาสออกซ้ำจากปีอื่นไหม — แสดงเฉพาะข้อคล้ายที่มาจาก "ปีอื่น" เท่านั้น
+    // ปีอ่านจาก category[0] (Default_CategoryID) ผ่าน parseQuestionMetadata; ปีเดียวกัน/ไม่ระบุปีไม่แสดง
     const myYear = window.similarYearOf(q);
-    window._similarPanelMyYear = myYear;
-    const crossCount = myYear === 'N/A' ? 0
-        : sims.filter(s => { const y = window.similarYearOf(s.q); return y !== 'N/A' && y !== myYear; }).length;
+    const sims = myYear === 'N/A' ? []
+        : window.getSimilarQuestions(q).filter(s => {
+            const y = window.similarYearOf(s.q);
+            return y !== 'N/A' && y !== myYear;
+        });
 
     window._similarPanelSims = sims;
     $('#similar-panel-count').text(sims.length);
-    if (crossCount > 0) {
-        $('#similar-panel-crossyear').text(`ออกซ้ำจากปีอื่น ${crossCount} ข้อ`).show();
-    } else {
-        $('#similar-panel-crossyear').hide();
-    }
     $('#similar-panel-list').hide().empty(); // เริ่มพับทุกข้อ — list สร้าง lazy ตอนกดกาง
     $('#similar-panel-toggle-icon').removeClass('open');
     $panel.show();
@@ -128,33 +125,14 @@ window.renderSimilarPanel = function () {
 window.renderSimilarPanelList = function () {
     const sims = window._similarPanelSims || [];
     if (!sims.length) {
-        $('#similar-panel-list').html('<p class="similar-empty">ไม่พบข้อสอบที่คล้ายกันในวิชานี้</p>');
+        $('#similar-panel-list').html('<p class="similar-empty">ไม่พบข้อสอบคล้ายกันจากปีอื่น</p>');
         return;
     }
-
-    const itemHtml = (s, i, extraClass) => `
-        <div class="similar-item${extraClass}" data-sim-idx="${i}">
+    const html = sims.map((s, i) => `
+        <div class="similar-item" data-sim-idx="${i}">
             <span class="similar-badge">ตรงกัน ${s.score} คำ</span>${window.similarYearChip(s.q)}
             <span class="similar-item-stem">${window.similarSnippet(s.q.problem, 140)}</span>
-        </div>`;
-
-    // ข้อจาก "ปีอื่น" (สัญญาณออกซ้ำจริง) ขึ้นก่อน; ปีเดียวกัน/ไม่ระบุปีถูกลดความเด่นไว้ใต้เส้นคั่น
-    const myYear = window._similarPanelMyYear;
-    let html = '';
-    if (myYear !== 'N/A') {
-        const cross = [], rest = [];
-        sims.forEach((s, i) => {
-            const y = window.similarYearOf(s.q);
-            (y !== 'N/A' && y !== myYear ? cross : rest).push([s, i]);
-        });
-        html = cross.map(([s, i]) => itemHtml(s, i, '')).join('');
-        if (cross.length && rest.length) {
-            html += '<div class="similar-divider">ข้อจากปีเดียวกัน / ไม่ระบุปี</div>';
-        }
-        html += rest.map(([s, i]) => itemHtml(s, i, cross.length ? ' similar-same-year' : '')).join('');
-    } else {
-        html = sims.map((s, i) => itemHtml(s, i, '')).join('');
-    }
+        </div>`).join('');
     $('#similar-panel-list').html(html);
 };
 
