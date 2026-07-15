@@ -9,9 +9,11 @@ window.applyMeqModeUi = function (shouldFocus) {
     var q = window.APP.current_question;
     var qid = q && q.questionId;
     var revealed = qid !== undefined && !!window._meqRevealed[qid];
-    // "relevant" = MEQ mode applies to this question at all (mirrors old `hide` for panel visibility)
-    var relevant = window.APP.meqMode && q && !q.state;
-    var hide = relevant && !revealed;
+    var savedText = qid !== undefined && window._meqRecallText[qid];
+    // "relevant" = show the recall panel at all: normal unanswered flow, or an answered
+    // question the student left a note on (read-only review — notes shouldn't vanish once submitted).
+    var relevant = window.APP.meqMode && q && (!q.state || !!savedText);
+    var hide = window.APP.meqMode && q && !q.state && !revealed;
 
     // toggleClass/toggle/show/hide are no-ops when the element is already in the target
     // state, so this is safe to run unconditionally (incl. meqMode fully OFF) and also
@@ -28,9 +30,8 @@ window.applyMeqModeUi = function (shouldFocus) {
         // choices are hidden so the original choices-focus (quiz-core.js) is a no-op — redirect focus here instead
         if (shouldFocus) $('#meq-recall-textarea').trigger('focus');
     } else if (relevant) {
-        // already revealed but still unanswered: restore the collapsed-note view instead of re-hiding
+        // revealed-but-unanswered, or answered-with-a-note: collapsed read-only view
         $('#meq-recall-input-wrap').hide();
-        var savedText = qid !== undefined && window._meqRecallText[qid];
         if (savedText) {
             $('#meq-recall-collapsed-text').text(savedText);
             $('#meq-recall-collapsed').show();
