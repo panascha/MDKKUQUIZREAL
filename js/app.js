@@ -54,26 +54,32 @@ window.updateSubjectUI = function (subjectParam) {
     }
 };
 
-window.populateSubjectSelector = async function (subjectParam) {
+window.getAllSubjectsList = async function () {
     let allSubjects = await window.getCacheDB('all_subjects_list_v2');
     if (!allSubjects) {
-        try {
-            const resAllStruct = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&_=${Date.now()}`);
-            if (resAllStruct && resAllStruct.subjects) {
-                const uniqueSubjs = [];
-                const seen = new Set();
-                resAllStruct.subjects.forEach(s => {
-                    if (s.subjectId && !seen.has(s.subjectId)) {
-                        seen.add(s.subjectId);
-                        uniqueSubjs.push({ id: s.subjectId, name: s.subjectName, year: s.year });
-                    }
-                });
-                allSubjects = uniqueSubjs;
-                await window.setCacheDB('all_subjects_list_v2', allSubjects);
-            }
-        } catch (err) {
-            console.warn("Failed to fetch all subjects:", err);
+        const resAllStruct = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&_=${Date.now()}`);
+        if (resAllStruct && resAllStruct.subjects) {
+            const uniqueSubjs = [];
+            const seen = new Set();
+            resAllStruct.subjects.forEach(s => {
+                if (s.subjectId && !seen.has(s.subjectId)) {
+                    seen.add(s.subjectId);
+                    uniqueSubjs.push({ id: s.subjectId, name: s.subjectName, year: s.year });
+                }
+            });
+            allSubjects = uniqueSubjs;
+            await window.setCacheDB('all_subjects_list_v2', allSubjects);
         }
+    }
+    return allSubjects || null;
+};
+
+window.populateSubjectSelector = async function (subjectParam) {
+    let allSubjects = null;
+    try {
+        allSubjects = await window.getAllSubjectsList();
+    } catch (err) {
+        console.warn("Failed to fetch all subjects:", err);
     }
 
     window.APP.allSubjectsList = allSubjects;
@@ -109,6 +115,74 @@ window.filterSubjectOptions = function (selectedYear, activeSubjectId) {
             $select.append(`<option value="${s.id}" ${selected}>${yearLabel}${s.id} - ${s.name}</option>`);
         });
     }
+};
+
+// Popup กลางจอบังคับเลือกวิชาก่อนโหลดข้อมูล — กันการดึงข้อสอบทุกวิชาโดยไม่ตั้งใจ (ช้ามาก)
+window.showSubjectPickerModal = async function () {
+    $('#selected-category-status p').text('กรุณาเลือกวิชาที่ต้องการทำข้อสอบ');
+    Swal.fire({
+        title: 'เลือกวิชาก่อนเริ่ม',
+        html: `
+            <p style="margin:0 0 10px; font-size:0.9em; color:var(--color-text-muted, #666);">เลือกวิชาที่ต้องการ เพื่อให้โหลดข้อสอบเร็วขึ้น</p>
+            <select id="sp-year-filter" class="swal2-select" style="margin:0 0 10px; width:100%;">
+                <option value="">-- ทุกชั้นปี --</option>
+            </select>
+            <div id="sp-subject-list" style="max-height:45vh; overflow-y:auto; text-align:left;">
+                <div class="loading-spinner"></div>
+            </div>
+            <button type="button" id="sp-load-all" style="margin-top:12px; background:none; border:none; color:var(--color-text-muted, #888); text-decoration:underline; cursor:pointer; font-size:0.85em;">โหลดทุกวิชา (ช้า ไม่แนะนำ)</button>
+        `,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: async () => {
+            $('#sp-load-all').on('click', function () {
+                sessionStorage.setItem('mdkku_load_all', '1');
+                Swal.close();
+                window.initApp();
+            });
+
+            let subjects = null;
+            try {
+                subjects = await window.getAllSubjectsList();
+            } catch (err) {
+                console.warn('[SubjectPicker] fetch subjects failed:', err);
+            }
+            const $list = $('#sp-subject-list');
+            if (!subjects || !subjects.length) {
+                $list.html('<p style="text-align:center; color:#c00;">โหลดรายชื่อวิชาไม่สำเร็จ กรุณารีเฟรชหน้าใหม่</p>');
+                return;
+            }
+
+            const renderList = (year) => {
+                $list.empty();
+                subjects.forEach(s => {
+                    if (year && String(s.year) !== String(year)) return;
+                    const yearLabel = s.year ? `[ปี ${s.year}] ` : '';
+                    $list.append(
+                        $('<button type="button"></button>')
+                            .css({
+                                display: 'block', width: '100%', textAlign: 'left',
+                                margin: '4px 0', padding: '10px 12px',
+                                border: '1px solid var(--color-border, #ddd)', borderRadius: '8px',
+                                background: 'var(--color-surface, #fff)', color: 'inherit',
+                                cursor: 'pointer', fontSize: '0.95em'
+                            })
+                            .text(`${yearLabel}${s.id} - ${s.name}`)
+                            .on('click', function () {
+                                window.location.search = '?subject=' + encodeURIComponent(s.id);
+                            })
+                    );
+                });
+            };
+
+            const years = [...new Set(subjects.map(s => s.year).filter(Boolean))]
+                .sort((a, b) => Number(a) - Number(b));
+            years.forEach(y => $('#sp-year-filter').append(`<option value="${y}">ปี ${y}</option>`));
+            $('#sp-year-filter').on('change', function () { renderList($(this).val()); });
+            renderList('');
+        }
+    });
 };
 
 window.finishLoading = function () {
@@ -686,6 +760,13 @@ window.initApp = async function () {
     const verKey = `ver_${subjectParam}`;
     const sessionKey = `session_state_${subjectParam || 'default'}`;
 
+    // ไม่มี subject filter → บังคับเลือกวิชาผ่าน popup ก่อน (ข้าม data fetch ทั้งหมด)
+    // ยกเว้นผู้ใช้กด "โหลดทุกวิชา" เอง (flag ต่อ tab ผ่าน sessionStorage)
+    if (!subjectParam && sessionStorage.getItem('mdkku_load_all') !== '1') {
+        window.showSubjectPickerModal();
+        return;
+    }
+
     if (window.currentZoom > window.minZoom) {
         window.currentZoom += window.zoomStep;
         window.applyZoom();
@@ -948,8 +1029,11 @@ $(function () {
     $(document).on('change', '#subject-select', function () {
         const selectedSubj = $(this).val();
         if (selectedSubj) {
+            sessionStorage.removeItem('mdkku_load_all');
             window.location.search = '?subject=' + encodeURIComponent(selectedSubj);
         } else {
+            // เลือก "แสดงทั้งหมด" จาก dropdown = ตั้งใจโหลดทุกวิชา — ตั้ง flag กัน popup เด้งซ้ำ
+            sessionStorage.setItem('mdkku_load_all', '1');
             window.location.search = '';
         }
     });
