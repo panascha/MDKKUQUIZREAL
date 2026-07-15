@@ -3,7 +3,7 @@
 // และ cache เฉพาะไฟล์ static ของตัวเอง
 // ไม่แตะ requests ไปหา Google Apps Script (script.google.com) เด็ดขาด
 
-const CACHE_NAME = 'mdkkuquiz-v3.2.1'; // semver — bump ทุกครั้งที่ deploy JS ใหม่; ถ้ามีของใหม่ให้เพิ่ม entry ใน js/changelog.js ด้วย
+const CACHE_NAME = 'mdkkuquiz-v3.3.0'; // semver — bump ทุกครั้งที่ deploy JS ใหม่; ถ้ามีของใหม่ให้เพิ่ม entry ใน js/changelog.js ด้วย
 const STATIC_ASSETS = [
     './',
     'index.html',
@@ -30,6 +30,7 @@ const STATIC_ASSETS = [
     'js/chatbot.js',
     'js/glossary.js',
     'js/meq.js',
+    'js/similar.js',
     'js/vote.js',
     'js/report.js',
     'js/ui.js',

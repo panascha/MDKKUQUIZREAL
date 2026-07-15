@@ -339,3 +339,186 @@ body.chatbot-open #chatbot-fab {
     font-style: italic;
 }
 
+/* =========================================
+   Feature — Similar Questions (แผงข้อคล้าย + รายงานข้อออกบ่อย)
+   ========================================= */
+#similar-panel {
+    margin: 0 20px 10px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--border-radius);
+    background: var(--color-surface-2);
+    text-align: left;
+    box-sizing: border-box;
+}
+
+#similar-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    font-weight: 700;
+    color: var(--color-text);
+    cursor: pointer;
+    user-select: none;
+}
+
+#similar-panel-header > span > i { color: var(--color-primary); }
+
+#similar-panel-toggle-icon {
+    transition: transform 0.25s ease;
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+#similar-panel-toggle-icon.open { transform: rotate(180deg); }
+
+#similar-panel-list {
+    border-top: 1.5px solid var(--color-border-soft);
+    padding: 8px;
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.similar-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+.similar-item:hover { background: var(--color-surface); }
+
+.similar-item-stem { flex: 1; color: var(--color-text); }
+
+.similar-badge {
+    flex-shrink: 0;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.similar-year-chip {
+    flex-shrink: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.similar-empty {
+    margin: 6px 4px;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+/* รายงานข้อออกบ่อย — full-screen overlay (z ต่ำกว่า .modal-card เพื่อให้ preview modal ซ้อนทับได้) */
+#similar-report-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 990;
+    background: var(--color-background);
+    overflow-y: auto;
+}
+
+#similar-report-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 18px 16px 60px;
+    text-align: left;
+}
+
+#similar-report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+#similar-report-singleton-toggle-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    margin-bottom: 14px;
+    user-select: none;
+}
+
+.similar-report-cat {
+    margin-bottom: 20px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--border-radius);
+    background: var(--color-surface);
+    padding: 12px 14px;
+}
+
+.similar-report-cat-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.similar-report-cat-head h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: var(--color-primary);
+}
+
+.similar-cluster {
+    border: 1px solid var(--color-border-soft);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: var(--color-surface-2);
+}
+
+.similar-cluster-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    user-select: none;
+}
+.similar-cluster-head .fa-chevron-down {
+    margin-left: auto;
+    font-size: 0.8rem;
+    opacity: 0.6;
+    transition: transform 0.25s ease;
+}
+.similar-cluster-head .fa-chevron-down.open { transform: rotate(180deg); }
+
+.similar-cluster-stem { flex: 1 1 100%; color: var(--color-text); line-height: 1.45; }
+
+.similar-cluster-members {
+    border-top: 1px solid var(--color-border-soft);
+    padding: 6px 8px;
+}
+
+.similar-member-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+.similar-member-row:hover { background: var(--color-surface); }
+

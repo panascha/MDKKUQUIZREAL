@@ -151,3 +151,8 @@ window.APP = {
 try {
     window.APP.meqMode = localStorage.getItem('mdkku_meq_mode') === '1';
 } catch (e) { }
+
+// 8. ค่าคงที่ระบบข้อสอบคล้ายกัน (Similar Questions — js/similar.js)
+window.SIMILAR_MIN_SHARED = 3;        // panel: ต้องมี token ร่วมกันอย่างน้อยกี่คำถึงนับว่า "คล้าย"
+window.SIMILAR_STOPWORD_RATIO = 0.2;  // token ที่โผล่ใน >20% ของข้อสอบวิชานั้น = stopword ไม่นับ
+window.CLUSTER_OVERLAP = 0.5;         // report: edge เมื่อ shared / min(|A|,|B|) >= 0.5 (overlap coefficient)

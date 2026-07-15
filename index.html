@@ -822,6 +822,10 @@
                         style="background-color: var(--color-primary); color: white; border: none; margin: 0; min-height: 46px; width: 100%; font-size: 1.1rem; font-weight: 700; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);">
                         <i class="fas fa-file-pdf"></i> Save to PDF
                     </button>
+                    <button id="open-similar-report-btn" class="quiz-button"
+                        style="grid-column: 1 / -1; background-color: #7C3AED; color: white; border: none; margin: 0; min-height: 46px; width: 100%; font-size: 1.1rem; font-weight: 700; box-shadow: 0 2px 6px rgba(124, 58, 237, 0.15);">
+                        <i class="fas fa-chart-bar"></i> ข้อออกบ่อย (คลัสเตอร์ข้อสอบซ้ำ)
+                    </button>
                 </div>
             
                 <!-- กล่องตั้งค่าโหมดทำข้อสอบ (Quiz Settings Block - คุมโทนสีกลมกลืนตามธีมเริ่มต้น) -->
@@ -989,6 +993,15 @@
             <p id="feedback"></p>
             <div id="quiz-explain-container" style="margin: 0 20px 10px;"></div>
 
+            <!-- Similar Questions panel — โชว์เฉพาะหลังตอบข้อนี้แล้ว (spoiler guard, js/similar.js) -->
+            <div id="similar-panel" style="display:none;">
+                <div id="similar-panel-header">
+                    <span><i class="fas fa-clone"></i> ข้อสอบที่คล้ายกัน (<span id="similar-panel-count">0</span>)</span>
+                    <i class="fas fa-chevron-down" id="similar-panel-toggle-icon"></i>
+                </div>
+                <div id="similar-panel-list" style="display:none;"></div>
+            </div>
+
             <div class="nav-container">
                 <button id="prev-question" class="quiz-button btn-dark">
                     <i class="fas fa-chevron-left" style="margin-right: 5px;"></i> ก่อนหน้า
@@ -1105,6 +1118,32 @@
         </div>
 
     <!-- =========================================
+         V-d. Similar Questions (Feature: similar.js) — preview modal + category frequency report overlay
+         ========================================= -->
+    <div id="similar-preview-modal" class="modal-card">
+        <div class="modal-body" style="align-items: stretch;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <h5 class="modal-title" style="margin: 0;"><i class="fas fa-clone"></i> ตัวอย่างข้อสอบ</h5>
+                <button id="close-similar-preview" class="quiz-button btn-light" style="margin: 0;">ปิด</button>
+            </div>
+            <div id="similar-preview-body" style="width: 100%;"></div>
+        </div>
+    </div>
+
+    <div id="similar-report-overlay" style="display:none;">
+        <div id="similar-report-inner">
+            <div id="similar-report-header">
+                <h2 style="margin: 0; font-size: 1.3rem;"><i class="fas fa-chart-bar"></i> ข้อออกบ่อย (คลัสเตอร์ข้อสอบซ้ำ)</h2>
+                <button id="close-similar-report" class="quiz-button btn-light" style="margin: 0;">ปิด</button>
+            </div>
+            <label id="similar-report-singleton-toggle-wrap">
+                <input type="checkbox" id="similar-report-singleton-toggle"> แสดงข้อที่ออกครั้งเดียว (singleton)
+            </label>
+            <div id="similar-report-content"></div>
+        </div>
+    </div>
+
+    <!-- =========================================
          VI. Floating Action Buttons
          ========================================= -->
     <div class="fab-container">
@@ -1194,6 +1233,7 @@
     <script src="js/chatbot.js"></script>
     <script src="js/glossary.js"></script>
     <script src="js/meq.js"></script>
+    <script src="js/similar.js"></script>
     <script src="js/vote.js"></script>
     <script src="js/report.js"></script>
     <script src="js/ui.js"></script>
