@@ -468,16 +468,32 @@ body.chatbot-open #chatbot-fab {
 
 .similar-report-cat-head {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     gap: 10px;
     margin-bottom: 8px;
+    cursor: pointer;
+    user-select: none;
 }
 .similar-report-cat-head h3 {
     margin: 0;
     font-size: 1.05rem;
     color: var(--color-primary);
 }
+.similar-cat-chevron {
+    font-size: 0.85rem;
+    opacity: 0.6;
+    transition: transform 0.25s ease;
+}
+.similar-cat-chevron.open { transform: rotate(180deg); }
+.similar-cat-count {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    background: var(--color-surface-2);
+    border-radius: 10px;
+    padding: 1px 9px;
+}
+.similar-report-cat-head .similar-copy-md-btn { margin-left: auto; }
 
 .similar-cluster {
     border: 1px solid var(--color-border-soft);
@@ -620,7 +636,9 @@ body.chatbot-open #chatbot-fab {
     .similar-copy-md-btn,
     .similar-cluster-head .fa-chevron-down,
     .search-card-actions { display: none !important; }
+    .similar-report-cat-body,
     .similar-cluster-members { display: block !important; }
+    .similar-cat-chevron { display: none !important; }
     .similar-cluster, .similar-cluster-card, .similar-report-cat, .chart-row { page-break-inside: avoid; }
 }
 

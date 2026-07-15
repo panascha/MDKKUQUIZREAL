@@ -399,17 +399,11 @@ window.renderSimilarReport = function () {
                 .filter(x => showSingles || x.cl.members.length >= 2);
             if (!visible.length) return;
 
-            groupHtml += `
-            <div class="similar-report-cat">
-                <div class="similar-report-cat-head">
-                    <h3>${cat.catName}</h3>
-                    <button class="btn-xs teal similar-copy-md-btn" data-ci="${ci}"><i class="fas fa-copy"></i> คัดลอก Markdown</button>
-                </div>`;
-
+            let clustersHtml = '';
             visible.forEach(({ cl, clIdx }) => {
                 const rep = qs[cl.members[0]];
                 const yearChips = cl.years.map(y => `<span class="similar-year-chip">ปี ${y}</span>`).join('');
-                groupHtml += `
+                clustersHtml += `
                 <div class="similar-cluster">
                     <div class="similar-cluster-head" data-ci="${ci}" data-cl="${clIdx}">
                         <span class="similar-badge">ออก ${cl.members.length} ครั้ง</span>
@@ -421,7 +415,19 @@ window.renderSimilarReport = function () {
                 </div>`;
             });
 
-            groupHtml += `</div>`;
+            // หัวข้อกางได้ (dropdown) — เปิดอัตโนมัติเมื่อกรองเหลือหัวข้อเดียว, ที่เหลือพับไว้
+            const bodyStyle = lectureFilter ? '' : 'display:none;';
+            const chevOpen = lectureFilter ? ' open' : '';
+            groupHtml += `
+            <div class="similar-report-cat">
+                <div class="similar-report-cat-head">
+                    <i class="fas fa-chevron-down similar-cat-chevron${chevOpen}"></i>
+                    <h3>${cat.catName}</h3>
+                    <span class="similar-cat-count">${visible.length}</span>
+                    <button class="btn-xs teal similar-copy-md-btn" data-ci="${ci}"><i class="fas fa-copy"></i> คัดลอก Markdown</button>
+                </div>
+                <div class="similar-report-cat-body" style="${bodyStyle}">${clustersHtml}</div>
+            </div>`;
         });
 
         if (groupHtml) {
@@ -492,6 +498,8 @@ window.copySimilarReportMarkdown = function () {
 
 // PDF = พิมพ์ผ่าน browser (@media print โชว์เฉพาะ overlay) — กางทุกคลัสเตอร์ให้เต็มก่อนพิมพ์
 window.exportSimilarReportPDF = function () {
+    $('.similar-report-cat-body').show();
+    $('.similar-cat-chevron').addClass('open');
     $('.similar-cluster').each(function () {
         const $members = $(this).find('.similar-cluster-members');
         if (!$members.data('rendered')) {
@@ -580,6 +588,13 @@ $(function () {
     $('#similar-report-lecture-filter').on('change', window.renderSimilarReport);
     $('#similar-report-export-md').on('click', window.copySimilarReportMarkdown);
     $('#similar-report-export-pdf').on('click', window.exportSimilarReportPDF);
+
+    // กางหัวข้อ (dropdown) → โชว์/ซ่อนคลัสเตอร์ของหัวข้อนั้น (ไม่นับคลิกปุ่มคัดลอก)
+    $(document).on('click', '.similar-report-cat-head', function (e) {
+        if ($(e.target).closest('.similar-copy-md-btn').length) return;
+        $(this).find('.similar-cat-chevron').toggleClass('open');
+        $(this).next('.similar-report-cat-body').slideToggle(150);
+    });
 
     // กางคลัสเตอร์ → เรนเดอร์การ์ดเต็มแบบ lazy ครั้งแรก แล้วเรียงลงมาในภาพเดียว
     $(document).on('click', '.similar-cluster-head', function () {
