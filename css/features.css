@@ -280,3 +280,62 @@ body.chatbot-open #chatbot-fab {
     padding: 0 2px;
 }
 
+/* =========================================
+   Feature — MEQ Mode (hidden choices + free-recall)
+   ========================================= */
+#choices.meq-hidden {
+    display: none !important;
+}
+
+#meq-recall-panel {
+    margin: 0 20px 10px;
+    padding: 12px 14px;
+    background: var(--color-surface-2);
+    border: 1.5px dashed var(--color-primary);
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+}
+
+.meq-recall-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+#meq-recall-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: var(--font-primary);
+    font-size: 16px; /* >=16px prevents iOS auto-zoom on focus */
+    padding: 10px 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    resize: vertical;
+    margin-bottom: 8px;
+}
+
+#meq-reveal-btn {
+    width: 100%;
+    margin: 0;
+    min-height: 44px;
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    font-weight: 600;
+}
+
+#meq-recall-collapsed {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    padding: 6px 2px 0;
+}
+
+#meq-recall-collapsed-text {
+    color: var(--color-text);
+    font-style: italic;
+}
+

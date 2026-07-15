@@ -3,7 +3,7 @@
 // และ cache เฉพาะไฟล์ static ของตัวเอง
 // ไม่แตะ requests ไปหา Google Apps Script (script.google.com) เด็ดขาด
 
-const CACHE_NAME = 'mdkkuquiz-v22'; // bump ทุกครั้งที่ deploy JS ใหม่ เพื่อให้ SW cache-first ส่งไฟล์ใหม่ถึงผู้ใช้
+const CACHE_NAME = 'mdkkuquiz-v23'; // bump ทุกครั้งที่ deploy JS ใหม่ เพื่อให้ SW cache-first ส่งไฟล์ใหม่ถึงผู้ใช้
 const STATIC_ASSETS = [
     './',
     'index.html',
@@ -28,6 +28,7 @@ const STATIC_ASSETS = [
     'js/quiz-render.js',
     'js/chatbot.js',
     'js/glossary.js',
+    'js/meq.js',
     'js/vote.js',
     'js/report.js',
     'js/ui.js',

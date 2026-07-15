@@ -143,5 +143,11 @@ window.APP = {
     currentImageIndex: 0,
     preloadedImages: {},
     answerKeyMap: [],
-    allSubjectsList: []
+    allSubjectsList: [],
+    meqMode: false
 };
+
+// 7. โหมด MEQ (Hidden Choices + Free-Recall) — persist ต่างจากค่าอื่นใน APP ที่เก็บผ่าน IndexedDB session state
+try {
+    window.APP.meqMode = localStorage.getItem('mdkku_meq_mode') === '1';
+} catch (e) { }

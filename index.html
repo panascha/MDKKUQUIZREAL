@@ -836,6 +836,9 @@
                         <button id="toggle-fast-mode-btn" class="quiz-button"
                             style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;"><i
                                 class="fas fa-bolt"></i> โหมดเร่งด่วน (Fast Mode): ปิด</button>
+                        <button id="toggle-meq-mode-btn" class="quiz-button"
+                            style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;"><i
+                                class="fas fa-brain"></i> โหมด MEQ (ตอบก่อนดูตัวเลือก): ปิด</button>
                     </div>
                     </details>
                     
@@ -951,6 +954,18 @@
                 <img id="question-image" src="" alt="Question Image" />
                 <button id="next-img-btn" class="img-nav-btn"><i class="fas fa-chevron-right"></i></button>
                 <div id="image-counter">1/1</div>
+            </div>
+
+            <!-- MEQ Mode: recall panel — hidden unless meqMode ON and question unanswered (js/meq.js) -->
+            <div id="meq-recall-panel" style="display:none;">
+                <div id="meq-recall-input-wrap">
+                    <label for="meq-recall-textarea" class="meq-recall-label"><i class="fas fa-pen"></i> พิมพ์คำตอบของคุณก่อนดูตัวเลือก…</label>
+                    <textarea id="meq-recall-textarea" placeholder="พิมพ์คำตอบของคุณก่อนดูตัวเลือก…" rows="3"></textarea>
+                    <button type="button" id="meq-reveal-btn" class="quiz-button"><i class="fas fa-eye"></i> ดูตัวเลือก (Reveal)</button>
+                </div>
+                <div id="meq-recall-collapsed" style="display:none;">
+                    <i class="fas fa-lightbulb"></i> คำตอบที่คุณพิมพ์ไว้: <span id="meq-recall-collapsed-text"></span>
+                </div>
             </div>
 
             <div id="choices"></div>
@@ -1166,6 +1181,7 @@
     <script src="js/quiz-render.js"></script>
     <script src="js/chatbot.js"></script>
     <script src="js/glossary.js"></script>
+    <script src="js/meq.js"></script>
     <script src="js/vote.js"></script>
     <script src="js/report.js"></script>
     <script src="js/ui.js"></script>
