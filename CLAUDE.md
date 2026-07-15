@@ -62,6 +62,7 @@ Image URLs from Google Drive are transformed via `window.transformUrl()` to use 
 - **Session token**: 30-day GAS-issued token system. `localStorage['mdkku_session_token']` holds a 64-char token. `window.EDIT_SESSION.sessionToken` holds it in memory. `logoutEditMode()` calls GAS `deleteSession` to revoke it server-side. All edit-modal API calls send `sessionToken`, not `googleIdToken`.
 - **IndexedDB cache key pattern**: `session_state_<subjectParam>`, `all_subjects_list_v2`, question data keyed by subject.
 - **Analytics is batched, not per-event** — `logUserActivity` (old per-event endpoint) no longer exists on the backend; all analytics goes through the `activityBuffer` → `batchLog` path in `js/api.js`.
+- **Every user-visible change MUST get a `js/changelog.js` entry** — add a new object at the TOP of `window.CHANGELOG` with `version` (must equal the new `CACHE_NAME` in `service-worker.js` minus the `mdkkuquiz-` prefix, e.g. `'v3.2.1'`), `date`, and Thai-language `new[]`/`fixed[]` bullets, and bump `CACHE_NAME` in the same commit. Internal-only changes still bump `CACHE_NAME` but skip the changelog entry (update prompt then shows the fallback text).
 
 ## Known Open Issues (this repo)
 
