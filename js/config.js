@@ -154,5 +154,7 @@ try {
 
 // 8. ค่าคงที่ระบบข้อสอบคล้ายกัน (Similar Questions — js/similar.js)
 window.SIMILAR_MIN_SHARED = 3;        // panel: ต้องมี token ร่วมกันอย่างน้อยกี่คำถึงนับว่า "คล้าย"
+window.SIMILAR_MIN_OVERLAP = 0.35;    // panel: และ shared / min(|A|,|B|) >= 0.35 — กันข้อยาวๆ match กันเองด้วยคำทั่วไป
+                                      // (วัดจากข้อมูลจริง 2026-07-15: GI 1903 ข้อ ไม่มี overlap filter median=78 ข้อ/คำถาม, ที่ 0.35 → median=1, p90=7)
 window.SIMILAR_STOPWORD_RATIO = 0.2;  // token ที่โผล่ใน >20% ของข้อสอบวิชานั้น = stopword ไม่นับ
 window.CLUSTER_OVERLAP = 0.5;         // report: edge เมื่อ shared / min(|A|,|B|) >= 0.5 (overlap coefficient)

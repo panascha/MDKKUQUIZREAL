@@ -45,7 +45,9 @@ window.similarSharedCount = function (a, b) {
     return shared;
 };
 
-// คืน [{q, score}] เรียง score มาก→น้อย, threshold >= SIMILAR_MIN_SHARED, ไม่จำกัดจำนวน
+// คืน [{q, score}] เรียง score มาก→น้อย, ไม่จำกัดจำนวน
+// threshold คู่: shared >= SIMILAR_MIN_SHARED และ overlap coefficient >= SIMILAR_MIN_OVERLAP
+// (absolute อย่างเดียวไม่ scale — ข้อยาวๆ ในวิชาใหญ่ match กันเองเป็นร้อยด้วยคำทั่วไป)
 // รวมข้อซ้ำเป๊ะด้วย (นั่นแหละประเด็น — ข้อเดิมออกซ้ำคนละปีต้องขึ้นบนสุด), memoize ต่อ questionId
 window.getSimilarQuestions = function (q) {
     const st = window.buildSimilarIndex();
@@ -59,8 +61,13 @@ window.getSimilarQuestions = function (q) {
     const results = [];
     for (let i = 0; i < qs.length; i++) {
         if (i === myIdx) continue;
-        const shared = window.similarSharedCount(mySet, st.sets[i]);
-        if (shared >= window.SIMILAR_MIN_SHARED) results.push({ q: qs[i], score: shared });
+        const other = st.sets[i];
+        const minSize = Math.min(mySet.size, other.size);
+        if (!minSize) continue;
+        const shared = window.similarSharedCount(mySet, other);
+        if (shared >= window.SIMILAR_MIN_SHARED && shared / minSize >= window.SIMILAR_MIN_OVERLAP) {
+            results.push({ q: qs[i], score: shared });
+        }
     }
     results.sort((a, b) => b.score - a.score);
     st.byQid[qid] = results;
