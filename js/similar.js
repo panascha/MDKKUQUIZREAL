@@ -211,25 +211,24 @@ window.buildSimilarPreviewHtml = function (q) {
         </div>`;
 };
 
-window.openSimilarPreview = function (q) {
-    const $body = $('#similar-preview-body');
-    $body.html(window.buildSimilarPreviewHtml(q));
-
+// wiring แยกต่อการ์ด — $card คือ .search-card เฉพาะใบ; scope ทุก handler ด้วย $card.find
+// เพื่อให้หลายการ์ดอยู่ใน DOM พร้อมกันได้ (cluster stack, compare 2 คอลัมน์) โดย gallery/ปุ่มไม่ชนกัน
+window.wireSimilarCard = function ($card, q) {
     const imgArray = q.img ? q.img.split('///').map(u => u.trim()).filter(Boolean) : [];
     if (imgArray.length > 0) {
         let currentIdx = 0;
-        const $mainImg = $body.find('.search-gallery-main-img');
-        const $counter = $body.find('.search-gallery-counter');
+        const $mainImg = $card.find('.search-gallery-main-img');
+        const $counter = $card.find('.search-gallery-counter');
         const showIdx = () => {
             $mainImg.attr('src', window.transformUrl(imgArray[currentIdx]));
             $counter.text(`${currentIdx + 1} / ${imgArray.length}`);
         };
-        $body.find('.search-gallery-prev').on('click', function (e) {
+        $card.find('.search-gallery-prev').on('click', function (e) {
             e.preventDefault();
             currentIdx = (currentIdx - 1 + imgArray.length) % imgArray.length;
             showIdx();
         });
-        $body.find('.search-gallery-next').on('click', function (e) {
+        $card.find('.search-gallery-next').on('click', function (e) {
             e.preventDefault();
             currentIdx = (currentIdx + 1) % imgArray.length;
             showIdx();
@@ -239,9 +238,42 @@ window.openSimilarPreview = function (q) {
         });
     }
 
-    $body.find('.btn-similar-report-q').on('click', function () { window.openReportModal(q); });
-    $body.find('.btn-similar-vote-q').on('click', function () { window.openVoteModal(q, false); });
+    $card.find('.btn-similar-report-q').on('click', function () { window.openReportModal(q); });
+    $card.find('.btn-similar-vote-q').on('click', function () { window.openVoteModal(q, false); });
+};
 
+window.openSimilarPreview = function (q) {
+    const $body = $('#similar-preview-body');
+    $('#similar-preview-modal').removeClass('compare-wide');
+    $body.html(window.buildSimilarPreviewHtml(q));
+    window.wireSimilarCard($body.find('.search-card'), q);
+    $('#similar-preview-modal').fadeIn(200);
+    setTimeout(window.renderAllMath, 50);
+};
+
+// เทียบข้อปัจจุบัน (ซ้าย) กับข้อคล้ายจากปีอื่น (ขวา) ในภาพเดียว — ไม่ต้องสลับหน้าต่างไปมา
+window.openSimilarCompare = function (simQ) {
+    const cur = window.APP.current_question;
+    if (!cur) return window.openSimilarPreview(simQ);
+    const $body = $('#similar-preview-body');
+    $('#similar-preview-modal').addClass('compare-wide');
+    $body.html(`
+        <div class="similar-compare">
+            <div class="similar-compare-col">
+                <div class="similar-compare-head">ข้อปัจจุบัน ${window.similarYearChip(cur)}</div>
+                <div class="similar-compare-slot" data-side="cur"></div>
+            </div>
+            <div class="similar-compare-col">
+                <div class="similar-compare-head">ข้อคล้ายจากปีอื่น ${window.similarYearChip(simQ)}</div>
+                <div class="similar-compare-slot" data-side="sim"></div>
+            </div>
+        </div>`);
+    const $cur = $body.find('[data-side="cur"]');
+    const $sim = $body.find('[data-side="sim"]');
+    $cur.html(window.buildSimilarPreviewHtml(cur));
+    window.wireSimilarCard($cur.find('.search-card'), cur);
+    $sim.html(window.buildSimilarPreviewHtml(simQ));
+    window.wireSimilarCard($sim.find('.search-card'), simQ);
     $('#similar-preview-modal').fadeIn(200);
     setTimeout(window.renderAllMath, 50);
 };
@@ -293,55 +325,126 @@ window.buildSimilarReportData = function () {
             return { members: withYear.map(m => m.i), years };
         });
         clusters.sort((a, b) => b.members.length - a.members.length);
-        data.push({ catName: cat.categoryName, clusters });
+        data.push({
+            catName: cat.categoryName,
+            catId: cat.categoryId,
+            accordionGroup: cat.accordionGroup || 'อื่นๆ',
+            clusters
+        });
     });
     return data;
+};
+
+// จำนวน "ข้อซ้ำ" ของหัวข้อ = ผลรวมสมาชิกในคลัสเตอร์ที่ออก >=2 ครั้ง (ใช้ทั้ง chart และเรียงลำดับ)
+window.similarCatRepeatCount = function (cat) {
+    return cat.clusters.reduce((s, cl) => s + (cl.members.length >= 2 ? cl.members.length : 0), 0);
+};
+
+// เติม dropdown เลือกหัวข้อ (lecture) — เฉพาะหัวข้อที่มีคลัสเตอร์ เรียงตามจำนวนข้อซ้ำมาก→น้อย
+window.populateSimilarLectureFilter = function () {
+    const data = window._similarReportData || [];
+    const prev = $('#similar-report-lecture-filter').val() || '';
+    const opts = data
+        .map((cat, ci) => ({ cat, ci, n: window.similarCatRepeatCount(cat) }))
+        .filter(x => x.n > 0)
+        .sort((a, b) => b.n - a.n)
+        .map(x => `<option value="${x.cat.catId}">${x.cat.catName} (${x.n})</option>`)
+        .join('');
+    $('#similar-report-lecture-filter').html(`<option value="">ทุกหัวข้อ</option>${opts}`).val(prev);
+};
+
+// bar chart แบบ div (ไม่พึ่ง lib) — Top หัวข้อ ตามจำนวนข้อซ้ำ
+window.renderSimilarReportChart = function () {
+    const rows = (window._similarReportData || [])
+        .map(cat => ({ name: cat.catName, count: window.similarCatRepeatCount(cat) }))
+        .filter(r => r.count > 0)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+    if (!rows.length) { $('#similar-report-chart').empty(); return; }
+    const max = rows[0].count;
+    const bars = rows.map(r => `
+        <div class="chart-row">
+            <span class="chart-label" title="${r.name}">${r.name}</span>
+            <div class="chart-bar-track"><div class="chart-bar" style="width:${(r.count / max * 100).toFixed(1)}%"></div></div>
+            <span class="chart-val">${r.count}</span>
+        </div>`).join('');
+    $('#similar-report-chart').html(
+        `<h3 class="chart-title"><i class="fas fa-fire"></i> หัวข้อที่ออกซ้ำบ่อยสุด (Top ${rows.length})</h3>${bars}`
+    );
 };
 
 window.renderSimilarReport = function () {
     const qs = window.APP.allQuestions || [];
     const showSingles = $('#similar-report-singleton-toggle').is(':checked');
+    const lectureFilter = $('#similar-report-lecture-filter').val() || '';
     const data = window._similarReportData || [];
-    let html = '';
 
+    // จัดกลุ่มตาม accordionGroup; กลุ่มเรียงตามชื่อ, หัวข้อในกลุ่มเรียงตามจำนวนข้อซ้ำมาก→น้อย
+    const groups = {};
     data.forEach((cat, ci) => {
-        const visible = cat.clusters
-            .map((cl, clIdx) => ({ cl, clIdx }))
-            .filter(x => showSingles || x.cl.members.length >= 2);
-        if (!visible.length) return;
+        if (lectureFilter && cat.catId !== lectureFilter) return;
+        const g = cat.accordionGroup || 'อื่นๆ';
+        (groups[g] = groups[g] || []).push({ cat, ci });
+    });
 
-        html += `
-        <div class="similar-report-cat">
-            <div class="similar-report-cat-head">
-                <h3>${cat.catName}</h3>
-                <button class="btn-xs teal similar-copy-md-btn" data-ci="${ci}"><i class="fas fa-copy"></i> คัดลอก Markdown</button>
-            </div>`;
+    let html = '';
+    Object.keys(groups).sort((a, b) => a.localeCompare(b, 'th')).forEach(gName => {
+        const cats = groups[gName].slice()
+            .sort((x, y) => window.similarCatRepeatCount(y.cat) - window.similarCatRepeatCount(x.cat));
 
-        visible.forEach(({ cl, clIdx }) => {
-            const rep = qs[cl.members[0]];
-            const yearChips = cl.years.map(y => `<span class="similar-year-chip">ปี ${y}</span>`).join('');
-            const memberRows = cl.members.map(mi => `
-                <div class="similar-member-row" data-qidx="${mi}">
-                    ${window.similarYearChip(qs[mi]) || '<span class="similar-year-chip">ปี ?</span>'}
-                    <span>${window.similarSnippet(qs[mi].problem, 120)}</span>
-                </div>`).join('');
+        let groupHtml = '';
+        cats.forEach(({ cat, ci }) => {
+            const visible = cat.clusters
+                .map((cl, clIdx) => ({ cl, clIdx }))
+                .filter(x => showSingles || x.cl.members.length >= 2);
+            if (!visible.length) return;
 
-            html += `
-            <div class="similar-cluster">
-                <div class="similar-cluster-head" data-ci="${ci}" data-cl="${clIdx}">
-                    <span class="similar-badge">ออก ${cl.members.length} ครั้ง</span>
-                    ${yearChips}
-                    <span class="similar-cluster-stem">${window.similarSnippet(rep.problem, 140)}</span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="similar-cluster-members" style="display:none;">${memberRows}</div>
-            </div>`;
+            groupHtml += `
+            <div class="similar-report-cat">
+                <div class="similar-report-cat-head">
+                    <h3>${cat.catName}</h3>
+                    <button class="btn-xs teal similar-copy-md-btn" data-ci="${ci}"><i class="fas fa-copy"></i> คัดลอก Markdown</button>
+                </div>`;
+
+            visible.forEach(({ cl, clIdx }) => {
+                const rep = qs[cl.members[0]];
+                const yearChips = cl.years.map(y => `<span class="similar-year-chip">ปี ${y}</span>`).join('');
+                groupHtml += `
+                <div class="similar-cluster">
+                    <div class="similar-cluster-head" data-ci="${ci}" data-cl="${clIdx}">
+                        <span class="similar-badge">ออก ${cl.members.length} ครั้ง</span>
+                        ${yearChips}
+                        <span class="similar-cluster-stem">${window.similarSnippet(rep.problem, 140)}</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="similar-cluster-members" style="display:none;"></div>
+                </div>`;
+            });
+
+            groupHtml += `</div>`;
         });
 
-        html += `</div>`;
+        if (groupHtml) {
+            html += `<div class="similar-report-group"><h2 class="similar-report-group-head">${gName}</h2>${groupHtml}</div>`;
+        }
     });
 
     $('#similar-report-content').html(html || '<p class="similar-empty" style="text-align:center;">ไม่พบคลัสเตอร์ข้อสอบซ้ำในวิชานี้</p>');
+};
+
+// เรนเดอร์การ์ดเต็มของคลัสเตอร์แบบ lazy (ตอนกางครั้งแรก) — ข้อซ้ำทั้งหมดเรียงลงมาในภาพเดียว
+window.renderSimilarClusterCards = function ($members, ci, cl) {
+    const cluster = (((window._similarReportData || [])[ci] || {}).clusters || [])[cl];
+    if (!cluster) return;
+    const qs = window.APP.allQuestions || [];
+    $members.empty();
+    cluster.members.forEach(mi => {
+        const $wrap = $('<div class="similar-cluster-card"></div>').html(window.buildSimilarPreviewHtml(qs[mi]));
+        $members.append($wrap);
+        window.wireSimilarCard($wrap.find('.search-card'), qs[mi]);
+    });
+    $members.data('rendered', true);
+    setTimeout(window.renderAllMath, 50);
 };
 
 window.openSimilarReport = function () {
@@ -350,8 +453,55 @@ window.openSimilarReport = function () {
         return;
     }
     window._similarReportData = window.buildSimilarReportData();
+    window.populateSimilarLectureFilter();
+    window.renderSimilarReportChart();
     window.renderSimilarReport();
     $('#similar-report-overlay').fadeIn(200);
+};
+
+// Markdown ของทุกหัวข้อที่แสดงอยู่ (เคารพ singleton toggle + lecture filter)
+window.buildSimilarReportMarkdown = function () {
+    const qs = window.APP.allQuestions || [];
+    const showSingles = $('#similar-report-singleton-toggle').is(':checked');
+    const lectureFilter = $('#similar-report-lecture-filter').val() || '';
+    const subj = new URLSearchParams(location.search).get('subject') || '';
+    let md = `# ข้อออกบ่อย${subj ? ' — ' + subj : ''}\n\n`;
+    (window._similarReportData || []).forEach(cat => {
+        if (lectureFilter && cat.catId !== lectureFilter) return;
+        const clusters = cat.clusters.filter(cl => showSingles || cl.members.length >= 2);
+        if (!clusters.length) return;
+        md += `## ${cat.catName}\n`;
+        clusters.forEach(cl => {
+            const years = cl.years.length ? ` (ปี ${cl.years.join(', ')})` : '';
+            md += `- ออก ${cl.members.length} ครั้ง${years}: ${window.similarSnippet(qs[cl.members[0]].problem, 200)}\n`;
+        });
+        md += `\n`;
+    });
+    return md;
+};
+
+window.copySimilarReportMarkdown = function () {
+    const md = window.buildSimilarReportMarkdown();
+    const done = () => window.bgToast.fire({ icon: 'success', title: 'คัดลอก Markdown ทั้งหมดแล้ว' });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(md).then(done).catch(() => window.similarCopyFallback(md, done));
+    } else {
+        window.similarCopyFallback(md, done);
+    }
+};
+
+// PDF = พิมพ์ผ่าน browser (@media print โชว์เฉพาะ overlay) — กางทุกคลัสเตอร์ให้เต็มก่อนพิมพ์
+window.exportSimilarReportPDF = function () {
+    $('.similar-cluster').each(function () {
+        const $members = $(this).find('.similar-cluster-members');
+        if (!$members.data('rendered')) {
+            const $head = $(this).find('.similar-cluster-head');
+            window.renderSimilarClusterCards($members, $head.data('ci'), $head.data('cl'));
+        }
+        $members.show();
+        $(this).find('.fa-chevron-down').addClass('open');
+    });
+    setTimeout(function () { window.renderAllMath(); setTimeout(function () { window.print(); }, 400); }, 300);
 };
 
 window.copySimilarCategoryMarkdown = function (ci) {
@@ -413,7 +563,7 @@ $(function () {
 
     $(document).on('click', '#similar-panel-list .similar-item', function () {
         const sim = (window._similarPanelSims || [])[$(this).data('sim-idx')];
-        if (sim) window.openSimilarPreview(sim.q);
+        if (sim) window.openSimilarCompare(sim.q);
     });
 
     $('#close-similar-preview').on('click', function () {
@@ -424,16 +574,21 @@ $(function () {
     $('#close-similar-report').on('click', function () {
         $('#similar-report-overlay').fadeOut(150);
     });
-    $('#similar-report-singleton-toggle').on('change', window.renderSimilarReport);
-
-    $(document).on('click', '.similar-cluster-head', function () {
-        $(this).next('.similar-cluster-members').slideToggle(150);
-        $(this).find('.fa-chevron-down').toggleClass('open');
+    $('#similar-report-singleton-toggle').on('change', function () {
+        window.renderSimilarReport();
     });
+    $('#similar-report-lecture-filter').on('change', window.renderSimilarReport);
+    $('#similar-report-export-md').on('click', window.copySimilarReportMarkdown);
+    $('#similar-report-export-pdf').on('click', window.exportSimilarReportPDF);
 
-    $(document).on('click', '.similar-member-row', function () {
-        const q = (window.APP.allQuestions || [])[$(this).data('qidx')];
-        if (q) window.openSimilarPreview(q);
+    // กางคลัสเตอร์ → เรนเดอร์การ์ดเต็มแบบ lazy ครั้งแรก แล้วเรียงลงมาในภาพเดียว
+    $(document).on('click', '.similar-cluster-head', function () {
+        const $members = $(this).next('.similar-cluster-members');
+        $(this).find('.fa-chevron-down').toggleClass('open');
+        if (!$members.data('rendered')) {
+            window.renderSimilarClusterCards($members, $(this).data('ci'), $(this).data('cl'));
+        }
+        $members.slideToggle(150);
     });
 
     $(document).on('click', '.similar-copy-md-btn', function (e) {

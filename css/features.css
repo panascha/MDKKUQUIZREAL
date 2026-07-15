@@ -511,15 +511,116 @@ body.chatbot-open #chatbot-fab {
     padding: 6px 8px;
 }
 
-.similar-member-row {
+/* ── รายงานข้อออกบ่อย: toolbar + dropdown ── */
+#similar-report-toolbar {
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    line-height: 1.45;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: 14px;
 }
-.similar-member-row:hover { background: var(--color-surface); }
+#similar-report-toolbar #similar-report-singleton-toggle-wrap { margin-bottom: 0; }
+#similar-report-lecture-filter {
+    padding: 6px 10px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.88rem;
+    max-width: 260px;
+}
+
+/* ── bar chart (div ล้วน) ── */
+#similar-report-chart { margin-bottom: 20px; }
+#similar-report-chart .chart-title {
+    margin: 0 0 10px;
+    font-size: 1rem;
+    color: var(--color-primary);
+}
+#similar-report-chart .chart-title i { color: #ef4444; }
+.chart-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+}
+.chart-label {
+    flex: 0 0 32%;
+    max-width: 32%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-text);
+}
+.chart-bar-track {
+    flex: 1 1 auto;
+    background: var(--color-surface-2);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.chart-bar {
+    height: 16px;
+    background: linear-gradient(90deg, #7C3AED, #a855f7);
+    border-radius: 6px;
+    min-width: 2px;
+}
+.chart-val { flex: 0 0 auto; font-weight: 700; color: var(--color-text-muted); }
+
+/* ── accordion-group heading ── */
+.similar-report-group { margin-bottom: 22px; }
+.similar-report-group-head {
+    margin: 0 0 10px;
+    font-size: 1.1rem;
+    color: var(--color-text);
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: 5px;
+}
+
+/* ── การ์ดเต็มในคลัสเตอร์ (stack ในภาพเดียว) ── */
+.similar-cluster-card { margin: 10px 0; }
+.similar-cluster-card:first-child { margin-top: 0; }
+.similar-cluster-card .search-card { width: 100%; box-sizing: border-box; }
+
+/* ── compare 2 คอลัมน์ ── */
+#similar-preview-modal.compare-wide { max-width: 1120px; }
+.similar-compare {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    align-items: flex-start;
+}
+.similar-compare-col { flex: 1 1 50%; min-width: 0; }
+.similar-compare-head {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+@media (max-width: 720px) {
+    .similar-compare { flex-direction: column; }
+    .similar-compare-col { flex: 1 1 100%; }
+}
+
+/* ── print / Save-as-PDF: โชว์เฉพาะ overlay, กางทุกคลัสเตอร์ ── */
+@media print {
+    body > *:not(#similar-report-overlay) { display: none !important; }
+    #similar-report-overlay {
+        display: block !important;
+        position: static !important;
+        overflow: visible !important;
+        background: #fff !important;
+    }
+    #similar-report-header button,
+    #similar-report-toolbar,
+    .similar-copy-md-btn,
+    .similar-cluster-head .fa-chevron-down,
+    .search-card-actions { display: none !important; }
+    .similar-cluster-members { display: block !important; }
+    .similar-cluster, .similar-cluster-card, .similar-report-cat, .chart-row { page-break-inside: avoid; }
+}
 

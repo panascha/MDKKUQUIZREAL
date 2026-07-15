@@ -1136,9 +1136,17 @@
                 <h2 style="margin: 0; font-size: 1.3rem;"><i class="fas fa-chart-bar"></i> ข้อออกบ่อย (คลัสเตอร์ข้อสอบซ้ำ)</h2>
                 <button id="close-similar-report" class="quiz-button btn-light" style="margin: 0;">ปิด</button>
             </div>
-            <label id="similar-report-singleton-toggle-wrap">
-                <input type="checkbox" id="similar-report-singleton-toggle"> แสดงข้อที่ออกครั้งเดียว (singleton)
-            </label>
+            <div id="similar-report-toolbar">
+                <label id="similar-report-singleton-toggle-wrap">
+                    <input type="checkbox" id="similar-report-singleton-toggle"> แสดงข้อที่ออกครั้งเดียว (singleton)
+                </label>
+                <select id="similar-report-lecture-filter" title="กรองตามหัวข้อ">
+                    <option value="">ทุกหัวข้อ</option>
+                </select>
+                <button id="similar-report-export-md" class="btn-xs teal"><i class="fas fa-copy"></i> คัดลอก Markdown ทั้งหมด</button>
+                <button id="similar-report-export-pdf" class="btn-xs teal"><i class="fas fa-file-pdf"></i> พิมพ์/บันทึก PDF</button>
+            </div>
+            <div id="similar-report-chart"></div>
             <div id="similar-report-content"></div>
         </div>
     </div>
