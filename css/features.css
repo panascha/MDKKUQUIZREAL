@@ -619,26 +619,6 @@ body.chatbot-open #chatbot-fab {
     flex-wrap: wrap;
     min-height: 30px;
 }
-.similar-compare-nav {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-.similar-compare-nav button {
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    color: var(--color-primary);
-    border-radius: 6px;
-    width: 28px;
-    height: 28px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-}
-.similar-compare-nav button:disabled { opacity: 0.35; cursor: default; }
-.similar-compare-nav button:not(:disabled):hover { background: var(--color-surface-2); }
 .similar-compare-pos {
     font-size: 0.85rem;
     font-weight: 700;
@@ -651,9 +631,39 @@ body.chatbot-open #chatbot-fab {
     .similar-compare-col { flex: 1 1 100%; }
 }
 
+/* ── แถบ ก่อนหน้า/ถัดไป ใหญ่ ติดล่างจอเลื่อนของ modal เทียบข้อ ── */
+.similar-compare-footer {
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 10px 0;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+}
+.similar-compare-footer button {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-primary);
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+}
+.similar-compare-footer button:disabled { opacity: 0.35; cursor: default; }
+.similar-compare-footer button:not(:disabled):hover { background: var(--color-surface-2); }
+.similar-compare-footer .similar-compare-pos { font-size: 0.95rem; }
+
 /* ── print / Save-as-PDF: โชว์เฉพาะ overlay, กางทุกคลัสเตอร์ ── */
 @media print {
-    body > *:not(#similar-report-overlay) { display: none !important; }
+    /* overlay อยู่ใน .container (ไม่ใช่ลูกตรงของ body) — ต้องซ่อนทีละชั้นลงมา ไม่งั้น .container ถูกซ่อนทั้งก้อนพร้อม overlay → PDF ว่าง */
+    body > *:not(.container) { display: none !important; }
+    .container > *:not(#similar-report-overlay) { display: none !important; }
     #similar-report-overlay {
         display: block !important;
         position: static !important;

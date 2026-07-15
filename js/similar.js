@@ -270,14 +270,14 @@ window.openSimilarCompare = function (startIdx) {
             <div class="similar-compare-col">
                 <div class="similar-compare-head">
                     <span>ข้อคล้ายจากปีอื่น <span class="similar-compare-simyear"></span></span>
-                    <span class="similar-compare-nav">
-                        <button class="similar-compare-prev" title="ก่อนหน้า"><i class="fas fa-chevron-left"></i></button>
-                        <span class="similar-compare-pos"></span>
-                        <button class="similar-compare-next" title="ถัดไป"><i class="fas fa-chevron-right"></i></button>
-                    </span>
                 </div>
                 <div class="similar-compare-slot" data-side="sim"></div>
             </div>
+        </div>
+        <div class="similar-compare-footer">
+            <button class="similar-compare-prev"><i class="fas fa-chevron-left"></i> ก่อนหน้า</button>
+            <span class="similar-compare-pos"></span>
+            <button class="similar-compare-next">ถัดไป <i class="fas fa-chevron-right"></i></button>
         </div>`);
 
     const $cur = $body.find('[data-side="cur"]');
@@ -525,20 +525,175 @@ window.copySimilarReportMarkdown = function () {
     }
 };
 
-// PDF = พิมพ์ผ่าน browser (@media print โชว์เฉพาะ overlay) — กางทุกคลัสเตอร์ให้เต็มก่อนพิมพ์
-window.exportSimilarReportPDF = function () {
-    $('.similar-report-cat-body').show();
-    $('.similar-cat-chevron').addClass('open');
-    $('.similar-cluster').each(function () {
-        const $members = $(this).find('.similar-cluster-members');
-        if (!$members.data('rendered')) {
-            const $head = $(this).find('.similar-cluster-head');
-            window.renderSimilarClusterCards($members, $head.data('ci'), $head.data('cl'));
-        }
-        $members.show();
-        $(this).find('.fa-chevron-down').addClass('open');
+// ── PDF สรุปข้อออกบ่อย (สร้างเองด้วย jsPDF แทน browser print) ──
+// เฉพาะคลัสเตอร์ข้ามปี, แสดงทุกปีแบบย่อ (ปี · โจทย์ · ช้อยส์ inline เฉลยติดดาว) + รูปย่อ → แน่นสุด
+
+// ย่อรูปเป็น thumbnail เล็ก (base64 + ขนาด mm); throw ถ้า decode ไม่ได้ (ให้ caller ข้าม)
+window.similarPdfDecodeThumb = async function (url) {
+    const base64 = await window.convertImgToBase64(window.transformUrl(url));
+    const dims = await window.getScaledDimensions(base64, 40, 26); // px→mm quirk เดิม: ภาพใหญ่กว่า 40px จะกลายเป็น 40mm
+    return { base64, dims };
+};
+
+// วาดช้อยส์แบบ inline ไหลบรรทัด — ข้อที่เป็นเฉลยเป็น "สีเขียว" (แทนดาว)
+// draw=false = โหมดวัดความสูงอย่างเดียว (คืน y ปลาย โดยไม่วาด) เพื่อคำนวณ page-break
+window.similarPdfFlowChoices = function (doc, choices, ansIdx, xLeft, right, y, LH, draw) {
+    doc.setFontSize(9);
+    const space = doc.getTextWidth(' ');
+    let x = xLeft;
+    choices.forEach((c, i) => {
+        const label = String.fromCharCode(97 + i);
+        const t = (window.isUrl(c) || c.startsWith('<svg')) ? '[รูป]' : c;
+        if (draw) { if (i === ansIdx) doc.setTextColor(21, 128, 61); else doc.setTextColor(0); }
+        (`${label}) ${t}`).split(/\s+/).filter(Boolean).forEach(w => {
+            const ww = doc.getTextWidth(w);
+            if (x + ww > right) { y += LH; x = xLeft; }
+            if (draw) doc.text(w, x, y);
+            x += ww + space;
+        });
+        x += space * 2; // เว้นวรรคคั่นช้อยส์
     });
-    setTimeout(function () { window.renderAllMath(); setTimeout(function () { window.print(); }, 400); }, 300);
+    if (draw) doc.setTextColor(0);
+    return y + LH;
+};
+
+// สร้างเอกสาร jsPDF แล้ว "คืน doc" (แยกจากการ save เพื่อวัดจำนวนหน้า/เขียนเทสได้)
+window.buildSimilarReportPDF = async function () {
+    await window.ensureThSarabunFont();
+    const qs = window.APP.allQuestions || [];
+    const lectureFilter = $('#similar-report-lecture-filter').val() || '';
+    const subj = new URLSearchParams(location.search).get('subject') || '';
+
+    // เฉพาะคลัสเตอร์ข้ามปี (>=2 ปี), เคารพตัวกรองหัวข้อที่เลือกบนจอ
+    const cats = (window._similarReportData || [])
+        .filter(cat => !lectureFilter || cat.catId === lectureFilter)
+        .map(cat => ({ name: cat.catName, clusters: cat.clusters.filter(cl => cl.years.length >= 2) }))
+        .filter(c => c.clusters.length);
+
+    // รวม URL รูปไม่ซ้ำ → decode เป็นชุด (กัน browser ตัน) + pre-flight กัน CORS ล่มยกแผง
+    const urlSet = new Set();
+    cats.forEach(c => c.clusters.forEach(cl => cl.members.forEach(mi => {
+        const q = qs[mi];
+        if (q && q.img) q.img.split('///').map(u => u.trim()).filter(Boolean).forEach(u => urlSet.add(u));
+    })));
+    let urls = [...urlSet];
+    const imgMap = {};
+    if (urls.length) {
+        try { imgMap[urls[0]] = await window.similarPdfDecodeThumb(urls[0]); }
+        catch (e) { console.warn('[SimilarPDF] รูปโหลดไม่ได้ (CORS?) — ข้ามรูปทั้งหมด', e); urls = []; }
+    }
+    const BATCH = 6;
+    for (let i = 1; i < urls.length; i += BATCH) {
+        const chunk = urls.slice(i, i + BATCH);
+        const res = await Promise.allSettled(chunk.map(u => window.similarPdfDecodeThumb(u)));
+        res.forEach((r, k) => { if (r.status === 'fulfilled') imgMap[chunk[k]] = r.value; });
+        await new Promise(r => setTimeout(r, 1));
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    doc.addFileToVFS('THSarabunNew.ttf', window.thSarabunBase64);
+    doc.addFont('THSarabunNew.ttf', 'THSarabunNew', 'normal');
+    doc.setFont('THSarabunNew', 'normal');
+
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const M = 12, CW = pageW - M * 2, LH = 4.6;
+    let y = M;
+    const brk = (h) => { if (y + h > pageH - M) { doc.addPage(); y = M; } };
+
+    doc.setFontSize(18);
+    doc.text(`ข้อออกบ่อย${subj ? ' — ' + subj : ''}`, pageW / 2, y + 4, { align: 'center' });
+    y += 10;
+    doc.setFontSize(11); doc.setTextColor(120);
+    doc.text('เฉพาะข้อที่ออกซ้ำข้ามปี (≥2 ปี) · จัดกลุ่มข้อคล้ายกัน', pageW / 2, y, { align: 'center' });
+    y += 8; doc.setTextColor(0);
+
+    let totalClusters = 0;
+    cats.forEach(cat => {
+        brk(12);
+        doc.setFontSize(14);
+        doc.text(cat.name, M, y); y += 2;
+        doc.setDrawColor(180); doc.line(M, y, pageW - M, y); y += 5;
+
+        cat.clusters.forEach(cl => {
+            totalClusters++;
+            brk(8);
+            doc.setFontSize(10); doc.setTextColor(13, 148, 136);
+            doc.text(`■ ออก ${cl.years.length} ปี: ${cl.years.join(', ')}`, M, y);
+            y += LH; doc.setTextColor(0);
+
+            cl.members.forEach(mi => {
+                const q = qs[mi];
+                if (!q) return;
+                const meta = (typeof window.parseQuestionMetadata === 'function') ? window.parseQuestionMetadata(q) : { year: 'N/A' };
+                const yr = (meta.year && meta.year !== 'N/A') ? `ปี ${meta.year}` : 'ปี ?';
+                const stem = (q.problem || '').replace(/\s+/g, ' ').trim();
+                doc.setFontSize(10);
+                const stemLines = doc.splitTextToSize(`${yr} · ${stem}`, CW - 4);
+
+                const choices = (q.choices || '').split('///').map(s => s.trim()).filter(Boolean);
+                const ansIdx = choices.indexOf(q.answer);
+                // เฉลยเป็นรูป/ไม่ตรงช้อยส์ → แสดงบรรทัดเฉลยแยก (สีเขียว)
+                doc.setFontSize(9);
+                const ansLines = (ansIdx === -1 && q.answer)
+                    ? doc.splitTextToSize(`เฉลย: ${(window.isUrl(q.answer) || String(q.answer).startsWith('<svg')) ? '[รูป]' : q.answer}`, CW - 6)
+                    : [];
+
+                const thumbs = (q.img ? q.img.split('///').map(u => u.trim()).filter(Boolean) : [])
+                    .map(u => imgMap[u]).filter(Boolean);
+                const thumbH = thumbs.length ? Math.max(...thumbs.map(t => t.dims.height)) + 2 : 0;
+
+                const chH = choices.length ? window.similarPdfFlowChoices(doc, choices, ansIdx, M + 4, pageW - M, 0, LH, false) : 0;
+                brk(stemLines.length * LH + chH + ansLines.length * LH + thumbH + 3);
+
+                doc.setFontSize(10);
+                stemLines.forEach(l => { doc.text(l, M + 1, y); y += LH; });
+                if (choices.length) { y = window.similarPdfFlowChoices(doc, choices, ansIdx, M + 4, pageW - M, y, LH, true); }
+                if (ansLines.length) {
+                    doc.setFontSize(9); doc.setTextColor(21, 128, 61);
+                    ansLines.forEach(l => { doc.text(l, M + 4, y); y += LH; });
+                    doc.setTextColor(0);
+                }
+                if (thumbs.length) {
+                    let x = M + 4, rowH = 0;
+                    thumbs.forEach(t => {
+                        if (x + t.dims.width > pageW - M) { x = M + 4; y += rowH + 2; rowH = 0; brk(t.dims.height + 2); }
+                        doc.addImage(t.base64, 'JPEG', x, y, t.dims.width, t.dims.height);
+                        x += t.dims.width + 2; rowH = Math.max(rowH, t.dims.height);
+                    });
+                    y += rowH + 2;
+                }
+                y += 2;
+            });
+            y += 2;
+        });
+        y += 3;
+    });
+
+    if (!cats.length) {
+        doc.setFontSize(13);
+        doc.text('ไม่พบข้อที่ออกซ้ำข้ามปีในวิชานี้', pageW / 2, y + 10, { align: 'center' });
+    }
+
+    window._lastSimilarPdf = { pages: doc.getNumberOfPages(), cats: cats.length, clusters: totalClusters };
+    return doc;
+};
+
+window.exportSimilarReportPDF = async function () {
+    if (!window._similarReportData || !window._similarReportData.length) {
+        Swal.fire('ยังไม่มีข้อมูล', 'กรุณาเปิดรายงานข้อออกบ่อยก่อน', 'info'); return;
+    }
+    Swal.fire({ title: 'กำลังสร้าง PDF...', html: 'กำลังย่อรูปและจัดหน้า', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const doc = await window.buildSimilarReportPDF();
+        const subj = new URLSearchParams(location.search).get('subject') || 'report';
+        doc.save(`MDKKU-ออกบ่อย-${subj}.pdf`);
+        Swal.close();
+    } catch (e) {
+        console.error('[SimilarPDF]', e);
+        Swal.fire('สร้าง PDF ไม่สำเร็จ', String((e && e.message) || e), 'error');
+    }
 };
 
 window.copySimilarCategoryMarkdown = function (ci) {
