@@ -614,8 +614,37 @@ body.chatbot-open #chatbot-fab {
     color: var(--color-primary);
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 6px;
     flex-wrap: wrap;
+    min-height: 30px;
+}
+.similar-compare-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.similar-compare-nav button {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-primary);
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+.similar-compare-nav button:disabled { opacity: 0.35; cursor: default; }
+.similar-compare-nav button:not(:disabled):hover { background: var(--color-surface-2); }
+.similar-compare-pos {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    min-width: 40px;
+    text-align: center;
 }
 @media (max-width: 720px) {
     .similar-compare { flex-direction: column; }

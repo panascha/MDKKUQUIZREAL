@@ -252,9 +252,13 @@ window.openSimilarPreview = function (q) {
 };
 
 // เทียบข้อปัจจุบัน (ซ้าย) กับข้อคล้ายจากปีอื่น (ขวา) ในภาพเดียว — ไม่ต้องสลับหน้าต่างไปมา
-window.openSimilarCompare = function (simQ) {
+// ปุ่ม ก่อนหน้า/ถัดไป เลื่อนดูข้อคล้ายทั้งหมดใน _similarPanelSims โดยข้อปัจจุบัน (ซ้าย) คงเดิม
+window.openSimilarCompare = function (startIdx) {
     const cur = window.APP.current_question;
-    if (!cur) return window.openSimilarPreview(simQ);
+    const sims = window._similarPanelSims || [];
+    if (!cur || !sims.length) return;
+    window._similarCompareIdx = Math.max(0, Math.min(startIdx || 0, sims.length - 1));
+
     const $body = $('#similar-preview-body');
     $('#similar-preview-modal').addClass('compare-wide');
     $body.html(`
@@ -264,17 +268,41 @@ window.openSimilarCompare = function (simQ) {
                 <div class="similar-compare-slot" data-side="cur"></div>
             </div>
             <div class="similar-compare-col">
-                <div class="similar-compare-head">ข้อคล้ายจากปีอื่น ${window.similarYearChip(simQ)}</div>
+                <div class="similar-compare-head">
+                    <span>ข้อคล้ายจากปีอื่น <span class="similar-compare-simyear"></span></span>
+                    <span class="similar-compare-nav">
+                        <button class="similar-compare-prev" title="ก่อนหน้า"><i class="fas fa-chevron-left"></i></button>
+                        <span class="similar-compare-pos"></span>
+                        <button class="similar-compare-next" title="ถัดไป"><i class="fas fa-chevron-right"></i></button>
+                    </span>
+                </div>
                 <div class="similar-compare-slot" data-side="sim"></div>
             </div>
         </div>`);
+
     const $cur = $body.find('[data-side="cur"]');
-    const $sim = $body.find('[data-side="sim"]');
     $cur.html(window.buildSimilarPreviewHtml(cur));
     window.wireSimilarCard($cur.find('.search-card'), cur);
+
+    window.renderSimilarCompareSim();
+    $('#similar-preview-modal').fadeIn(200);
+};
+
+// เรนเดอร์เฉพาะคอลัมน์ขวา (ข้อคล้าย) ตาม _similarCompareIdx + อัปเดตปุ่มนำทาง
+window.renderSimilarCompareSim = function () {
+    const sims = window._similarPanelSims || [];
+    const idx = window._similarCompareIdx || 0;
+    const simQ = sims[idx] && sims[idx].q;
+    if (!simQ) return;
+
+    const $sim = $('#similar-preview-body [data-side="sim"]');
     $sim.html(window.buildSimilarPreviewHtml(simQ));
     window.wireSimilarCard($sim.find('.search-card'), simQ);
-    $('#similar-preview-modal').fadeIn(200);
+
+    $('.similar-compare-simyear').html(window.similarYearChip(simQ));
+    $('.similar-compare-pos').text(`${idx + 1} / ${sims.length}`);
+    $('.similar-compare-prev').prop('disabled', idx === 0);
+    $('.similar-compare-next').prop('disabled', idx === sims.length - 1);
     setTimeout(window.renderAllMath, 50);
 };
 
@@ -570,8 +598,20 @@ $(function () {
     });
 
     $(document).on('click', '#similar-panel-list .similar-item', function () {
-        const sim = (window._similarPanelSims || [])[$(this).data('sim-idx')];
-        if (sim) window.openSimilarCompare(sim.q);
+        window.openSimilarCompare($(this).data('sim-idx'));
+    });
+
+    $(document).on('click', '.similar-compare-prev', function () {
+        if ((window._similarCompareIdx || 0) > 0) {
+            window._similarCompareIdx--;
+            window.renderSimilarCompareSim();
+        }
+    });
+    $(document).on('click', '.similar-compare-next', function () {
+        if ((window._similarCompareIdx || 0) < (window._similarPanelSims || []).length - 1) {
+            window._similarCompareIdx++;
+            window.renderSimilarCompareSim();
+        }
     });
 
     $('#close-similar-preview').on('click', function () {
