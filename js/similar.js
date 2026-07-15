@@ -257,10 +257,11 @@ window.buildSimilarReportData = function () {
     const data = [];
 
     catList.forEach(cat => {
+        // จัดกลุ่มเฉพาะหมวด lecture (category[1] / Standardized_CategoryID) — ไม่เอาหมวดปี (category[0])
         const idxs = [];
         qs.forEach((q, i) => {
             const cats = Array.isArray(q.category) ? q.category : [q.category];
-            if (cats.includes(cat.categoryId)) idxs.push(i);
+            if (cats[1] === cat.categoryId) idxs.push(i);
         });
         if (!idxs.length) return;
 
