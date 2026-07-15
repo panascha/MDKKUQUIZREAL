@@ -32,6 +32,54 @@ window.renderVersionBadge = async function () {
     if (btnText && version) btnText.textContent = 'ตรวจสอบอัปเดต (' + version + ')';
 };
 
+// โหลด changelog.js ของเวอร์ชันใหม่ทับตัวเก่าในหน้า — ตอน controllerchange หน้านี้ยังถือไฟล์เก่า
+// ที่ไม่มี entry ของเวอร์ชันใหม่ (SW ใหม่ cache ไฟล์ใหม่ไว้แล้วตอน install, ignoreSearch ทำให้ ?v= ไม่พลาด cache)
+window.reloadChangelogScript = function (newVersion) {
+    return new Promise((resolve) => {
+        const s = document.createElement('script');
+        s.src = 'js/changelog.js?v=' + encodeURIComponent(newVersion || Date.now());
+        const timer = setTimeout(resolve, 3000); // กันค้าง — โหลดไม่ได้ก็ใช้ CHANGELOG เดิม/fallback
+        s.onload = () => { clearTimeout(timer); resolve(); };
+        s.onerror = () => { clearTimeout(timer); resolve(); };
+        document.head.appendChild(s);
+    });
+};
+
+// สร้าง HTML รายการ new/fixed ของ entry เดียวจาก CHANGELOG — คืน '' ถ้าไม่มีรายการเลย
+window.buildChangelogNotesHtml = function (entry) {
+    if (!entry) return '';
+    const section = (items, icon, title) => {
+        if (!items || !items.length) return '';
+        return '<div style="margin-top:0.5rem;"><b>' + icon + ' ' + title + '</b><ul style="text-align:left;margin:0.25rem 0 0;padding-left:1.5rem;">'
+            + items.map((t) => '<li>' + t + '</li>').join('') + '</ul></div>';
+    };
+    return section(entry.new, '✨', 'ของใหม่') + section(entry.fixed, '🔧', 'แก้ไข');
+};
+
+// เปิด modal ประวัติการอัปเดต — วาดทุก entry จาก CHANGELOG (ใหม่สุดอยู่บน)
+window.openReleaseHistoryModal = function () {
+    const list = document.getElementById('release-history-list');
+    if (!list) return;
+    const entries = window.CHANGELOG || [];
+    if (!entries.length) {
+        list.innerHTML = '<p class="small-text">ยังไม่มีบันทึกการอัปเดต</p>';
+    } else {
+        list.innerHTML = entries.map((e) => {
+            const section = (items, icon, title) => {
+                if (!items || !items.length) return '';
+                return '<b>' + icon + ' ' + title + '</b><ul>' + items.map((t) => '<li>' + t + '</li>').join('') + '</ul>';
+            };
+            return '<div class="release-entry">'
+                + '<div class="release-entry-header"><span class="release-entry-version">' + e.version + '</span>'
+                + '<span class="release-entry-date">' + (e.date || '') + '</span></div>'
+                + section(e.new, '✨', 'ของใหม่') + section(e.fixed, '🔧', 'แก้ไข')
+                + '</div>';
+        }).join('');
+    }
+    if (window.jQuery) $('#release-history-modal').fadeIn(250);
+    else document.getElementById('release-history-modal').style.display = 'block';
+};
+
 // ตรวจสอบอัปเดตกับ server — manual=true คือผู้ใช้กดเอง (มี feedback ทุกกรณี)
 window.checkForUpdate = async function (manual) {
     if (!('serviceWorker' in navigator)) {
@@ -99,10 +147,17 @@ window.initVersionUpdater = function () {
             location.reload();
         };
         if (window.Swal) {
+            // ดึง changelog ใหม่ก่อน — ไฟล์ในหน้านี้เป็นของเวอร์ชันเก่า ไม่มี entry ใหม่
+            await window.reloadChangelogScript(newVersion);
+            // หา entry ใน CHANGELOG ที่ตรงกับเวอร์ชันใหม่ — ไม่เจอ (internal-only bump) ใช้ข้อความ fallback
+            const entry = (window.CHANGELOG || []).find((e) => e.version === newVersion);
+            const notesHtml = window.buildChangelogNotesHtml(entry)
+                || '<div style="margin-top:0.5rem;color:var(--color-text-muted,#78716c);">การปรับปรุงภายในเล็กน้อย</div>';
             Swal.fire({
                 icon: 'success',
                 title: 'พบเวอร์ชันใหม่' + (newVersion ? ' (' + newVersion + ')' : ''),
-                text: 'กดอัปเดตเพื่อโหลดหน้าใหม่ (ข้อมูลการทำข้อสอบถูกบันทึกไว้แล้ว)',
+                html: notesHtml
+                    + '<div style="margin-top:0.75rem;font-size:0.9rem;">กดอัปเดตเพื่อโหลดหน้าใหม่ (ข้อมูลการทำข้อสอบถูกบันทึกไว้แล้ว)</div>',
                 confirmButtonText: '<i class="fas fa-cloud-download-alt"></i> อัปเดตเลย',
                 showCancelButton: true,
                 cancelButtonText: 'ไว้ทีหลัง'
@@ -118,6 +173,12 @@ window.initVersionUpdater = function () {
     // ผูกปุ่ม + ป้าย ให้กดตรวจสอบอัปเดตได้
     const btn = document.getElementById('btn-check-update');
     if (btn) btn.addEventListener('click', () => window.checkForUpdate(true));
+    // ป้ายเวอร์ชันเปิดประวัติการอัปเดต (ตรวจสอบอัปเดตใช้ปุ่ม #btn-check-update แทน)
     const label = document.getElementById('app-version-label');
-    if (label) label.addEventListener('click', () => window.checkForUpdate(true));
+    if (label) label.addEventListener('click', () => window.openReleaseHistoryModal());
+    const closeHistory = document.getElementById('close-release-history-modal');
+    if (closeHistory) closeHistory.addEventListener('click', () => {
+        if (window.jQuery) $('#release-history-modal').fadeOut(250);
+        else document.getElementById('release-history-modal').style.display = 'none';
+    });
 };

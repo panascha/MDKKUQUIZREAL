@@ -907,7 +907,7 @@ $(function () {
     // --- การดักจับคีย์บอร์ดลัด (Keyboard Shortcuts Navigation) ---
     $(document).on('keydown', function (e) {
         if ($('#search-input').is(':focus') || $(document.activeElement).is('input, textarea')) return;
-        if ($('#report-card').is(":visible") || $('#progress-modal-card').is(":visible") || $('#pdf-choice-modal').is(":visible") || $('#vote-category-modal').is(":visible") || $('#donate-modal-card').is(":visible") || $('#donate-key-modal-card').is(":visible")) return;
+        if ($('#report-card').is(":visible") || $('#progress-modal-card').is(":visible") || $('#pdf-choice-modal').is(":visible") || $('#vote-category-modal').is(":visible") || $('#donate-modal-card').is(":visible") || $('#donate-key-modal-card').is(":visible") || $('#release-history-modal').is(":visible")) return;
 
         if (e.key === 'ArrowRight') {
             window.nextQuestion();

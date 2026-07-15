@@ -644,6 +644,17 @@
             </div>
         </div>
 
+        <!-- 1.3 Release History Modal -->
+        <div id="release-history-modal" class="modal-card">
+            <div class="modal-body">
+                <div class="controls-container" style="margin-top: 0.4rem;">
+                    <button id="close-release-history-modal" class="quiz-button btn-light">ปิด</button>
+                </div>
+                <h5 class="modal-title"><i class="fas fa-clock-rotate-left"></i> ประวัติการอัปเดต</h5>
+                <div id="release-history-list"></div>
+            </div>
+        </div>
+
         <!-- 1.2 Image Library Modal (Shared with Database Center) -->
         <div id="quiz-image-library-modal" class="modal-card" style="z-index: 2100;">
             <div class="modal-body" style="max-width: 1000px; width: 95vw;">
@@ -882,7 +893,7 @@
             </div>
             <div class="small-text" style="margin-top: 9px; color: var(--color-text-muted);">
                 หมายเหตุ : ถ้าเจอโจทย์มีปัญหาพิมพ์เข้ามาใน report ได้เลย | คีย์ลัด: ← (ก่อนหน้า), → (ถัดไป), Enter
-                (ส่งคำตอบ) | <span id="app-version-label" style="cursor: pointer; text-decoration: underline dotted;" title="กดเพื่อตรวจสอบอัปเดต">เวอร์ชัน: -</span>
+                (ส่งคำตอบ) | <span id="app-version-label" style="cursor: pointer; text-decoration: underline dotted;" title="กดเพื่อดูประวัติการอัปเดต">เวอร์ชัน: -</span>
             </div>
             <!-- กล่องสำหรับเรนเดอร์ Banner ประกาศข่าวสารแบบ Dynamic พลิกแพลงตามข้อมูลใน Sheet -->
             <div id="dynamic-announcements-container" style="display: none; flex-direction: column; gap: 10px; text-align: left; width: 100%; margin-top: 12px;"></div>
@@ -1170,6 +1181,7 @@
          VII. Modular Scripts Import
          ========================================= -->
     <script src="js/config.js"></script>
+    <script src="js/changelog.js"></script>
     <script src="js/version.js"></script>
     <script src="js/db.js"></script>
     <script src="js/api.js"></script>
