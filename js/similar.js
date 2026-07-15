@@ -352,7 +352,8 @@ window.buildSimilarReportData = function () {
             const years = [...new Set(withYear.map(m => m.year).filter(Boolean))].sort((a, b) => a - b);
             return { members: withYear.map(m => m.i), years };
         });
-        clusters.sort((a, b) => b.members.length - a.members.length);
+        // "ซ้ำ" = ออกซ้ำข้ามปี → เรียงตามจำนวนปีที่ออก (ข้อปีเดียวกันไม่นับว่าซ้ำ)
+        clusters.sort((a, b) => (b.years.length - a.years.length) || (b.members.length - a.members.length));
         data.push({
             catName: cat.categoryName,
             catId: cat.categoryId,
@@ -363,9 +364,9 @@ window.buildSimilarReportData = function () {
     return data;
 };
 
-// จำนวน "ข้อซ้ำ" ของหัวข้อ = ผลรวมสมาชิกในคลัสเตอร์ที่ออก >=2 ครั้ง (ใช้ทั้ง chart และเรียงลำดับ)
+// "ข้อซ้ำ" = คลัสเตอร์ที่ออกซ้ำข้ามปี (>=2 ปี); ข้อในปีเดียวกันไม่นับ (ใช้ทั้ง chart, dropdown, เรียงลำดับ)
 window.similarCatRepeatCount = function (cat) {
-    return cat.clusters.reduce((s, cl) => s + (cl.members.length >= 2 ? cl.members.length : 0), 0);
+    return cat.clusters.reduce((s, cl) => s + (cl.years.length >= 2 ? 1 : 0), 0);
 };
 
 // เติม dropdown เลือกหัวข้อ (lecture) — เฉพาะหัวข้อที่มีคลัสเตอร์ เรียงตามจำนวนข้อซ้ำมาก→น้อย
@@ -424,7 +425,7 @@ window.renderSimilarReport = function () {
         cats.forEach(({ cat, ci }) => {
             const visible = cat.clusters
                 .map((cl, clIdx) => ({ cl, clIdx }))
-                .filter(x => showSingles || x.cl.members.length >= 2);
+                .filter(x => showSingles || x.cl.years.length >= 2);
             if (!visible.length) return;
 
             let clustersHtml = '';
@@ -434,7 +435,7 @@ window.renderSimilarReport = function () {
                 clustersHtml += `
                 <div class="similar-cluster">
                     <div class="similar-cluster-head" data-ci="${ci}" data-cl="${clIdx}">
-                        <span class="similar-badge">ออก ${cl.members.length} ครั้ง</span>
+                        <span class="similar-badge">ออก ${cl.years.length || cl.members.length} ครั้ง</span>
                         ${yearChips}
                         <span class="similar-cluster-stem">${window.similarSnippet(rep.problem, 140)}</span>
                         <i class="fas fa-chevron-down"></i>
@@ -502,12 +503,12 @@ window.buildSimilarReportMarkdown = function () {
     let md = `# ข้อออกบ่อย${subj ? ' — ' + subj : ''}\n\n`;
     (window._similarReportData || []).forEach(cat => {
         if (lectureFilter && cat.catId !== lectureFilter) return;
-        const clusters = cat.clusters.filter(cl => showSingles || cl.members.length >= 2);
+        const clusters = cat.clusters.filter(cl => showSingles || cl.years.length >= 2);
         if (!clusters.length) return;
         md += `## ${cat.catName}\n`;
         clusters.forEach(cl => {
             const years = cl.years.length ? ` (ปี ${cl.years.join(', ')})` : '';
-            md += `- ออก ${cl.members.length} ครั้ง${years}: ${window.similarSnippet(qs[cl.members[0]].problem, 200)}\n`;
+            md += `- ออก ${cl.years.length || cl.members.length} ครั้ง${years}: ${window.similarSnippet(qs[cl.members[0]].problem, 200)}\n`;
         });
         md += `\n`;
     });
@@ -547,9 +548,9 @@ window.copySimilarCategoryMarkdown = function (ci) {
     const showSingles = $('#similar-report-singleton-toggle').is(':checked');
 
     let md = `## ${cat.catName}\n`;
-    cat.clusters.filter(cl => showSingles || cl.members.length >= 2).forEach(cl => {
+    cat.clusters.filter(cl => showSingles || cl.years.length >= 2).forEach(cl => {
         const years = cl.years.length ? ` (ปี ${cl.years.join(', ')})` : '';
-        md += `- ออก ${cl.members.length} ครั้ง${years}: ${window.similarSnippet(qs[cl.members[0]].problem, 200)}\n`;
+        md += `- ออก ${cl.years.length || cl.members.length} ครั้ง${years}: ${window.similarSnippet(qs[cl.members[0]].problem, 200)}\n`;
     });
 
     const done = () => window.bgToast.fire({ icon: 'success', title: 'คัดลอก Markdown แล้ว' });
