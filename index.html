@@ -866,8 +866,30 @@
                         style="grid-column: 1 / -1; background-color: #7C3AED; color: white; border: none; margin: 0; min-height: 46px; width: 100%; font-size: 1.1rem; font-weight: 700; box-shadow: 0 2px 6px rgba(124, 58, 237, 0.15);">
                         <i class="fas fa-chart-bar"></i> ข้อออกบ่อย (คลัสเตอร์ข้อสอบซ้ำ)
                     </button>
+                    <button id="wrong-practice-btn" class="quiz-button" disabled
+                        style="grid-column: 1 / -1; background-color: #EA580C; color: white; border: none; margin: 0; min-height: 46px; width: 100%; font-size: 1.1rem; font-weight: 700; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.15);">
+                        <i class="fas fa-redo-alt"></i> ฝึกข้อที่เคยผิด (<span id="wrong-practice-count">0</span>)
+                    </button>
                 </div>
-            
+
+                <!-- ชุดข้อสอบของฉัน (Feature: study-sets.js) -->
+                <details id="my-sets-details"
+                    style="width: 100%; border: 1.5px solid var(--color-border); border-radius: var(--border-radius); background: var(--color-surface-2); box-sizing: border-box;">
+                    <summary
+                        style="font-size: 1.1rem; padding: 12px 16px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px; user-select: none;">
+                        <i class="fas fa-layer-group" style="color: #7C3AED;"></i> ชุดข้อสอบของฉัน (My Sets)
+                        <i class="fas fa-chevron-down"
+                            style="margin-left: auto; font-size: 0.85rem; opacity: 0.7; transition: transform 0.25s ease;"></i>
+                    </summary>
+                    <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px; border-top: 1.5px solid var(--color-border-soft); box-sizing: border-box;">
+                        <div id="my-sets-list"></div>
+                        <button id="my-sets-create-btn" class="quiz-button"
+                            style="width:100%; margin:0; background:#7C3AED; color:white; border:none; min-height:44px; font-weight:700;">
+                            <i class="fas fa-plus"></i> สร้างชุดใหม่ (จากคลัสเตอร์ข้อออกบ่อย)
+                        </button>
+                    </div>
+                </details>
+
                 <!-- กล่องตั้งค่าโหมดทำข้อสอบ (Quiz Settings Block - คุมโทนสีกลมกลืนตามธีมเริ่มต้น) -->
                 <details
                     style="width: 100%; border: 1.5px solid var(--color-border); border-radius: var(--border-radius); background: var(--color-surface-2); box-sizing: border-box;">
@@ -1286,6 +1308,7 @@
     <script src="js/glossary.js"></script>
     <script src="js/meq.js"></script>
     <script src="js/similar.js"></script>
+    <script src="js/study-sets.js"></script>
     <script src="js/vote.js"></script>
     <script src="js/report.js"></script>
     <script src="js/app-feedback.js"></script>
