@@ -644,6 +644,46 @@
             </div>
         </div>
 
+        <!-- 5.2 App Feedback Modal (แจ้งปัญหา/เสนอฟีเจอร์ของแอป — js/app-feedback.js) -->
+        <div id="app-feedback-modal-card" class="modal-card">
+            <div class="modal-body">
+                <h5 class="modal-title" style="color: #EA580C;"><i class="fas fa-bullhorn"></i> แจ้งปัญหา / เสนอฟีเจอร์</h5>
+
+                <div class="modal-section"
+                    style="background-color: var(--color-surface-2); border: 1px solid var(--color-border); text-align: left;">
+                    <label for="app-feedback-type" class="small-text" style="font-weight: 600;">ประเภท</label>
+                    <select id="app-feedback-type" class="field-input" style="width: 100%; margin: 4px 0 10px;">
+                        <option value="Bug">🐞 แจ้งบั๊ก / ปัญหาการใช้งาน (Bug)</option>
+                        <option value="Feature">💡 เสนอฟีเจอร์ใหม่ (Feature)</option>
+                        <option value="Other">💬 อื่นๆ (Other)</option>
+                    </select>
+                    <label for="app-feedback-desc" class="small-text" style="font-weight: 600;">รายละเอียด</label>
+                    <textarea id="app-feedback-desc" rows="4" class="edit-choice-input"
+                        placeholder="เล่าให้ฟังหน่อยว่าเจอปัญหาอะไร / อยากได้ฟีเจอร์แบบไหน..."
+                        style="width: 100%; margin: 4px 0 6px; resize: vertical; box-sizing: border-box;"></textarea>
+                    <p id="app-feedback-qid-note" class="small-text"
+                        style="display: none; color: var(--color-text-muted); margin: 0 0 6px;"></p>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
+                        <button type="button" id="app-feedback-attach-btn" class="quiz-button btn-light"
+                            style="margin: 0; font-size: 0.95rem; padding: 6px 14px;">
+                            <i class="fas fa-image"></i> แนบรูป (สูงสุด 2)</button>
+                        <span class="small-text" style="color: var(--color-text-muted);">หรือวางรูปจาก clipboard (Ctrl+V)</span>
+                        <input type="file" id="app-feedback-file-input" accept="image/*" multiple style="display: none;">
+                    </div>
+                    <div id="app-feedback-previews" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;"></div>
+                </div>
+
+                <p class="small-text" style="color: var(--color-text-muted); margin: 0 0 6px;">
+                    ส่งแบบไม่ระบุตัวตนได้ — ถ้า Login อยู่ ระบบจะแนบอีเมลให้เพื่อติดตามผล</p>
+
+                <div class="controls-container" style="padding-top: 0; border-top: none;">
+                    <button id="app-feedback-close" class="quiz-button btn-light">ปิด</button>
+                    <button id="app-feedback-submit" class="quiz-button btn-dark">
+                        <i class="fas fa-paper-plane"></i> ส่งฟีดแบ็ก</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 1.3 Release History Modal -->
         <div id="release-history-modal" class="modal-card">
             <div class="modal-body">
@@ -891,6 +931,10 @@
                             <button id="btn-check-update" class="quiz-button"
                                 style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;">
                                 <i class="fas fa-cloud-download-alt" style="color: #16a34a;"></i> <span id="btn-check-update-text">ตรวจสอบอัปเดต</span>
+                            </button>
+                            <button id="app-feedback-open-btn-home" class="quiz-button"
+                                style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;">
+                                <i class="fas fa-bullhorn" style="color: #EA580C;"></i> แจ้งปัญหา / เสนอฟีเจอร์
                             </button>
                         </div>
                     </details>
@@ -1244,6 +1288,7 @@
     <script src="js/similar.js"></script>
     <script src="js/vote.js"></script>
     <script src="js/report.js"></script>
+    <script src="js/app-feedback.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/auth-edit.js"></script>
     <script src="js/sync.js"></script>
