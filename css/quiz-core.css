@@ -449,6 +449,33 @@
         color: var(--color-text, #0f172a);
     }
 
+    /* ปุ่มสีทึบโทนเข้ม — สไตล์เดียวกับ วิเคราะห์จุดอ่อน/Save to PDF แต่ลดความจ้า ใช้กับ ข้อออกบ่อย / ฝึกข้อที่เคยผิด */
+    .btn-violet {
+        background: #6D28D9;
+        color: white;
+        box-shadow: 0 2px 6px rgba(109, 40, 217, 0.15);
+    }
+
+    .btn-violet:hover {
+        background: #5B21B6;
+    }
+
+    .btn-orange {
+        background: #C2410C;
+        color: white;
+        box-shadow: 0 2px 6px rgba(194, 65, 12, 0.15);
+    }
+
+    .btn-orange:hover {
+        background: #9A3412;
+    }
+
+    .btn-violet:disabled,
+    .btn-orange:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
     #save {
         background: var(--color-primary);
     }

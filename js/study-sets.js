@@ -123,6 +123,115 @@ window.launchWrongPractice = function () {
     window.bgToast.fire({ icon: 'success', title: 'โหมดฝึกข้อที่เคยผิด (' + ids.length + ' ข้อ)' });
 };
 
+// ── I-b. Wrong-practice picker: เลือกข้อ/หัวข้อก่อนฝึก หรือบันทึกเป็นชุด ─────
+
+// จัดกลุ่มข้อที่เคยผิดตามหัวข้อหลัก (category ตัวแรกของข้อ)
+window.getWrongQuestionsByLecture = function () {
+    const qs = window.APP.allQuestions || [];
+    const byId = {};
+    qs.forEach(q => { byId[String(q.questionId)] = q; });
+    const byCat = {};
+    window.getWrongPracticeQids().forEach(id => {
+        const q = byId[String(id)];
+        if (!q) return;
+        const rawCat = (Array.isArray(q.category) && q.category.length) ? q.category[0] : null;
+        const catId = rawCat === null ? '__none' : String(rawCat);
+        const catName = rawCat === null ? 'ไม่ระบุหัวข้อ' : (window.getCategoryNameById(rawCat) || catId);
+        (byCat[catId] = byCat[catId] || { catName, list: [] }).list.push(q);
+    });
+    return byCat;
+};
+
+window.openWrongPicker = function () {
+    const qs = window.APP.allQuestions || [];
+    if (!qs.length) return;
+    if (!window.getWrongPracticeQids().length) {
+        Swal.fire('ยังไม่มีข้อที่เคยผิด', 'ตอบผิดข้อไหนก่อน ระบบจะจำไว้ให้ฝึกซ้ำที่นี่', 'info');
+        return;
+    }
+    window.studyEnsureModals();
+    const subj = window.studySubjectKey();
+    const log = window._wrongHistCache[subj] || {};
+    const byCat = window.getWrongQuestionsByLecture();
+
+    let html = '';
+    Object.keys(byCat).sort((a, b) => byCat[a].catName.localeCompare(byCat[b].catName, 'th')).forEach(catId => {
+        const grp = byCat[catId];
+        html += `
+        <div class="study-pick-cat" style="flex-shrink:0;border:1px solid var(--color-border-soft);border-radius:8px;overflow:hidden;margin-bottom:6px;">
+            <div class="study-pick-cat-header" style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--color-surface-2);font-weight:700;cursor:pointer;user-select:none;">
+                <i class="fas fa-chevron-down study-pick-cat-arrow" style="font-size:0.8rem;transition:transform 0.2s;transform:rotate(-90deg);color:var(--color-text-muted);"></i>
+                <input type="checkbox" class="wrong-pick-cat-all" data-cat="${catId}" checked style="margin:0;">
+                <span style="flex:1;margin-left:4px;">${grp.catName}</span>
+                <span style="font-size:0.8rem;color:var(--color-text-muted);">${grp.list.length} ข้อ</span>
+            </div>
+            <div class="study-pick-cat-content" style="display:none;padding:4px 10px 8px;flex-direction:column;gap:4px;">`;
+        grp.list.forEach(q => {
+            const fails = (log[String(q.questionId)] || {}).failCount || 0;
+            html += `
+                <label style="display:flex;align-items:flex-start;gap:8px;padding:6px;border-radius:6px;cursor:pointer;font-size:0.9rem;">
+                    <input type="checkbox" class="wrong-pick-q" data-cat="${catId}" data-id="${q.questionId}" checked style="margin-top:3px;">
+                    <span style="flex:1;">${window.similarYearChip(q)} ${window.similarSnippet(q.problem, 90)} <span style="color:var(--color-text-muted);">(ผิด ${fails} ครั้ง)</span></span>
+                </label>`;
+        });
+        html += `</div></div>`;
+    });
+
+    $('#wrong-picker-body').html(html);
+    window.updateWrongPickerCount();
+    $('#wrong-picker-overlay').fadeIn(150);
+    setTimeout(window.renderAllMath, 30);
+};
+
+window.updateWrongPickerCount = function () {
+    $('#wrong-picker-count').text($('#wrong-picker-body .wrong-pick-q:checked').length);
+};
+
+// [{id, cat}] ของข้อที่ติ๊กอยู่
+window.getWrongPickerSelection = function () {
+    return $('#wrong-picker-body .wrong-pick-q:checked').map(function () {
+        return { id: $(this).data('id'), cat: String($(this).data('cat')) };
+    }).get();
+};
+
+window.wrongPickerPractice = function () {
+    const sel = window.getWrongPickerSelection();
+    if (!sel.length) { window.bgToast.fire({ icon: 'info', title: 'ยังไม่ได้เลือกข้อ' }); return; }
+    const qs = window.APP.allQuestions || [];
+    const byId = {};
+    qs.forEach(q => { byId[String(q.questionId)] = q; });
+    window.APP.filterMode = 'wrong-practice';
+    window.setFilterMode('wrong-practice', true);
+    window.studyLoadQuestions(sel.map(s => byId[String(s.id)]).filter(Boolean));
+    $('#wrong-picker-overlay').fadeOut(120);
+    window.bgToast.fire({ icon: 'success', title: 'โหมดฝึกข้อที่เคยผิด (' + sel.length + ' ข้อ)' });
+};
+
+// บันทึกข้อที่เลือกเป็นชุดใหม่ — แยก 1 ชุดต่อหัวข้อ
+window.wrongPickerSaveSets = async function () {
+    const sel = window.getWrongPickerSelection();
+    if (!sel.length) { window.bgToast.fire({ icon: 'info', title: 'ยังไม่ได้เลือกข้อ' }); return; }
+    const subj = window.studySubjectKey();
+    const sets = await window.ensureCustomSets(subj);
+    const groups = {};
+    sel.forEach(s => { (groups[s.cat] = groups[s.cat] || []).push(s.id); });
+    let created = 0;
+    Object.keys(groups).forEach(catId => {
+        const catName = catId === '__none' ? 'ไม่ระบุหัวข้อ' : (window.getCategoryNameById(catId) || catId);
+        sets.push({
+            id: 'set_' + Date.now() + '_' + created + '_' + Math.floor(Math.random() * 1000),
+            name: 'ผิดบ่อย: ' + catName,
+            qids: groups[catId],
+            createdAt: Date.now()
+        });
+        created++;
+    });
+    await window.setCacheDB('custom_sets_' + subj, sets);
+    window.renderMySetsList();
+    $('#wrong-picker-overlay').fadeOut(120);
+    window.bgToast.fire({ icon: 'success', title: 'สร้าง ' + created + ' ชุดจากข้อที่เคยผิด (แยกตามหัวข้อ)' });
+};
+
 // ── II. Shared loader: ยัด question array ลง currentQuestions แล้วแสดง ─────
 window.studyLoadQuestions = function (qArr) {
     window.APP.currentQuestions = (qArr || []).map(q => ({
@@ -164,16 +273,34 @@ window.getSubjectClusters = function () {
     return out;
 };
 
-// สร้างชุดจากรายการคลัสเตอร์ ({qids:[...]}) — ตัวแทน 1 ข้อ/คลัสเตอร์ สุ่มตอนสร้าง
-window.createSetFromClusters = async function (clusterList, name) {
+// สุ่มหยิบ k ตัวจาก arr (ไม่ซ้ำ) — Fisher-Yates แล้ว slice
+window.studySampleQids = function (arr, k) {
+    const a = (arr || []).slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a.slice(0, Math.max(0, Math.min(k, a.length)));
+};
+
+// จำนวนข้อที่หยิบต่อคลัสเตอร์: perCluster > 0 → ใช้ค่านั้น (cap ที่ขนาด), ไม่งั้น = ครึ่งหนึ่ง (ปัดขึ้น, อย่างน้อย 1)
+window.studyPickCount = function (size, perCluster) {
+    if (perCluster > 0) return Math.min(perCluster, size);
+    return Math.max(1, Math.ceil(size / 2));
+};
+
+// สร้างชุดจากรายการคลัสเตอร์ ({qids:[...]}) — สุ่ม k ข้อ/คลัสเตอร์ ตอนสร้าง (default ครึ่งหนึ่ง)
+window.createSetFromClusters = async function (clusterList, name, perCluster) {
     const subj = window.studySubjectKey();
     const sets = await window.ensureCustomSets(subj);
     const qids = [];
     (clusterList || []).forEach(cl => {
         const m = cl.qids || [];
         if (!m.length) return;
-        const pick = m[Math.floor(Math.random() * m.length)];
-        if (!qids.some(x => String(x) === String(pick))) qids.push(pick);
+        const k = window.studyPickCount(m.length, perCluster);
+        window.studySampleQids(m, k).forEach(pick => {
+            if (!qids.some(x => String(x) === String(pick))) qids.push(pick);
+        });
     });
     if (!qids.length) {
         Swal.fire('ไม่มีข้อ', 'ไม่พบคลัสเตอร์ที่เลือก', 'info');
@@ -290,9 +417,32 @@ window.studyEnsureModals = function () {
                 <input id="study-picker-name" type="text" placeholder="ชื่อชุด" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--color-border);border-radius:8px;font-size:1rem;">
             </div>
             <div id="study-picker-body" style="padding:12px 16px;max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:6px;"></div>
-            <div style="padding:12px 16px;border-top:1px solid var(--color-border-soft);display:flex;gap:8px;">
-                <button id="study-picker-confirm" class="quiz-button" style="flex:1;margin:0;background:#7C3AED;color:white;border:none;min-height:44px;font-weight:700;">
+            <div style="padding:12px 16px;border-top:1px solid var(--color-border-soft);display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:0.9rem;">
+                    <label for="study-picker-percluster" style="white-space:nowrap;color:var(--color-text-muted);">ข้อต่อคลัสเตอร์:</label>
+                    <input id="study-picker-percluster" type="number" min="1" placeholder="อัตโนมัติ = ครึ่งหนึ่งของคลัสเตอร์"
+                        style="flex:1;box-sizing:border-box;padding:7px 10px;border:1.5px solid var(--color-border);border-radius:8px;font-size:0.92rem;min-width:0;">
+                </div>
+                <button id="study-picker-confirm" class="quiz-button" style="width:100%;margin:0;background:#7C3AED;color:white;border:none;min-height:44px;font-weight:700;">
                     <i class="fas fa-check"></i> <span id="study-picker-confirm-label">สร้างชุด</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="wrong-picker-overlay" class="study-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:12100;padding:20px;box-sizing:border-box;overflow:auto;">
+        <div class="study-modal" style="max-width:680px;margin:20px auto;background:var(--color-surface);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.3);overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--color-border-soft);">
+                <i class="fas fa-history" style="color:var(--color-primary);"></i>
+                <h3 style="margin:0;flex:1;font-size:1.1rem;">ฝึกข้อที่เคยผิด — เลือกข้อ</h3>
+                <button id="wrong-picker-close" class="btn-xs" style="background:var(--color-surface-2);color:var(--color-text);">ปิด</button>
+            </div>
+            <div id="wrong-picker-body" style="padding:12px 16px;max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:6px;"></div>
+            <div style="padding:12px 16px;border-top:1px solid var(--color-border-soft);display:flex;gap:8px;flex-wrap:wrap;">
+                <button id="wrong-picker-practice" class="quiz-button" style="flex:1;min-width:150px;margin:0;background:#0d9488;color:white;border:none;min-height:44px;font-weight:700;">
+                    <i class="fas fa-play"></i> ฝึกเลย (<span id="wrong-picker-count">0</span> ข้อ)
+                </button>
+                <button id="wrong-picker-save" class="quiz-button" style="flex:1;min-width:150px;margin:0;background:var(--color-primary);color:white;border:none;min-height:44px;font-weight:700;">
+                    <i class="fas fa-layer-group"></i> บันทึกเป็นชุด (แยกตามหัวข้อ)
                 </button>
             </div>
         </div>
@@ -443,6 +593,7 @@ window.openStudyPicker = function (mode) {
     $('#study-picker-confirm-label').text(mode === 'add' ? 'เพิ่มเข้าชุด' : 'สร้างชุด');
     $('#study-picker-namewrap').toggle(mode !== 'add');
     $('#study-picker-name').val('');
+    $('#study-picker-percluster').val('');
     $('#study-picker-overlay').fadeIn(150);
     setTimeout(window.renderAllMath, 30);
 };
@@ -453,6 +604,7 @@ window.studyPickerConfirm = async function () {
         return window._studyPickerClusters[$(this).data('key')];
     }).get().filter(Boolean);
     if (!picked.length) { window.bgToast.fire({ icon: 'info', title: 'ยังไม่ได้เลือกคลัสเตอร์' }); return; }
+    const perCluster = parseInt($('#study-picker-percluster').val(), 10) || 0; // 0 = อัตโนมัติ (ครึ่งหนึ่ง)
 
     if (mode === 'add') {
         const subj = window.studySubjectKey();
@@ -463,9 +615,11 @@ window.studyPickerConfirm = async function () {
         picked.forEach(cl => {
             const cands = cl.qids.filter(id => !inSet.has(String(id)));
             if (!cands.length) return;
-            const pick = cands[Math.floor(Math.random() * cands.length)];
-            set.qids.push(pick);
-            inSet.add(String(pick));
+            const k = window.studyPickCount(cands.length, perCluster);
+            window.studySampleQids(cands, k).forEach(pick => {
+                set.qids.push(pick);
+                inSet.add(String(pick));
+            });
         });
         await window.setCacheDB('custom_sets_' + subj, sets);
         window.renderSetEditor();
@@ -473,7 +627,7 @@ window.studyPickerConfirm = async function () {
         $('#study-picker-overlay').fadeOut(120);
     } else {
         const name = ($('#study-picker-name').val() || '').trim() || ('ชุดข้อออกบ่อย ' + new Date().toLocaleDateString('th-TH'));
-        const set = await window.createSetFromClusters(picked, name);
+        const set = await window.createSetFromClusters(picked, name, perCluster);
         $('#study-picker-overlay').fadeOut(120);
         if (set) window.openSetEditor(set.id); // เปิด editor ให้ปรับต่อทันที
     }
@@ -544,8 +698,20 @@ window.studyInstallHooks = function () {
 $(function () {
     window.studyInstallHooks();
 
-    // Feature B
-    $('#wrong-practice-btn').on('click', window.launchWrongPractice);
+    // Feature B — เปิด picker เลือกข้อ/หัวข้อก่อน (launchWrongPractice ยังอยู่สำหรับฝึกทั้งหมดแบบ headless)
+    $('#wrong-practice-btn').on('click', window.openWrongPicker);
+    $(document).on('click', '#wrong-picker-close', function () { $('#wrong-picker-overlay').fadeOut(120); });
+    $(document).on('click', '#wrong-picker-practice', window.wrongPickerPractice);
+    $(document).on('click', '#wrong-picker-save', window.wrongPickerSaveSets);
+    $(document).on('change', '.wrong-pick-cat-all', function () {
+        const cat = String($(this).data('cat'));
+        const checked = $(this).is(':checked');
+        $('#wrong-picker-body .wrong-pick-q').each(function () {
+            if (String($(this).data('cat')) === cat) $(this).prop('checked', checked);
+        });
+        window.updateWrongPickerCount();
+    });
+    $(document).on('change', '.wrong-pick-q', window.updateWrongPickerCount);
 
     // Feature A — My Sets section
     $('#my-sets-create-btn').on('click', function () { window.openStudyPicker('create'); });
@@ -570,7 +736,7 @@ $(function () {
         });
     });
     $(document).on('click', '.study-pick-cat-header', function (e) {
-        if ($(e.target).is('.study-pick-cat-all')) return;
+        if ($(e.target).is('input')) return; // checkbox ในหัวข้อ (ทั้ง picker คลัสเตอร์และ picker ข้อผิด) ไม่ toggle การพับ
         const $content = $(this).next('.study-pick-cat-content');
         const $arrow = $(this).find('.study-pick-cat-arrow');
         if ($content.is(':hidden')) {
