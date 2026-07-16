@@ -30,7 +30,8 @@ Single `index.html` with all HTML/modals inline. CSS is a single `css/styles.css
 | `js/db.js` | IndexedDB wrapper — `openDB()` (memoizes `window._dbConnPromise`, only reopens after `onclose`), `getCacheDB()`, `setCacheDB()`, `saveProgressToCache()` — offline caching of questions and session state |
 | `js/api.js` | `sendWithRetry()` for POST to GAS with retry logic; `sendActivityLog()` buffers analytics events to `localStorage['activityBuffer']` — `flushActivityLog()` batches them to GAS `action:'batchLog'` when the buffer has ≥5 entries, 60s have elapsed, or the tab has been hidden >15s; `saveReportToGoogleSheet()` |
 | `js/search.js` | Full-text search with fuzzy matching and LRU cache (`window.searchDictionary`) |
-| `js/quiz.js` | `renderIndexPanel()`, `jumpToQuestion()`, `showQuestion()`, `submitQuestion()`, `checkAnswerUI()`, `updateQuestionSet()` — index panel dot-grid and question navigation |
+| `js/quiz-core.js` | `renderIndexPanel()`, `jumpToQuestion()`, `showQuestion()`, `submitQuestion()`, `checkAnswerUI()`, `updateQuestionSet()` — index panel dot-grid, question navigation, and answer submission (split from the old `quiz.js` monolith) |
+| `js/quiz-render.js` | `renderExplainMediaInQuiz()`, `renderMarkdownSafe()` — explanation/markdown rendering helpers used inside the quiz view |
 | `js/vote.js` | `fetchPendingVotes()`, `submitVoteData()` — community voting on question categories; `activeVoteFetches` Set dedupes concurrent fetch calls |
 | `js/report.js` | Report incorrect question modal |
 | `js/ui.js` | `displayAnswerContent()`, `getCategoryNameById()`, `renderAccordionUI()`, `renderAttributeFilterUI()`, `viewFullImage()`, `window.renderAnnouncementsUI()` — UI helpers, zoom, image gallery, announcement banner |
@@ -38,7 +39,16 @@ Single `index.html` with all HTML/modals inline. CSS is a single `css/styles.css
 | `js/edit-modal.js` | Edit question modal (admin only) — image upload, AI assist, choice management |
 | `js/app.js` | `initApp()`, `populateSubjectSelector()`, `showSubmission()`, `runIncrementalSync()`, `updateProgressHeader()` — core app logic, subject/category selector, question rendering, score tracking |
 | `js/pdf-generator.js` | Export exam set to PDF with OMR answer sheet (jsPDF + KaTeX + embedded TH Sarabun font) |
+| `js/th-sarabun-font.js` | Embedded base64 TH Sarabun font data consumed by `pdf-generator.js` — data-only, no logic |
 | `js/grader.js` | Auto-grader: reads OMR data embedded in exported PDFs via pdf.js |
+| `js/meq.js` | MEQ hidden-choices study mode — `applyMeqModeUi()`, `revealMeqChoices()`, `updateMeqModeButtonUI()`; free-recall-first toggle, default OFF in localStorage |
+| `js/similar.js` | Client-side similar-questions engine — `buildSimilarIndex()`, `getSimilarQuestions()`, `renderSimilarPanel()`, `openSimilarCompare()` — per-question similar-list panel and category frequency comparison, zero backend |
+| `js/study-sets.js` | Wrong-answer practice + custom study sets — `ensureWrongHistory()`, `recordAnswerResult()`, `launchWrongPractice()`, `createSetFromClusters()`, `openCustomSet()` — persisted client-side |
+| `js/app-feedback.js` | In-app feature/bug reporting modal (distinct from question-content reports) — `openAppFeedbackModal()`, `submitAppFeedback()`, inline base64 image attachments |
+| `js/chatbot.js` | IntelSphere AI study-assistant chatbot panel — `loadChatbotModelCatalog()`, `sendChatbotQuery()`, `classifyQueryTask()`/`pickAutoModel()` for auto model routing, per-answer feedback rating |
+| `js/glossary.js` | Inline medical-term glossary — `loadGlossary()`, `glossaryLookup()`, text-selection popup (`_glossaryHandleSelection`), `renderGlossaryClusters()` for the glossary panel |
+| `js/sync.js` | Cross-device progress sync — `markProgressDirty()`, `flushProgressSync()`, `checkCloudProgress()`, `waitForSyncSession()`; student-tier login gate for sync only |
+| `js/version.js` | App-version badge + changelog UI — `getAppVersion()`, `renderVersionBadge()`, `checkForUpdate()`, `openReleaseHistoryModal()`; drives the `js/changelog.js` update prompt |
 | `service-worker.js` | PWA: cache-first for static assets; never intercepts GAS or Google API calls |
 
 **Global state** lives on `window.APP` (defined in `config.js`). All JS functions are attached to `window.*` to share scope across script files — there are no ES modules.
