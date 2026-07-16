@@ -413,13 +413,14 @@ window.openStudyPicker = function (mode) {
     cats.forEach(catId => {
         const grp = byCat[catId];
         html += `
-        <div class="study-pick-cat" style="border:1px solid var(--color-border-soft);border-radius:8px;overflow:hidden;">
-            <label style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--color-surface-2);font-weight:700;cursor:pointer;">
-                <input type="checkbox" class="study-pick-cat-all" data-cat="${catId}">
-                <span style="flex:1;">${grp.catName}</span>
+        <div class="study-pick-cat" style="flex-shrink:0;border:1px solid var(--color-border-soft);border-radius:8px;overflow:hidden;margin-bottom:6px;">
+            <div class="study-pick-cat-header" style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--color-surface-2);font-weight:700;cursor:pointer;user-select:none;">
+                <i class="fas fa-chevron-down study-pick-cat-arrow" style="font-size:0.8rem;transition:transform 0.2s;transform:rotate(-90deg);color:var(--color-text-muted);"></i>
+                <input type="checkbox" class="study-pick-cat-all" data-cat="${catId}" style="margin:0;">
+                <span style="flex:1;margin-left:4px;">${grp.catName}</span>
                 <span style="font-size:0.8rem;color:var(--color-text-muted);">${grp.list.length} คลัสเตอร์</span>
-            </label>
-            <div style="padding:4px 10px 8px;display:flex;flex-direction:column;gap:4px;">`;
+            </div>
+            <div class="study-pick-cat-content" style="display:none;padding:4px 10px 8px;flex-direction:column;gap:4px;">`;
         grp.list.forEach(cl => {
             const rep = byId[String(cl.qids[0])];
             const stem = rep ? window.similarSnippet(rep.problem, 90) : '';
@@ -567,6 +568,18 @@ $(function () {
         $('#study-picker-body .study-pick-cluster').each(function () {
             if (String($(this).data('cat')) === cat) $(this).prop('checked', checked);
         });
+    });
+    $(document).on('click', '.study-pick-cat-header', function (e) {
+        if ($(e.target).is('.study-pick-cat-all')) return;
+        const $content = $(this).next('.study-pick-cat-content');
+        const $arrow = $(this).find('.study-pick-cat-arrow');
+        if ($content.is(':hidden')) {
+            $content.css('display', 'flex').hide().slideDown(120);
+            $arrow.css('transform', 'rotate(0deg)');
+        } else {
+            $content.slideUp(120);
+            $arrow.css('transform', 'rotate(-90deg)');
+        }
     });
 
     // ปุ่มลัดใน overlay "ข้อออกบ่อย" — สร้างชุดจากคลัสเตอร์ที่กำลังดู (เพิ่มครั้งเดียว)
