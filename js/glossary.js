@@ -117,11 +117,18 @@ window.renderGlossaryPopup = function (term, anchorRect) {
         ? '<div style="font-size:0.92rem;margin-top:6px;">' + esc(term.short_def_th) + '</div>' : '';
     var chipsHtml = chips
         ? '<div style="margin-top:8px;font-size:0.72rem;color:var(--color-text-muted);">ปรากฏในข้อ: ' + chips + '</div>' : '';
+    // §2.7: ปุ่มลบ — เฉพาะผู้ล็อกอิน (Admin/Student); ลบออกจากคลังส่วนกลางให้ทุกคน
+    var gkeyDel = window.normalizeGlossaryKey(term.term_en) || window.normalizeGlossaryKey(term.term_th);
+    var delBtn = (window.EDIT_SESSION && window.EDIT_SESSION.sessionToken)
+        ? '<button type="button" class="glossary-delete-btn" data-gkey="' + esc(gkeyDel) + '" title="ลบศัพท์นี้ (ลบให้ทุกคน)" ' +
+          'style="border:none;background:none;color:#d9534f;font-size:0.9rem;line-height:1.4;cursor:pointer;padding:0 2px;"><i class="fas fa-trash-alt"></i></button>'
+        : '';
     var html =
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
           '<div style="font-weight:800;color:var(--color-primary);font-size:1.05rem;">' + esc(term.term_en) + badge + '</div>' +
+          '<div style="display:flex;align-items:flex-start;gap:4px;">' + delBtn +
           '<button type="button" class="glossary-popup-close" title="ปิด" ' +
-          'style="border:none;background:none;color:var(--color-text-muted);font-size:1.25rem;line-height:1;cursor:pointer;padding:0 2px;">&times;</button>' +
+          'style="border:none;background:none;color:var(--color-text-muted);font-size:1.25rem;line-height:1;cursor:pointer;padding:0 2px;">&times;</button></div>' +
         '</div>' +
         '<div style="font-size:0.98rem;font-weight:600;margin-top:2px;">' + esc(term.term_th) + '</div>' +
         rootHtml + defHtml + chipsHtml;
@@ -196,6 +203,51 @@ window.resolveGlossaryTerm = async function (pending) {
     }
 };
 
+// §2.7: ลบ term ออกจาก state ฝั่ง client — ทุกคีย์ใน map ที่ชี้ object นี้ (รวม alias) + array + span ที่ขีดเส้นใต้; bump version
+window._glossaryRemoveTermLocal = function (term) {
+    var map = window.APP.glossaryMap || {};
+    Object.keys(map).forEach(function (k) { if (map[k] === term) delete map[k]; });
+    var idx = (window.APP.glossaryTerms || []).indexOf(term);
+    if (idx >= 0) window.APP.glossaryTerms.splice(idx, 1);
+    window.APP._glossaryTermsVersion = (window.APP._glossaryTermsVersion || 0) + 1;
+    // แกะ span.glossary-known ของคำที่ถูกลบ (คีย์หลุดจาก map แล้ว) กลับเป็น text ธรรมดา
+    document.querySelectorAll('.glossary-known').forEach(function (sp) {
+        if (!map[sp.getAttribute('data-gkey')]) sp.replaceWith(document.createTextNode(sp.textContent));
+    });
+};
+
+// §2.7: ลบศัพท์ออกจากคลังส่วนกลาง (มีผลกับทุกคน) — ต้องล็อกอิน KKU; ใช้กำจัดคำที่ไม่ใช่ศัพท์แพทย์ เช่น "the"
+window.deleteGlossaryTerm = async function (gkey) {
+    var term = window.APP.glossaryMap && window.APP.glossaryMap[gkey];
+    if (!term) return;
+    var token = window.EDIT_SESSION && window.EDIT_SESSION.sessionToken;
+    if (!token) {
+        if (window.bgToast) window.bgToast.fire({ icon: 'info', title: 'ต้องเข้าสู่ระบบก่อนจึงจะลบศัพท์ได้' });
+        return;
+    }
+    var esc = function (s) { return $('<div>').text(s == null ? '' : String(s)).html(); };
+    var ok = await Swal.fire({
+        title: 'ลบศัพท์นี้?',
+        html: '<b>' + esc(term.term_en) + '</b> — ' + esc(term.term_th) + '<br>จะถูกลบออกจากคลังศัพท์ของทุกคน',
+        icon: 'warning', showCancelButton: true,
+        confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#d33'
+    });
+    if (!ok.isConfirmed) return;
+    try {
+        var res = await window.sendWithRetry({ action: 'deleteGlossaryTerm', term_en: term.term_en, sessionToken: token });
+        if (res && res.result === 'success') {
+            window._glossaryRemoveTermLocal(term);
+            window.hideGlossaryPopup();
+            if ($('#glossary-panel').is(':visible')) { window.renderGlossaryList(); window.renderGlossaryClusters(); }
+            if (window.bgToast) window.bgToast.fire({ icon: 'success', title: 'ลบ "' + term.term_en + '" แล้ว' });
+        } else {
+            if (window.bgToast) window.bgToast.fire({ icon: 'error', title: (res && res.message) || 'ลบไม่สำเร็จ' });
+        }
+    } catch (e) {
+        if (window.bgToast) window.bgToast.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดทางเทคนิค กรุณาลองใหม่' });
+    }
+};
+
 // §2.4: เปิด/ปิด panel — โหลด glossary ครั้งแรกที่เปิด (เผื่อยังไม่ถูก lazy-load จาก showQuestion)
 window.toggleGlossaryPanel = function () {
     var $p = $('#glossary-panel');
@@ -227,11 +279,16 @@ window.renderGlossaryList = function () {
     filtered.sort(function (a, b) { return String(a.term_en || '').localeCompare(String(b.term_en || '')); });
     if (!filtered.length) { $c.html('<div style="color:var(--color-text-muted);font-style:italic;font-size:0.9rem;">ไม่พบศัพท์ที่ค้นหา</div>'); return; }
     var esc = function (s) { return $('<div>').text(s == null ? '' : String(s)).html(); };
+    var canDelete = !!(window.EDIT_SESSION && window.EDIT_SESSION.sessionToken); // §2.7: ล็อกอินแล้วลบได้
     $c.html(filtered.map(function (t) {
         var badge = (t.status === 'auto') ? ' <span style="font-size:0.62rem;background:#fff3cd;color:#856404;padding:0 5px;border-radius:5px;">AI</span>' : '';
         var gkey = window.normalizeGlossaryKey(t.term_en) || window.normalizeGlossaryKey(t.term_th);
+        var del = canDelete
+            ? '<button type="button" class="glossary-delete-btn" data-gkey="' + esc(gkey) + '" title="ลบศัพท์นี้ (ลบให้ทุกคน)" ' +
+              'style="float:right;border:none;background:none;color:#d9534f;cursor:pointer;padding:0 4px;"><i class="fas fa-trash-alt"></i></button>'
+            : '';
         return '<div class="glossary-row" data-gkey="' + esc(gkey) + '" ' +
-            'style="padding:7px 9px;border-radius:7px;cursor:pointer;border:1px solid var(--color-border-soft);margin-bottom:5px;background:var(--color-surface);">' +
+            'style="padding:7px 9px;border-radius:7px;cursor:pointer;border:1px solid var(--color-border-soft);margin-bottom:5px;background:var(--color-surface);">' + del +
             '<span style="font-weight:700;color:var(--color-primary);">' + esc(t.term_en) + '</span>' + badge +
             ' <span style="color:var(--color-text-muted);">— ' + esc(t.term_th) + '</span></div>';
     }).join(''));
@@ -337,6 +394,13 @@ $(document).on('mousedown', function (e) {
 });
 
 $(document).on('click', '.glossary-popup-close', function () { window.hideGlossaryPopup(); });
+
+// §2.7: ปุ่มลบศัพท์ (ในแถวรายการ + popup) — stopPropagation กัน .glossary-row click เปิด popup ทับ
+$(document).on('click', '.glossary-delete-btn', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    window.deleteGlossaryTerm(this.dataset.gkey);
+});
 // qid chip: .rag-cite-chip handler (quiz.js:1325) ทำหน้าที่ jump; ตัวนี้แค่ปิด popup ตามหลัง
 $(document).on('click', '.glossary-qid-chip', function () { window.hideGlossaryPopup(); });
 
