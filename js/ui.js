@@ -10,6 +10,17 @@ window.getCategoryNameById = function (categoryId) {
     return found ? found.categoryName : categoryId;
 };
 
+// ตรวจว่า categoryId เป็นหมวดเลคเชอร์/สาขาวิชา (มี token สาขาในส่วนใดส่วนหนึ่งของรหัส)
+// ตัวจำแนกกลางที่ใช้ร่วมกัน — renderAccordionUI มีสำเนา local ของตัวเองอยู่ (ไม่แตะ)
+window.isLectureCategory = function (catId) {
+    const SUBGROUPS = ["ANA", "BIOCHEM", "PHYSIO", "MICRO", "PARASITO", "PATHO", "PHARM", "RADIO", "CLINICAL"];
+    const parts = String(catId).toUpperCase().split('_');
+    for (let i = 1; i < parts.length; i++) {
+        if (SUBGROUPS.some(sg => parts[i].includes(sg))) return true;
+    }
+    return false;
+};
+
 window.displayAnswerContent = function (text) {
     if (!text) return "";
     const trimmed = text.trim();
