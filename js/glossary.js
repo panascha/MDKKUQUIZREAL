@@ -132,7 +132,7 @@ window.renderGlossaryPopup = function (term, anchorRect) {
 };
 
 // §2.5: อ่าน selection ในเขตโจทย์/ตัวเลือก/เฉลย → ***จับ pending ที่ตอน SHOW*** (คลิกชิปทีหลัง selection อาจหายแล้ว)
-window._glossaryScopeSel = '#question, #choices, #quiz-explain-container';
+window._glossaryScopeSel = '#question, #choices, #quiz-explain-container, #search-results-container';
 window._glossaryHandleSelection = function () {
     var sel = window.getSelection ? window.getSelection() : null;
     if (!sel || sel.isCollapsed || sel.rangeCount === 0) { window.hideGlossaryChip(); return; }
@@ -146,7 +146,9 @@ window._glossaryHandleSelection = function () {
     if (!container) { window.hideGlossaryChip(); return; } // นอกเขต → ไม่ทำอะไร
     var rect = sel.getRangeAt(0).getBoundingClientRect();
     if (!rect || (!rect.width && !rect.height)) { window.hideGlossaryChip(); return; }
-    var sentence = (container.innerText || container.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+    // ในหน้าผลค้นหา ใช้ข้อความเฉพาะการ์ดที่เลือก (ไม่ใช่ทั้ง container) เป็นบริบทประโยค
+    var ctxEl = (el.closest && el.closest('.search-card')) || container;
+    var sentence = (ctxEl.innerText || ctxEl.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 400);
     window.APP._glossaryPending = {
         word: text, sentence: sentence,
         rect: { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right }

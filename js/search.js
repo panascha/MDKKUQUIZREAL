@@ -261,44 +261,47 @@ window.performSearch = function () {
         return includeQuestion;
     });
 
-    // [ขั้นตอนที่ 4] จัดอันดับปีข้อสอบและระดับความเกี่ยวข้อง (เรียงตามปีจากใหม่ไปเก่าเป็นหลัก หากปีเท่ากันให้เรียงตามความเกี่ยวข้อง)
+    // [ขั้นตอนที่ 4] จัดอันดับตามความเกี่ยวข้องเป็นหลัก (เจอในเฉลย > โจทย์ > ตัวเลือก > คำอธิบาย)
+    // หากคะแนนความเกี่ยวข้องเท่ากัน ให้เรียงตามปีข้อสอบจากใหม่ไปเก่า
+    const _rankCache = new Map();
+    const getRank = (q) => {
+        if (_rankCache.has(q)) return _rankCache.get(q);
+
+        let score = 0;
+        terms.filter(t => !operators.includes(t.toLowerCase())).forEach(t => {
+            const term = t.toLowerCase();
+            const variations = fuzzyMap[term] || [term];
+
+            variations.forEach((v, idx) => {
+                const weight = idx === 0 ? 1.0 : 0.3;
+
+                let baseScore = 0;
+                if (q.answer && q.answer.toLowerCase().includes(v)) baseScore = 100;
+                else if (q.problem && q.problem.toLowerCase().includes(v)) baseScore = 50;
+                else if (q.choices && q.choices.toLowerCase().includes(v)) baseScore = 20;
+                else if (q.explain && q.explain.toLowerCase().includes(v)) baseScore = 10;
+
+                score = Math.max(score, baseScore * weight);
+            });
+        });
+
+        const meta = typeof window.parseQuestionMetadata === 'function' ? window.parseQuestionMetadata(q) : { year: "N/A" };
+        const rank = { score: score, year: parseInt(meta.year) || 0 };
+        _rankCache.set(q, rank);
+        return rank;
+    };
+
     searchResults.sort((a, b) => {
-        const metaA = typeof window.parseQuestionMetadata === 'function' ? window.parseQuestionMetadata(a) : { year: "N/A" };
-        const metaB = typeof window.parseQuestionMetadata === 'function' ? window.parseQuestionMetadata(b) : { year: "N/A" };
+        const rankA = getRank(a);
+        const rankB = getRank(b);
 
-        const yearA = parseInt(metaA.year) || 0;
-        const yearB = parseInt(metaB.year) || 0;
-
-        // 1. เรียงตามปีจากใหม่ไปเก่า (ตัวเลขมากไปหาตัวเลขน้อย)
-        if (yearA !== yearB) {
-            return yearB - yearA;
+        // 1. คะแนนความเกี่ยวข้องมากไปน้อย (เฉลย > โจทย์ > ตัวเลือก > คำอธิบาย)
+        if (rankA.score !== rankB.score) {
+            return rankB.score - rankA.score;
         }
 
-        // 2. หากปีเท่ากัน ให้จัดอันดับตามระดับความเกี่ยวข้อง (Relevance Score)
-        const getScore = (q) => {
-            let score = 0;
-            const searchableText = ((q.answer || '') + (q.problem || '') + (q.choices || '') + (q.explain || '')).toLowerCase();
-
-            terms.filter(t => !operators.includes(t.toLowerCase())).forEach(t => {
-                const term = t.toLowerCase();
-                const variations = fuzzyMap[term] || [term];
-
-                variations.forEach((v, idx) => {
-                    const weight = idx === 0 ? 1.0 : 0.3;
-
-                    let baseScore = 0;
-                    if (q.answer && q.answer.toLowerCase().includes(v)) baseScore = 100;
-                    else if (q.problem && q.problem.toLowerCase().includes(v)) baseScore = 50;
-                    else if (q.choices && q.choices.toLowerCase().includes(v)) baseScore = 20;
-                    else if (q.explain && q.explain.toLowerCase().includes(v)) baseScore = 10;
-
-                    score = Math.max(score, baseScore * weight);
-                });
-            });
-            return score;
-        };
-
-        return getScore(b) - getScore(a);
+        // 2. คะแนนเท่ากัน → ปีใหม่ไปเก่า
+        return rankB.year - rankA.year;
     });
 
     const questionTexts = new Set();
@@ -438,6 +441,9 @@ window.performSearch = function () {
                     <button class="btn-search-action btn-search-vote" data-idx="${index}">
                         <i class="fas fa-tags"></i> แยกเลค
                     </button>
+                    <button class="btn-search-action btn-search-edit" data-idx="${index}">
+                        <i class="fas fa-edit"></i> แก้ไข
+                    </button>
                 </div>
             </div>`;
     });
@@ -455,7 +461,22 @@ window.performSearch = function () {
         window.openVoteModal(searchResults[idx], false);
     });
 
+    // ปุ่มแก้ไขบนการ์ดผลค้นหา — แสดงเฉพาะโหมดแก้ไข (ควบคุมด้วย CSS body.edit-mode-active)
+    $('.btn-search-edit').on('click', function () {
+        const idx = $(this).data('idx');
+        window.openEditModal(searchResults[idx]);
+    });
+
     window.renderAllMath();
+
+    // Glossary: ขีดเส้นใต้ศัพท์ที่เคยแปลแล้วในผลค้นหา (แตะ = popup) — โหลดคลังศัพท์ครั้งแรกถ้ายังไม่ได้โหลด
+    if (typeof window.markGlossaryTerms === 'function') {
+        if (!window.APP._glossaryLoaded && !window.APP._glossaryLoading &&
+            (!window.APP._glossaryLastAttempt || Date.now() - window.APP._glossaryLastAttempt > 60000)) {
+            window.loadGlossary(new URLSearchParams(location.search).get('subject') || '');
+        }
+        setTimeout(window.markGlossaryTerms, 120);
+    }
 };
 
 // ─── OPTIMIZATION: ปรับปรุงการวิเคราะห์คำและสกัดคำแนะนำแบบพิกัดเคอร์เซอร์ (Caret-Aware Suggestions) ───

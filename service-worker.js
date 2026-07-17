@@ -3,7 +3,7 @@
 // และ cache เฉพาะไฟล์ static ของตัวเอง
 // ไม่แตะ requests ไปหา Google Apps Script (script.google.com) เด็ดขาด
 
-const CACHE_NAME = 'mdkkuquiz-v3.7.0'; // semver — bump ทุกครั้งที่ deploy JS ใหม่; ถ้ามีของใหม่ให้เพิ่ม entry ใน js/changelog.js ด้วย
+const CACHE_NAME = 'mdkkuquiz-v3.8.0'; // semver — bump ทุกครั้งที่ deploy JS ใหม่; ถ้ามีของใหม่ให้เพิ่ม entry ใน js/changelog.js ด้วย
 const STATIC_ASSETS = [
     './',
     'index.html',
@@ -70,29 +70,18 @@ self.addEventListener('message', (event) => {
     }
 });
 
-// Fetch: Network-first สำหรับ API calls, Cache-first สำหรับ static assets
+// Fetch: Cache-first เฉพาะไฟล์ static ของ origin ตัวเองเท่านั้น
 self.addEventListener('fetch', (event) => {
-    const url = event.request.url;
-
-    // ปล่อย requests ไปหา Google APIs / Apps Script ผ่านตรง ไม่ cache เลย
-    if (
-        url.includes('script.google.com') ||
-        url.includes('googleapis.com') ||
-        url.includes('accounts.google.com') ||
-        url.includes('googletagmanager.com') ||
-        url.includes('drive.google.com') ||
-        url.includes('lh3.googleusercontent.com')
-    ) {
-        return; // ปล่อยผ่าน — browser จัดการเอง
+    // ปล่อยทุก request ข้าม origin ผ่านตรง (GAS, Google APIs, CDN, รูปภายนอก ฯลฯ)
+    // — ห้าม fetch() แทน browser: request แบบ no-cors เช่น <img> ข้ามเว็บจะกลายเป็น CORS error ใน SW
+    if (new URL(event.request.url).origin !== self.location.origin) {
+        return; // browser จัดการเอง
     }
 
     // สำหรับไฟล์ static ของแอป: cache-first พร้อม ignoreSearch เพื่อให้รองรับ query parameters เช่น ?subject=...
     event.respondWith(
         caches.match(event.request, { ignoreSearch: true }).then((cached) => {
             return cached || fetch(event.request);
-        }).catch(() => {
-            // ป้องกันข้อยกเว้น TypeError จากการดึงข้อมูลเครือข่ายล้มเหลว
-            return fetch(event.request);
         })
     );
 });

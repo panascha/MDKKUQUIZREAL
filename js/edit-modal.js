@@ -6,11 +6,12 @@ window.explainImageIndex = 0;
 window.choiceImagesData = {}; // Stores pending base64/blob for choice images
 window.currentLibTarget = { type: 'main', rowId: null };
 
-window.openEditModal = function () {
+window.openEditModal = function (qOverride) {
     // Auth Guard: หากเซสชันยังไม่ถูกต้องหรือหมดอายุ ให้ตรวจสอบก่อน
     if (!window.ensureActiveSession()) return;
 
-    const q = window.APP.current_question;
+    // รองรับเปิดจากการ์ดผลค้นหา (ส่ง q มาโดยตรง) — ค่าเริ่มต้นคือข้อปัจจุบันในหน้าทำข้อสอบ
+    const q = qOverride || window.APP.current_question;
     if (!q || !q.questionId) return;
 
     // Reset state variables

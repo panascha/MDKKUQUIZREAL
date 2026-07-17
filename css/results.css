@@ -443,6 +443,21 @@
         background: var(--color-primary-hover);
     }
 
+    /* ปุ่มแก้ไขบนการ์ดผลค้นหา — โชว์เฉพาะตอนล็อกอินโหมดแก้ไข (body.edit-mode-active) */
+    .btn-search-edit {
+        background: #0EA5E9;
+        color: white;
+        display: none;
+    }
+
+    body.edit-mode-active .btn-search-edit {
+        display: flex;
+    }
+
+    .btn-search-edit:hover {
+        background: #0284C7;
+    }
+
     /* Search Suggestions */
     #suggestion-chips {
         display: flex;
