@@ -280,6 +280,35 @@ body.chatbot-open #chatbot-fab {
     padding: 0 2px;
 }
 
+/* Login benefit hint — โชว์ใกล้ปุ่ม KKU FAB จนกด × (localStorage) */
+/* absolute ใน fab-container (fixed) ไม่เบียด layout ให้ FABs ทำงานปกติ */
+#login-benefit-hint {
+    position: absolute;
+    right: 54px;  /* ชิดขวาของปุ่ม FAB */
+    top: -2px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    font-size: 0.68rem;
+    color: #e2e8f0;
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    white-space: nowrap;
+    pointer-events: auto;
+    z-index: 1;
+}
+#login-benefit-hint > button {
+    border: none;
+    background: none;
+    color: #94a3b8;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+}
+
 /* =========================================
    Feature — MEQ Mode (hidden choices + free-recall)
    ========================================= */

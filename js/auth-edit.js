@@ -161,6 +161,8 @@ window.handleCredentialResponse = async function (response) {
             };
             localStorage.setItem("mdkku_session_token", res.sessionToken);
             sessionStorage.removeItem("mdkku_edit_session");
+            $('#login-benefit-hint').hide();  // ซ่อน hint — ล็อกอินแล้ว (ไม่ persist dismiss, ให้โชว์อีกถ้า logout)
+            if (window._loginHintTimer) { clearTimeout(window._loginHintTimer); window._loginHintTimer = null; }
             const isStudent = res.user.role === 'Student';
             if (isStudent) {
                 window.enableStudentModeUI();
@@ -277,4 +279,11 @@ window.enableStudentModeUI = function () {
 
 $(function () {
     setTimeout(window.setupGoogleSSO, 1200);
+    // Login benefit hint — แสดงครั้งแรกจนกด ×, ล็อกอินสำเร็จ, หรือครบ 8 วิ
+    try { if (!localStorage.getItem('mdkku_session_token') && !localStorage.getItem('login_benefit_dismissed_v1')) { $('#login-benefit-hint').css('display', 'flex'); window._loginHintTimer = setTimeout(function () { $('#login-benefit-hint').fadeOut(400); }, 8000); } } catch (e) { }
+});
+$(document).on('click', '#login-benefit-hint-close', function () {
+    $('#login-benefit-hint').hide();
+    if (window._loginHintTimer) { clearTimeout(window._loginHintTimer); window._loginHintTimer = null; }
+    try { localStorage.setItem('login_benefit_dismissed_v1', '1'); } catch (e) { }
 });

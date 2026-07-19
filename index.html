@@ -1221,7 +1221,12 @@
          VI. Floating Action Buttons
          ========================================= -->
     <div class="fab-container">
-        <button id="toggle-edit-mode-btn" class="fab" title="เข้าสู่ระบบ KKU (ซิงค์ความคืบหน้า / แก้ไขข้อสอบ)"
+        <!-- Login benefit hint (dismissible — แสดงครั้งแรกจนกด ×, localStorage) -->
+        <div id="login-benefit-hint" style="display:none;">
+            <span>🔐 ล็อกอิน KKU → ซิงค์ข้ามเครื่อง · ลบศัพท์ · แก้ไขข้อสอบ</span>
+            <button type="button" id="login-benefit-hint-close" title="ไม่ต้องแสดงอีก">&times;</button>
+        </div>
+        <button id="toggle-edit-mode-btn" class="fab" title="ล็อกอินด้วยบัญชี KKU"
             style="background: #1e293b; border: 1px solid #475569;" onclick="initiateGoogleLogin()">
             <img src="https://www.kku.ac.th/wp-content/uploads/2022/01/1.-official-logo-2022-26-500x465.png" alt="KKU Logo"
                 style="width: 24px; height: 24px; object-fit: contain;">
