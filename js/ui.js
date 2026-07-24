@@ -883,7 +883,7 @@ $(function () {
     // --- แผงปุ่มดาวน์โหลดเอกสาร PDF จาก Modal ---
     $('#save-results-pdf-btn').on('click', () => {
         const selectedCats = window.getSelectedCategoryNames().join(' / ');
-        window.sendActivityLog('DOWNLOAD_PDF_RESULT', "", selectedCats, "Format: Result");
+        window.logFeature('DOWNLOAD_PDF_RESULT', { cats: selectedCats, note: 'Format: Result' });
         window.saveResultsToPdf();
         $('#pdf-choice-modal').fadeOut();
     });
@@ -893,7 +893,7 @@ $(function () {
 
         const selectedCats = window.getSelectedCategoryNames().join(' / ');
         const format = $('#export-format-select').val();
-        window.sendActivityLog('DOWNLOAD_PDF_PRACTICE', "", selectedCats, `Format: ${format}`);
+        window.logFeature('DOWNLOAD_PDF_PRACTICE', { cats: selectedCats, note: `Format: ${format}` });
 
         window.savePracticeSheetToPdf();
     });
@@ -1204,7 +1204,7 @@ $(function () {
     $('#question-image').on('error', function () {
         const src = $(this).attr('src');
         if (src && src !== "") {
-            window.sendActivityLog('IMG_ERROR', window.APP.current_question.questionId || "Unknown", "Load Failed", "URL: " + src);
+            window.logFeature('IMG_ERROR', { target: window.APP.current_question.questionId || "Unknown", result: 'Load Failed', url: src });
         }
     });
 

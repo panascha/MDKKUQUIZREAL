@@ -157,6 +157,11 @@ window.sendChatbotQuery = async function () {
     }
     var token = localStorage.getItem("mdkku_session_token") || "guest_user";
 
+    // Audit: log prompt AI ที่นิสิตส่งจริง (identity ผูกฝั่ง server จาก sessionToken)
+    if (window.logAiPrompt) {
+        window.logAiPrompt(query, model, 'qid=' + (q && q.questionId || ''));
+    }
+
     $('#chatbot-input').val('').prop('disabled', true);
     $('#btn-send-chat').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
 

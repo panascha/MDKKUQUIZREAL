@@ -7,7 +7,7 @@ window.openReportModal = function (q) {
     }
 
     window.APP.modalTargetQuestion = JSON.parse(JSON.stringify(q));
-    window.sendActivityLog('REPORT_OPEN', window.APP.modalTargetQuestion.questionId);
+    window.logFeature('REPORT_OPEN', { target: window.APP.modalTargetQuestion.questionId });
 
     $('#report_text').val('');
     $('#report-new-choice-input').val('');
