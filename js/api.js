@@ -138,7 +138,7 @@ window.sendWithRetry = async function (payload, retries = 3) {
     }
 };
 
-// Analytics logging ย้ายไป js/interaction-log.js แล้ว (logFeature / logAiPrompt → action=logUserInteraction)
+// Analytics logging ย้ายไป js/interaction-log.js แล้ว (logFeature / logAiIntent → action=logUserInteraction)
 // ระบบเดิม (sendActivityLog/flushActivityLog → batchLog/UserActivity) ถูกถอดออก: write-only ไม่มีใครอ่าน + เขียนลง SHEET_ID เดียวกับคลังข้อสอบ
 
 // กู้คืนฟังก์ชันการส่งข้อมูลรายงานข้อสอบผิดที่ตกหล่นไป

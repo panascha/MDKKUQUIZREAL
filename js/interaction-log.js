@@ -1,16 +1,21 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// interaction-log.js — client logger สำหรับระบบ audit ใหม่ (แทน sendActivityLog/batchLog เดิม)
+// interaction-log.js — client logger สถิติการใช้งาน "แบบไม่ระบุตัวตน"
 // ยิงไป action=logUserInteraction → backend เขียนลงไฟล์ audit "แยกจากคลังข้อสอบ"
+//
+// PRIVACY: เก็บแค่ intent tag + ชื่อฟีเจอร์ + app + เวลา เท่านั้น
+//   ไม่ส่ง/ไม่เก็บ: email, sessionToken, ข้อความ prompt ดิบ, userAgent
+//   การจำแนก intent ทำ "ฝั่ง client" (classifyAiIntent) → ข้อความดิบไม่เคยออกจากอุปกรณ์
+//   clientId ส่งไปเพื่อ rate-limit ชั่วคราวเท่านั้น (backend ไม่เขียนลง sheet)
 //
 // ใช้ร่วมกันได้ทั้ง 5 แอป: คัดลอกไฟล์นี้ไปแต่ละแอป แล้วตั้ง window.APP_ID ให้ต่างกัน
 //
-//   window.logFeature(feature, meta)              — สถิติการใช้ฟีเจอร์ (buffer + throttled beacon, best-effort)
-//   window.logAiPrompt(promptText, model, respMeta) — prompt AI (ยิงทันที fetch keepalive, ไม่ drop)
+//   window.logFeature(feature)          — สถิติการใช้ฟีเจอร์ (buffer + throttled beacon, best-effort)
+//   window.logAiIntent(queryText, model) — จำแนก intent ฝั่ง client แล้วส่งเฉพาะ tag (ยิงทันที, ไม่ drop)
 // ──────────────────────────────────────────────────────────────────────────────
 
 window.APP_ID = 'real'; // ★ แต่ละแอปตั้งค่าต่างกัน (real / database / converter / …)
 
-// client UUID ถาวรต่ออุปกรณ์ — ใช้เป็น rate-limit key รอง และ join anonymous events
+// client UUID ถาวรต่ออุปกรณ์ — ใช้เป็น rate-limit key ชั่วคราวเท่านั้น (ไม่ถูกเก็บใน audit)
 window.getClientId = function () {
     var id = localStorage.getItem('mdkku_client_id');
     if (!id) {
@@ -24,18 +29,35 @@ window._ilBasePayload = function (events) {
     return {
         action: 'logUserInteraction',
         appId: window.APP_ID,
-        sessionToken: localStorage.getItem('mdkku_session_token') || '',
-        clientId: window.getClientId(),
-        userAgent: navigator.userAgent,
+        clientId: window.getClientId(), // throttle key เท่านั้น — backend ไม่ persist
         events: events
     };
 };
 
+// จำแนกเจตนาคำถาม AI เป็น 1 ใน 5 tag (keyword heuristic ไทย/อังกฤษ) — ลำดับเช็คสำคัญ
+// คืนเฉพาะ "tag" ไม่คืน/ไม่ส่งข้อความดิบ
+window.classifyAiIntent = function (query) {
+    var q = String(query || '').toLowerCase();
+    // 1) เช็คว่าคำตอบถูกไหม / ทำไมไม่ใช่ข้อนี้
+    if (/ถูก(ไหม|มั้ย|รึ)|ใช่(ไหม|มั้ย)|ผิดตรงไหน|ทำไม(ถึง)?ไม่ใช่|ไม่ใช่ข้อ|ข้อไหนถูก|ต่างจากข้อ|ตัด\s*choice|choice\s*[a-e]|why not|is this correct|which (one|choice)|ตรวจ(คำตอบ)?/.test(q))
+        return 'answer-verification';
+    // 2) ช่วยทำ/เฉลย/คำนวณข้อสอบ
+    if (/ช่วย(ทำ|ตอบ|แก้|เฉลย)|เฉลย|วิธีทำ|ข้อนี้(ทำ|ตอบ)|คำนวณ|โด[สซ]|dose|dosage|solve|answer this|how (do i|to) (solve|answer)/.test(q))
+        return 'quiz-help';
+    // 3) วางแผน/เตรียมสอบ/เทคนิคจำ
+    if (/เตรียมสอบ|วางแผน|ควรอ่าน|อ่านอะไร|ออกสอบ|ช่วยจำ|วิธีจำ|จำยังไง|mnemonic|ท่องจำ|สรุป(ย่อ|เนื้อหา)|study (plan|tips)|exam/.test(q))
+        return 'study-planning';
+    // 4) อธิบายคอนเซปต์/นิยาม/กลไก/แปลศัพท์
+    if (/คืออะไร|อธิบาย|กลไก|ทำงานยังไง|หมายถึง|หมายความว่า|นิยาม|แปลว่า|แปลเป็น|definition|explain|mechanism|what is|meaning of/.test(q))
+        return 'concept-explanation';
+    return 'other';
+};
+
 // ── feature usage: buffered + throttled ────────────────────────────────────────
-window.logFeature = function (feature, meta) {
+window.logFeature = function (feature) {
     try {
         var buf = JSON.parse(localStorage.getItem('interactionBuffer') || '[]');
-        buf.push({ eventType: 'feature_use', feature: String(feature || ''), meta: meta || '' });
+        buf.push({ eventType: 'feature_use', feature: String(feature || '') });
         localStorage.setItem('interactionBuffer', JSON.stringify(buf));
     } catch (e) { console.warn('logFeature buffer failed:', e); }
     window.flushInteractions(false);
@@ -88,24 +110,24 @@ function _ilDropFirst(n) {
     } catch (e) { /* ignore */ }
 }
 
-// ── AI prompt: ยิงทันที ไม่ buffer (prompt คือ record ที่ต้องการจริง อย่า drop) ──────
-window.logAiPrompt = function (promptText, model, responseMeta) {
+// ── AI intent: จำแนกฝั่ง client แล้วส่งเฉพาะ tag (ยิงทันที ไม่ buffer) ─────────────
+// รับ queryText มาเพื่อจำแนกในเครื่องเท่านั้น — ส่งออกแค่ tag + model ข้อความดิบไม่ออกจากอุปกรณ์
+window.logAiIntent = function (queryText, model) {
     try {
         var payload = window._ilBasePayload([{
-            eventType: 'ai_prompt',
-            promptText: String(promptText || ''),
-            model: model || '',
-            responseMeta: responseMeta || ''
+            eventType: 'ai_intent',
+            tag: window.classifyAiIntent(queryText),
+            model: model || ''
         }]);
         fetch(window.APPSCRIPT_URL, {
             method: 'POST', redirect: 'follow', keepalive: true,
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
-        }).catch(function (err) { console.warn('logAiPrompt failed:', err); });
-    } catch (e) { console.warn('logAiPrompt error:', e); }
+        }).catch(function (err) { console.warn('logAiIntent failed:', err); });
+    } catch (e) { console.warn('logAiIntent error:', e); }
 };
 
-// lifecycle flush (feature buffer เท่านั้น; ai_prompt ส่งทันทีอยู่แล้ว)
+// lifecycle flush (feature buffer เท่านั้น; ai_intent ส่งทันทีอยู่แล้ว)
 window.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') window.flushInteractions(false);
 });
