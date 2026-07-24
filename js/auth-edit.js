@@ -47,6 +47,12 @@ window.showGoogleSignInModal = function (titleText = 'เข้าสู่ร�
     });
 };
 
+// เปิด/ปิดสถานะสีเทาของฟีเจอร์ที่ต้องล็อกอิน (AI Passport, ข้อออกบ่อย) ตามสถานะ EDIT_SESSION
+window.updateLoginGatedFeaturesUI = function () {
+    var loggedIn = !!(window.EDIT_SESSION && window.EDIT_SESSION.isLoggedIn);
+    $('#open-similar-report-btn, #chatbot-fab').toggleClass('login-gated', !loggedIn);
+};
+
 window.ensureActiveSession = function () {
     if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn) {
         window.showGoogleSignInModal('กรุณาเข้าสู่ระบบก่อนดำเนินการ');
@@ -81,6 +87,7 @@ window.logoutEditModeSilent = function () {
     if (typeof window.closeEditModal === 'function') {
         window.closeEditModal();
     }
+    window.updateLoginGatedFeaturesUI();
 };
 
 window.resumeSessionFromToken = async function (token) {
@@ -102,6 +109,7 @@ window.resumeSessionFromToken = async function (token) {
             } else {
                 window.enableEditModeUI();
             }
+            window.updateLoginGatedFeaturesUI();
             console.log("Session restored for:", res.user.displayName);
             if (typeof window.onSyncSessionReady === 'function') window.onSyncSessionReady();
             window.promptStudentIdIfNeeded();
@@ -210,6 +218,7 @@ window.handleCredentialResponse = async function (response) {
             } else {
                 window.enableEditModeUI();
             }
+            window.updateLoginGatedFeaturesUI();
             Swal.fire({
                 icon: "success",
                 title: isStudent ? "เข้าสู่ระบบแล้ว — ซิงค์ความคืบหน้าเปิดใช้งาน" : "เข้าสู่ระบบแก้ไขข้อสอบแล้ว",
@@ -256,6 +265,7 @@ window.logoutEditMode = function () {
     if (tokenToDelete) {
         window.sendWithRetry({ action: 'deleteSession', sessionToken: tokenToDelete }).catch(() => {});
     }
+    window.updateLoginGatedFeaturesUI();
     try { google.accounts.id.disableAutoSelect(); } catch (e) { }
     Swal.fire({
         icon: "success",

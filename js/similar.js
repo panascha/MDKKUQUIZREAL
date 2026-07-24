@@ -774,7 +774,13 @@ $(function () {
         $('#similar-preview-modal').fadeOut(150);
     });
 
-    $('#open-similar-report-btn').on('click', window.openSimilarReport);
+    $('#open-similar-report-btn').on('click', function () {
+        if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn) {
+            window.showGoogleSignInModal('เข้าสู่ระบบเพื่อดูข้อออกบ่อย (คลัสเตอร์ข้อสอบซ้ำ)');
+            return;
+        }
+        window.openSimilarReport();
+    });
     $('#close-similar-report').on('click', function () {
         $('#similar-report-overlay').fadeOut(150);
     });

@@ -44,6 +44,10 @@ window.pickAutoModel = function (taskKey) {
 // เปิด/ปิด side panel — สถานะจำไว้ใน localStorage
 window.toggleChatbotPanel = function (force) {
     var open = (typeof force === 'boolean') ? force : !document.body.classList.contains('chatbot-open');
+    if (open && (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn)) {
+        window.showGoogleSignInModal('เข้าสู่ระบบเพื่อใช้ MDKKUQUIZ AI Passport EIEI');
+        return;
+    }
     document.body.classList.toggle('chatbot-open', open);
     try { localStorage.setItem('mdkku_chatbot_open', open ? '1' : '0'); } catch (e) { }
     if (open) setTimeout(function () { $('#chatbot-input').trigger('focus'); }, 260);
@@ -288,7 +292,7 @@ $(document).ready(function () { window.loadChatbotModelCatalog(); });
         if (!window._chatbotStateRestored) {
             window._chatbotStateRestored = true;
             try {
-                if (localStorage.getItem('mdkku_chatbot_open') === '1') window.toggleChatbotPanel(true);
+                if (localStorage.getItem('mdkku_chatbot_open') === '1' && window.EDIT_SESSION && window.EDIT_SESSION.isLoggedIn) window.toggleChatbotPanel(true);
             } catch (e) { }
         }
     };

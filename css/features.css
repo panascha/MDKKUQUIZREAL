@@ -63,6 +63,13 @@ body.chatbot-open #chatbot-fab {
     display: none !important;
 }
 
+/* Login-gated features (AI Passport, ข้อออกบ่อย) — grayed until user logs in with KKU account */
+#chatbot-fab.login-gated,
+#open-similar-report-btn.login-gated {
+    opacity: 0.55;
+    filter: grayscale(0.6);
+}
+
 /* Markdown styling inside chat bubbles */
 .chat-md h4,
 .chat-md h5 {
