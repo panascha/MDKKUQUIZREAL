@@ -104,6 +104,7 @@ window.resumeSessionFromToken = async function (token) {
             }
             console.log("Session restored for:", res.user.displayName);
             if (typeof window.onSyncSessionReady === 'function') window.onSyncSessionReady();
+            window.promptStudentIdIfNeeded();
         } else {
             localStorage.removeItem("mdkku_session_token");
             console.log("Session expired, user must re-login.");
@@ -111,6 +112,46 @@ window.resumeSessionFromToken = async function (token) {
     } catch (err) {
         console.warn("Session resume failed:", err);
     }
+};
+
+// ยืนยันตัวตนด้วยรหัสนักศึกษา — ผู้ใช้ที่ auto-enroll ผ่าน Google SSO ยังไม่มีรหัส นศ. → ขอกรอกหลังล็อกอิน
+// ข้ามได้ (ไม่บล็อกการใช้งาน) แต่จะถามอีกครั้งในการล็อกอิน/กลับเข้าใช้ครั้งถัดไปจนกว่าจะกรอก
+window.promptStudentIdIfNeeded = function () {
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn || !window.EDIT_SESSION.sessionToken) return;
+    if (window.EDIT_SESSION.studentId) return; // มีแล้ว ไม่ต้องถาม
+    // กด "ข้ามไปก่อน" แล้วพักการถาม 24 ชม. (คีย์ร่วม same-origin กับหน้าคลังข้อสอบ) — กันเด้งทุกครั้งที่รีเฟรช
+    var snoozeUntil = parseInt(localStorage.getItem('mdkku_sid_snooze_until') || '0', 10);
+    if (snoozeUntil && Date.now() < snoozeUntil) return;
+    Swal.fire({
+        title: 'ยืนยันตัวตน',
+        input: 'text',
+        inputLabel: 'กรุณากรอกรหัสนักศึกษาเพื่อยืนยันตัวตน',
+        inputPlaceholder: 'เช่น 65xxxxxxxx',
+        inputAttributes: { inputmode: 'numeric', maxlength: '12' },
+        showCancelButton: true,
+        confirmButtonText: 'บันทึก',
+        cancelButtonText: 'ข้ามไปก่อน',
+        allowOutsideClick: false,
+        inputValidator: (value) => {
+            if (!/^\d{6,12}$/.test(String(value || '').trim())) return 'รหัสนักศึกษาต้องเป็นตัวเลข 6-12 หลัก';
+        },
+        preConfirm: async (value) => {
+            try {
+                const res = await window.sendWithRetry({ action: 'saveStudentId', sessionToken: window.EDIT_SESSION.sessionToken, studentId: String(value).trim() });
+                if (res.result !== 'success') { Swal.showValidationMessage(res.message || 'บันทึกไม่สำเร็จ'); return false; }
+                return res.studentId;
+            } catch (e) { Swal.showValidationMessage('เชื่อมต่อระบบไม่สำเร็จ'); return false; }
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            window.EDIT_SESSION.studentId = result.value;
+            localStorage.removeItem('mdkku_sid_snooze_until');
+            if (window.EDIT_SESSION.role === 'Student') { window.enableStudentModeUI(); } else { window.enableEditModeUI(); }
+            Swal.fire({ icon: 'success', title: 'ยืนยันตัวตนสำเร็จ', timer: 1500, showConfirmButton: false });
+        } else {
+            localStorage.setItem('mdkku_sid_snooze_until', String(Date.now() + 86400000)); // ข้าม → พัก 24 ชม.
+        }
+    });
 };
 
 window.setupGoogleSSO = function () {
@@ -182,6 +223,8 @@ window.handleCredentialResponse = async function (response) {
                 var sp = new URLSearchParams(window.location.search).get('subject') || '';
                 window.checkAndPromptRestoreProgress('session_state_' + (sp || 'default'));
             }
+            // ขอรหัสนักศึกษาหลังป้ายต้อนรับปิด (กันซ้อน Swal) ถ้ายังไม่เคยยืนยัน
+            setTimeout(window.promptStudentIdIfNeeded, 2200);
         } else {
             Swal.fire("สิทธิ์ไม่ถูกต้อง", res.message || "บัญชีนี้ไม่มีสิทธิ์การแก้ไขระบบ", "error");
         }
