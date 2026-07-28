@@ -350,6 +350,18 @@ window.renderAccordionUI = function (data) {
     const $container = $('#dynamic-accordion-area');
     $container.empty();
 
+    // แถบตั้งจำนวนข้อแบบด่วน — มีผลกับทุกหมวดที่ติ๊กไว้ตอนนั้น
+    $container.append(`
+        <div id="category-limit-presets" class="limit-preset-bar">
+            <span class="limit-preset-label"><i class="fas fa-dice"></i> สุ่มข้อต่อหัวข้อ:</span>
+            <button type="button" class="limit-preset-btn" data-limit="5">5</button>
+            <button type="button" class="limit-preset-btn" data-limit="10">10</button>
+            <button type="button" class="limit-preset-btn" data-limit="20">20</button>
+            <button type="button" class="limit-preset-btn" data-limit="all">ทั้งหมด</button>
+            <span class="limit-preset-hint">มีผลกับหัวข้อที่เลือกไว้แล้วเท่านั้น</span>
+        </div>
+    `);
+
     const categoryStats = {};
     if (typeof window.APP.allQuestions !== 'undefined' && window.APP.allQuestions.length > 0) {
         window.APP.allQuestions.forEach(q => {
@@ -399,11 +411,24 @@ window.renderAccordionUI = function (data) {
             badgeStyle = isComplete ? "color: #16a34a;" : "color: #dc2626; font-weight: 800;";
             displayCount = `(${stats.split}/${stats.total})`;
         }
+        const catId = category.categoryId;
+        const poolSize = stats.total;
+        const limitVal = window.getCategoryLimit(catId, poolSize); // อ่านจาก SSOT กัน state หายตอนรีเรนเดอร์
+
         return `
-            <label class="category-label">
-                <input type="checkbox" name="category" id="cat-${category.categoryId}" data-category-id="${category.categoryId}" value="${category.categoryId}" style="display: none;">
-                <span class="toggle-button ${colorClass}">${category.categoryName} <span style="${badgeStyle}">${displayCount}</span></span>
-            </label>
+            <div class="category-item" data-cat-id="${catId}">
+                <label class="category-label">
+                    <input type="checkbox" name="category" id="cat-${catId}" data-category-id="${catId}" value="${catId}" style="display: none;">
+                    <span class="toggle-button ${colorClass}">${category.categoryName} <span style="${badgeStyle}">${displayCount}</span></span>
+                </label>
+                <div class="limit-stepper" data-cat-id="${catId}" data-max="${poolSize}" style="display: none;">
+                    <button type="button" class="lim-btn" data-act="dec" title="ลดจำนวนข้อ">−</button>
+                    <input type="number" class="lim-input" inputmode="numeric" min="1" max="${poolSize}" value="${limitVal}">
+                    <span class="lim-max">/${poolSize}</span>
+                    <button type="button" class="lim-btn" data-act="inc" title="เพิ่มจำนวนข้อ">+</button>
+                    <button type="button" class="lim-btn lim-full" data-act="full" title="เอาทั้งหมดของหัวข้อนี้">ทั้งหมด</button>
+                </div>
+            </div>
         `;
     }
 
@@ -530,14 +555,118 @@ window.renderAccordionUI = function (data) {
     });
 
     $('input[type="checkbox"][name="category"]').on('change', () => {
+        window.syncCategoryLimitUI();
         window.updateQuestionSet();
         window.updateSelectedCategoryStatus();
         window.updateSuperGroupBadges();
     });
 
+    window.bindCategoryLimitHandlers();
+    window.syncCategoryLimitUI();
+
     // อัปเดตการแสดงผลและ Badges ตัวเลขสะสมของปุ่มในหน้า UI
     window.updateSelectedCategoryStatus();
     window.updateSuperGroupBadges();
+};
+
+// เขียนค่าลง SSOT (window.APP.categoryLimits) — ค่าว่าง/เต็มจำนวน = ลบคีย์ทิ้งให้เหลือ default เดียว
+window.setCategoryLimit = function (catId, value, max) {
+    if (!window.APP.categoryLimits) window.APP.categoryLimits = {};
+
+    // ยังไม่รู้จำนวนข้อจริงของหมวด (ตอนเรนเดอร์ก่อนโหลดข้อสอบเสร็จ data-max=0) → อย่าเพิ่งเขียนค่า
+    if (typeof max !== 'number' || max <= 0) return;
+
+    const cap = max;
+    const n = parseInt(value, 10);
+
+    if (value === null || !Number.isFinite(n)) {
+        delete window.APP.categoryLimits[catId];
+        return;
+    }
+
+    const clamped = Math.max(1, Math.min(n, cap));
+    if (clamped >= cap) {
+        delete window.APP.categoryLimits[catId];
+        return;
+    }
+    window.APP.categoryLimits[catId] = clamped;
+};
+
+// ซิงค์ DOM ให้ตรงกับ SSOT — โชว์ stepper เฉพาะหัวข้อที่ติ๊กไว้
+window.syncCategoryLimitUI = function () {
+    $('#dynamic-accordion-area .category-item').each(function () {
+        const $item = $(this);
+        const $stepper = $item.find('.limit-stepper');
+        const isChecked = $item.find('input[name="category"]').prop('checked');
+
+        $stepper.toggle(!!isChecked);
+        if (!isChecked) return;
+
+        const catId = $item.attr('data-cat-id');
+        const max = parseInt($stepper.attr('data-max'), 10) || 0;
+        $stepper.find('.lim-input').val(window.getCategoryLimit(catId, max));
+    });
+};
+
+// ปุ่มลัด 5 / 10 / 20 / ทั้งหมด — ตั้งค่าให้ทุกหัวข้อที่ติ๊กไว้ (n = null คือทั้งหมด)
+window.applyLimitPreset = function (n) {
+    $('#dynamic-accordion-area .category-item').each(function () {
+        const $item = $(this);
+        if (!$item.find('input[name="category"]').prop('checked')) return;
+
+        const $stepper = $item.find('.limit-stepper');
+        window.setCategoryLimit(
+            $item.attr('data-cat-id'),
+            n,
+            parseInt($stepper.attr('data-max'), 10) || 0
+        );
+    });
+
+    window.syncCategoryLimitUI();
+    window.updateQuestionSet();
+};
+
+// ผูก event แบบ delegate ครั้งเดียว — renderAccordionUI ถูกเรียกซ้ำหลายรอบต่อ session
+window.bindCategoryLimitHandlers = function () {
+    if (window._limitUIBound) return;
+    window._limitUIBound = true;
+
+    const $area = $('#dynamic-accordion-area');
+
+    $area.on('click', '.limit-preset-btn', function () {
+        const raw = $(this).attr('data-limit');
+        window.applyLimitPreset(raw === 'all' ? null : parseInt(raw, 10));
+    });
+
+    $area.on('click', '.lim-btn', function () {
+        const $stepper = $(this).closest('.limit-stepper');
+        const catId = $stepper.attr('data-cat-id');
+        const max = parseInt($stepper.attr('data-max'), 10) || 0;
+        const act = $(this).attr('data-act');
+
+        if (act === 'full') {
+            window.setCategoryLimit(catId, null, max);
+        } else {
+            const current = window.getCategoryLimit(catId, max);
+            window.setCategoryLimit(catId, act === 'inc' ? current + 1 : current - 1, max);
+        }
+
+        window.syncCategoryLimitUI();
+        window.updateQuestionSet();
+    });
+
+    // ใช้ change (ไม่ใช่ input) — กันไม่ให้ยิง updateQuestionSet ทุกตัวอักษรที่พิมพ์
+    $area.on('change', '.lim-input', function () {
+        const $stepper = $(this).closest('.limit-stepper');
+        window.setCategoryLimit(
+            $stepper.attr('data-cat-id'),
+            $(this).val(),
+            parseInt($stepper.attr('data-max'), 10) || 0
+        );
+
+        window.syncCategoryLimitUI();
+        window.updateQuestionSet();
+    });
 };
 
 window.toggleSuperGroup = function (headerEl) {
@@ -1043,6 +1172,10 @@ $(function () {
 
             window.APP.isRandomized = state.isRandom;
             $('#toggle-random-btn').text(window.APP.isRandomized ? 'โหมดสุ่ม (คลิกเพื่อเรียงลำดับ)' : 'โหมดเรียงลำดับ (คลิกเพื่อสุ่ม)');
+
+            // รหัสแชร์ไม่ได้เก็บลิมิตต่อหมวด — ต้องปลดลิมิตก่อน ไม่งั้นข้อใน state.order หายไปบางส่วน
+            window.APP.categoryLimits = {};
+            window.syncCategoryLimitUI();
 
             window.updateQuestionSet(false);
 

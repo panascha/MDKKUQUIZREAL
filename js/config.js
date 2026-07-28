@@ -144,7 +144,9 @@ window.APP = {
     preloadedImages: {},
     answerKeyMap: [],
     allSubjectsList: [],
-    meqMode: false
+    meqMode: false,
+    // จำนวนข้อที่สุ่มต่อหมวด (SSOT) — { categoryId: number } ; ไม่มีคีย์ = เอาทั้งหมดของหมวดนั้น
+    categoryLimits: {}
 };
 
 // 7. โหมด MEQ (Hidden Choices + Free-Recall) — persist ต่างจากค่าอื่นใน APP ที่เก็บผ่าน IndexedDB session state

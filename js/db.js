@@ -62,6 +62,7 @@ window.saveProgressToCache = async function () {
         isReviewMode: window.APP.isReviewMode,
         isFastMode: window.APP.isFastMode,
         filterMode: window.APP.filterMode || "category", // บันทึกสถานะโหมดตัวกรอง
+        categoryLimits: { ...(window.APP.categoryLimits || {}) }, // จำนวนข้อที่สุ่มต่อหมวด
         currentQuestionsState: window.APP.currentQuestions.map(q => ({
             questionId: q.questionId,
             state: q.state,
@@ -106,6 +107,7 @@ window.loadProgressFromCache = async function () {
 
     try {
         window.APP.filterMode = savedState.filterMode || "category";
+        window.APP.categoryLimits = savedState.categoryLimits || {};
 
         // คืนค่าเช็คบ็อกซ์แบบตามวิชา/ตามบทเรียนปกติ
         $('input[type="checkbox"][name="category"]').prop('checked', false);
@@ -117,6 +119,9 @@ window.loadProgressFromCache = async function () {
                 }
             });
         }
+
+        // ซิงค์ stepper จำนวนข้อต่อหมวดให้ตรงกับค่าที่กู้คืนมา (ต้องทำหลังคืนค่า checkbox)
+        if (typeof window.syncCategoryLimitUI === 'function') window.syncCategoryLimitUI();
 
         // คืนค่าเช็คบ็อกซ์ตัวเลือกละเอียด (Year / ExamGroup / Suffix)
         if (window.APP.filterMode === "attribute") {
@@ -169,6 +174,20 @@ window.loadProgressFromCache = async function () {
         if (reorderedQuestions.length === 0) return false;
 
         window.APP.currentQuestions = reorderedQuestions;
+
+        // เมล็ดลำดับสุ่มต่อหมวดจาก session ที่กู้คืนมา — _catSampleOrder เป็นของ session เดียว
+        // ถ้าไม่ seed ไว้ updateQuestionSet() ครั้งถัดไป (เช่นติ๊กหมวดเพิ่ม) จะสุ่มชุดใหม่ทับ ทำให้ข้อที่ทำไปแล้วหาย
+        window._catSampleOrder = window._catSampleOrder || {};
+        const restoredByCat = {};
+        reorderedQuestions.forEach(q => {
+            const cats = Array.isArray(q.category) ? q.category : [q.category];
+            cats.forEach(c => {
+                if (!c) return;
+                (restoredByCat[c] = restoredByCat[c] || []).push(q.questionId);
+            });
+        });
+        Object.keys(restoredByCat).forEach(c => { window._catSampleOrder[c] = restoredByCat[c]; });
+
         if (window.APP.currentQuestions.length > 0) window.preloadQuizImages(window.APP.currentQuestions);
         window.APP.questionIndex = savedState.questionIndex;
         window.APP.score = savedState.score;

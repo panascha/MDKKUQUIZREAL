@@ -339,3 +339,116 @@
         border-color: var(--color-dark);
     }
 
+
+    /* ---- ตั้งจำนวนข้อสุ่มต่อหัวข้อ (categoryLimits) ---- */
+    .limit-preset-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+        padding: 10px 12px;
+        border: 1px dashed var(--color-border);
+        border-radius: var(--border-radius);
+        background: var(--color-surface);
+    }
+
+    .limit-preset-label {
+        font-weight: 700;
+        font-size: 0.98rem;
+        color: var(--color-text);
+    }
+
+    .limit-preset-btn {
+        min-width: 46px;
+        padding: 5px 12px;
+        border: 1.5px solid var(--color-border);
+        border-radius: 16px;
+        background: var(--color-surface-2);
+        color: var(--color-text);
+        font-family: var(--font-primary);
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .limit-preset-btn:hover {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: white;
+    }
+
+    .limit-preset-hint {
+        font-size: 0.82rem;
+        color: var(--color-text-muted);
+        margin-left: auto;
+    }
+
+    .category-item {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .limit-stepper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 3px 6px;
+        border: 1px solid var(--color-border-soft);
+        border-radius: 14px;
+        background: var(--color-surface);
+    }
+
+    .lim-btn {
+        min-width: 26px;
+        height: 26px;
+        padding: 0 6px;
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        background: var(--color-surface-2);
+        color: var(--color-text);
+        font-family: var(--font-primary);
+        font-size: 0.95rem;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .lim-btn:hover {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: white;
+    }
+
+    .lim-btn.lim-full {
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .lim-input {
+        width: 54px;
+        height: 26px;
+        padding: 0 4px;
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        background: var(--color-surface);
+        color: var(--color-text);
+        font-family: var(--font-primary);
+        font-size: 0.92rem;
+        font-weight: 700;
+        text-align: center;
+        box-sizing: border-box;
+    }
+
+    .lim-max {
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+        white-space: nowrap;
+    }

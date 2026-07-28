@@ -194,4 +194,38 @@
         z-index: var(--zi-overlay);
     }
 
+    /* ---- ตัวตั้งจำนวนข้อสุ่มต่อหัวข้อ บนจอเล็ก ---- */
+    @media (max-width: 430px) {
+        .category-item {
+            display: block !important;
+            width: 100%;
+        }
+
+        .limit-preset-hint {
+            margin-left: 0;
+            flex-basis: 100%;
+        }
+
+        .limit-stepper {
+            margin-top: 4px;
+            gap: 3px;
+            padding: 3px 4px;
+        }
+
+        .lim-input {
+            width: 44px;
+            font-size: 0.85rem;
+        }
+
+        .lim-btn {
+            min-width: 24px;
+            height: 24px;
+            padding: 0 4px;
+        }
+
+        .lim-btn.lim-full {
+            font-size: 0.72rem;
+        }
+    }
+
     /* =========================================

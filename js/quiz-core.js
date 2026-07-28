@@ -434,6 +434,51 @@ window.sortCurrentQuestions = function () {
     window.APP.currentQuestions = [...groupAndShuffle(answered), ...groupAndShuffle(unanswered)];
 };
 
+// 7.1 การสุ่มข้อแบบจำกัดจำนวนต่อหมวด (SSOT = window.APP.categoryLimits)
+
+// สลับลำดับ array แบบ Fisher-Yates (in-place)
+window.fisherYates = function (arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+};
+
+// คำถามทั้งหมดของหมวดหนึ่ง — ต้องนับแบบเดียวกับ badge ใน renderAccordionUI
+window.getCategoryPool = function (catId) {
+    return window.APP.allQuestions.filter(q => {
+        if (!q.category) return false;
+        const cats = Array.isArray(q.category) ? q.category : [q.category];
+        return cats.includes(catId);
+    });
+};
+
+// อ่านลิมิตของหมวดจาก SSOT — ไม่มี/ไม่ถูกต้อง = เอาทั้งหมด, และไม่เกินจำนวนที่มีจริง
+window.getCategoryLimit = function (catId, poolSize) {
+    const raw = (window.APP.categoryLimits || {})[catId];
+    const n = parseInt(raw, 10);
+    if (!Number.isFinite(n) || n < 1) return poolSize;
+    return Math.min(n, poolSize);
+};
+
+// ลำดับสุ่มของแต่ละหมวดถูกจำไว้ตลอด session — กันไม่ให้ข้อที่ทำไปแล้วหายตอนติ๊กหมวดอื่นเพิ่ม
+// (เพิ่มลิมิต = ต่อท้ายข้อใหม่, ลดลิมิต = ตัดท้ายทิ้ง, ข้อที่ sync เข้ามาใหม่ถูกสุ่มต่อท้าย)
+window.getSampledCategoryOrder = function (catId, pool) {
+    if (!window._catSampleOrder) window._catSampleOrder = {};
+
+    const byId = new Map(pool.map(q => [q.questionId, q]));
+    const kept = (window._catSampleOrder[catId] || []).filter(id => byId.has(id));
+    const keptSet = new Set(kept);
+    const fresh = window.fisherYates(
+        pool.filter(q => !keptSet.has(q.questionId)).map(q => q.questionId)
+    );
+
+    const order = kept.concat(fresh);
+    window._catSampleOrder[catId] = order;
+    return order.map(id => byId.get(id));
+};
+
 // 8. การกรองและเปลี่ยนชุดข้อสอบ (Modified to support both categories and dynamic attribute filters)
 window.updateQuestionSet = function (shouldSort = true, shouldShow = true) {
     const previouslyAnswered = {};
@@ -463,15 +508,31 @@ window.updateQuestionSet = function (shouldSort = true, shouldShow = true) {
                 failCount: 0
             }));
         } else {
-            window.APP.currentQuestions = window.APP.allQuestions.filter(q => {
-                if (!q.category) return false;
-                let cats = Array.isArray(q.category) ? q.category : [q.category];
-                return cats.some(c => selectedCategoryIds.includes(c));
-            }).map(q => ({
-                ...q,
-                attemptCount: 0,
-                failCount: 0
-            }));
+            // สุ่มทีละหมวดตามลิมิตของหมวดนั้น แล้วรวมกันโดยตัดข้อซ้ำ (ข้อเดียวอยู่ได้หลายหมวด)
+            const picked = [];
+            const seenIds = new Set();
+
+            selectedCategoryIds.forEach(catId => {
+                const pool = window.getCategoryPool(catId);
+                if (pool.length === 0) return;
+
+                const limit = window.getCategoryLimit(catId, pool.length);
+                window.getSampledCategoryOrder(catId, pool).slice(0, limit).forEach(q => {
+                    if (seenIds.has(q.questionId)) return;
+                    seenIds.add(q.questionId);
+                    picked.push({
+                        ...q,
+                        attemptCount: 0,
+                        failCount: 0
+                    });
+                });
+            });
+
+            // สุ่มรวมรอบสุดท้ายเฉพาะตอนที่จะจัดเรียงใหม่อยู่แล้ว — path ที่ shouldSort=false
+            // (กู้คืน session / import) ต้องคงลำดับเดิมไว้ให้ผู้เรียกจัดการเอง
+            if (shouldSort && window.APP.isRandomized) window.fisherYates(picked);
+
+            window.APP.currentQuestions = picked;
         }
     } else {
         // กรองแบบคุณสมบัติละเอียด (Year / ExamGroup / SubGroupSuffix / Topic)
