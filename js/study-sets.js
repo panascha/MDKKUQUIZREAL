@@ -125,7 +125,26 @@ window.launchWrongPractice = function () {
 
 // ── I-b. Wrong-practice picker: เลือกข้อ/หัวข้อก่อนฝึก หรือบันทึกเป็นชุด ─────
 
-// จัดกลุ่มข้อที่เคยผิดตามหัวข้อหลัก (category ตัวแรกของข้อ)
+// หัวข้อสำรองสำหรับข้อที่ยังไม่มีหมวดเลคเชอร์
+window.WRONG_NO_LECTURE_KEY = '__none';
+window.WRONG_NO_LECTURE_LABEL = 'อื่นๆ / ยังไม่ระบุเลคเชอร์';
+
+// รหัสชุดข้อสอบ (ไม่ใช่เลคเชอร์) เช่น RS_47MCQ2, RS_52FMT
+// ตั้งชื่อไม่ให้ชนกับ window.isLectureCategory ใน ui.js ซึ่งโหลด "หลัง" ไฟล์นี้ (index.html:1327 vs 1331)
+window.EXAM_SET_TOKEN_RE = /MCQ|FMT|LAB|QUIZ/i;
+window.isExamSetCategory = function (catId) {
+    const parts = String(catId || '').split('_');
+    if (parts.length < 3) return true; // SUBJ_YEAR สองส่วน = ชุดข้อสอบเสมอ
+    // เช็ค token เฉพาะส่วนที่ไม่ใช่ส่วนสุดท้าย — ส่วนสุดท้ายคือชื่อหัวข้อ free-text ที่มีคำว่า Lab ได้
+    return parts.slice(0, -1).some(p => window.EXAM_SET_TOKEN_RE.test(p));
+};
+
+// หมวด `..._Extracted` เป็นหมวดชั่วคราวจากตอน import ไม่ใช่เลคเชอร์จริง — ไม่นับเป็นหัวข้อ
+// (หมวดที่มีคำว่า "by AI" ยังนับเป็นเลคเชอร์ปกติ ไม่ตัดออก)
+window.EXTRACTED_CAT_RE = /_Extracted$/i;
+
+// จัดกลุ่มข้อที่เคยผิดตามหมวดเลคเชอร์ (category[1]+) — 1 ข้ออยู่ได้หลายเลคเชอร์
+// ข้อที่เหลือแต่หมวดชุดข้อสอบ/_Extracted ตกไปอยู่กลุ่มสำรอง WRONG_NO_LECTURE_KEY
 window.getWrongQuestionsByLecture = function () {
     const qs = window.APP.allQuestions || [];
     const byId = {};
@@ -134,10 +153,20 @@ window.getWrongQuestionsByLecture = function () {
     window.getWrongPracticeQids().forEach(id => {
         const q = byId[String(id)];
         if (!q) return;
-        const rawCat = (Array.isArray(q.category) && q.category.length) ? q.category[0] : null;
-        const catId = rawCat === null ? '__none' : String(rawCat);
-        const catName = rawCat === null ? 'ไม่ระบุหัวข้อ' : (window.getCategoryNameById(rawCat) || catId);
-        (byCat[catId] = byCat[catId] || { catName, list: [] }).list.push(q);
+        const cats = (Array.isArray(q.category) ? q.category : (q.category ? [q.category] : []))
+            .filter(c => c !== null && c !== undefined
+                && !window.isExamSetCategory(c)
+                && !window.EXTRACTED_CAT_RE.test(String(c)));
+        if (!cats.length) {
+            const k = window.WRONG_NO_LECTURE_KEY;
+            (byCat[k] = byCat[k] || { catName: window.WRONG_NO_LECTURE_LABEL, list: [] }).list.push(q);
+            return;
+        }
+        cats.forEach(rawCat => {
+            const catId = String(rawCat);
+            const catName = window.getCategoryNameById(rawCat) || catId;
+            (byCat[catId] = byCat[catId] || { catName, list: [] }).list.push(q);
+        });
     });
     return byCat;
 };
@@ -154,9 +183,17 @@ window.openWrongPicker = function () {
     const log = window._wrongHistCache[subj] || {};
     const byCat = window.getWrongQuestionsByLecture();
 
+    // ชื่อเลคเชอร์เป็น free-text (มี ' " ได้) จึงไม่ยัดลง data-cat ตรงๆ — ใช้ index key + lookup เหมือน openStudyPicker
+    window._wrongPickCats = {};
     let html = '';
-    Object.keys(byCat).sort((a, b) => byCat[a].catName.localeCompare(byCat[b].catName, 'th')).forEach(catId => {
-        const grp = byCat[catId];
+    Object.keys(byCat).sort((a, b) => {
+        if (a === window.WRONG_NO_LECTURE_KEY) return 1; // กลุ่มสำรองอยู่ล่างสุดเสมอ
+        if (b === window.WRONG_NO_LECTURE_KEY) return -1;
+        return byCat[a].catName.localeCompare(byCat[b].catName, 'th');
+    }).forEach((realCatId, idx) => {
+        const grp = byCat[realCatId];
+        const catId = 'wc' + idx;
+        window._wrongPickCats[catId] = { catId: realCatId, catName: grp.catName };
         html += `
         <div class="study-pick-cat" style="flex-shrink:0;border:1px solid var(--color-border-soft);border-radius:8px;overflow:hidden;margin-bottom:6px;">
             <div class="study-pick-cat-header" style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--color-surface-2);font-weight:700;cursor:pointer;user-select:none;">
@@ -183,8 +220,19 @@ window.openWrongPicker = function () {
     setTimeout(window.renderAllMath, 30);
 };
 
+// นับ "ข้อไม่ซ้ำ" ไม่ใช่จำนวน checkbox — 1 ข้อโผล่ได้หลายเลคเชอร์
 window.updateWrongPickerCount = function () {
-    $('#wrong-picker-count').text($('#wrong-picker-body .wrong-pick-q:checked').length);
+    const seen = {};
+    $('#wrong-picker-body .wrong-pick-q:checked').each(function () { seen[String($(this).data('id'))] = 1; });
+    $('#wrong-picker-count').text(Object.keys(seen).length);
+    // ติ๊กข้อในเลคเชอร์หนึ่งกระทบสำเนาในอีกเลคเชอร์ → ต้องคำนวณ checkbox หัวข้อใหม่ทุกครั้ง ไม่งั้นค้างสถานะเก่า
+    $('#wrong-picker-body .wrong-pick-cat-all').each(function () {
+        const cat = String($(this).data('cat'));
+        const $kids = $('#wrong-picker-body .wrong-pick-q').filter(function () {
+            return String($(this).data('cat')) === cat;
+        });
+        $(this).prop('checked', $kids.length > 0 && !$kids.filter(':not(:checked)').length);
+    });
 };
 
 // [{id, cat}] ของข้อที่ติ๊กอยู่
@@ -200,11 +248,20 @@ window.wrongPickerPractice = function () {
     const qs = window.APP.allQuestions || [];
     const byId = {};
     qs.forEach(q => { byId[String(q.questionId)] = q; });
+    // ตัดข้อซ้ำ — ข้อที่อยู่หลายเลคเชอร์ถูกติ๊กมาหลายครั้ง
+    const seen = {};
+    const picked = [];
+    sel.forEach(s => {
+        const key = String(s.id);
+        if (seen[key]) return;
+        seen[key] = 1;
+        if (byId[key]) picked.push(byId[key]);
+    });
     window.APP.filterMode = 'wrong-practice';
     window.setFilterMode('wrong-practice', true);
-    window.studyLoadQuestions(sel.map(s => byId[String(s.id)]).filter(Boolean));
+    window.studyLoadQuestions(picked);
     $('#wrong-picker-overlay').fadeOut(120);
-    window.bgToast.fire({ icon: 'success', title: 'โหมดฝึกข้อที่เคยผิด (' + sel.length + ' ข้อ)' });
+    window.bgToast.fire({ icon: 'success', title: 'โหมดฝึกข้อที่เคยผิด (' + picked.length + ' ข้อ)' });
 };
 
 // บันทึกข้อที่เลือกเป็นชุดใหม่ — แยก 1 ชุดต่อหัวข้อ
@@ -214,10 +271,14 @@ window.wrongPickerSaveSets = async function () {
     const subj = window.studySubjectKey();
     const sets = await window.ensureCustomSets(subj);
     const groups = {};
-    sel.forEach(s => { (groups[s.cat] = groups[s.cat] || []).push(s.id); });
+    sel.forEach(s => {
+        const g = (groups[s.cat] = groups[s.cat] || []);
+        if (!g.some(x => String(x) === String(s.id))) g.push(s.id); // กันซ้ำภายในชุดเดียวกัน
+    });
     let created = 0;
     Object.keys(groups).forEach(catId => {
-        const catName = catId === '__none' ? 'ไม่ระบุหัวข้อ' : (window.getCategoryNameById(catId) || catId);
+        const meta = (window._wrongPickCats || {})[catId];
+        const catName = meta ? meta.catName : catId;
         sets.push({
             id: 'set_' + Date.now() + '_' + created + '_' + Math.floor(Math.random() * 1000),
             name: 'ผิดบ่อย: ' + catName,
@@ -706,12 +767,28 @@ $(function () {
     $(document).on('change', '.wrong-pick-cat-all', function () {
         const cat = String($(this).data('cat'));
         const checked = $(this).is(':checked');
+        const ids = {};
         $('#wrong-picker-body .wrong-pick-q').each(function () {
-            if (String($(this).data('cat')) === cat) $(this).prop('checked', checked);
+            if (String($(this).data('cat')) === cat) {
+                $(this).prop('checked', checked);
+                ids[String($(this).data('id'))] = 1;
+            }
+        });
+        // สำเนาข้อเดียวกันในเลคเชอร์อื่นต้องตรงกันด้วย (1 ข้อ = 1 สถานะ)
+        $('#wrong-picker-body .wrong-pick-q').each(function () {
+            if (ids[String($(this).data('id'))]) $(this).prop('checked', checked);
         });
         window.updateWrongPickerCount();
     });
-    $(document).on('change', '.wrong-pick-q', window.updateWrongPickerCount);
+    // ข้อเดียวโผล่ได้หลายเลคเชอร์ — ติ๊ก/ติ๊กออกที่ไหนก็ให้ทุกสำเนาตรงกัน ไม่งั้นติ๊กออกแล้วข้อไม่หายจริง
+    $(document).on('change', '.wrong-pick-q', function () {
+        const id = String($(this).data('id'));
+        const checked = $(this).is(':checked');
+        $('#wrong-picker-body .wrong-pick-q').each(function () {
+            if (String($(this).data('id')) === id && $(this).is(':checked') !== checked) $(this).prop('checked', checked);
+        });
+        window.updateWrongPickerCount();
+    });
 
     // Feature A — My Sets section
     $('#my-sets-create-btn').on('click', function () { window.openStudyPicker('create'); });
