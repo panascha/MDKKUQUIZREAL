@@ -617,7 +617,12 @@ $(document).on('click', '.suggestion-chip', function () {
 window.renderExplainHtmlForSearchCard = function (explainRaw) {
     if (!explainRaw) return '';
     const parsed = window.parseExplain(explainRaw);
-    let html = `<b>คำอธิบาย:</b><br>${window.highlight(parsed.text) || 'ไม่มีคำอธิบาย'}`;
+    const hasSearchTerms = window.APP.termColors && Object.keys(window.APP.termColors).length > 0;
+    // เมื่อมี search terms → ใช้ highlight (plain text); เมื่อไม่มี → render Markdown เต็มรูปแบบ
+    const textHtml = hasSearchTerms
+        ? window.highlight(parsed.text)
+        : window.renderMarkdownSafe(parsed.text);
+    let html = `<b>คำอธิบาย:</b><br>${textHtml || 'ไม่มีคำอธิบาย'}`;
 
     if (parsed.media && parsed.media.length > 0) {
         html += `<div class="explain-media-group" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; width: 100%;">`;

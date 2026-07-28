@@ -1046,6 +1046,10 @@
                 <button id="next-img-btn" class="img-nav-btn"><i class="fas fa-chevron-right"></i></button>
                 <div id="image-counter">1/1</div>
             </div>
+            <!-- ส่งรูปโจทย์ให้ AI อ่าน — โผล่เฉพาะข้อที่มีรูป (js/chatbot.js hook showQuestion) -->
+            <button type="button" id="btn-ask-ai-image" style="display:none;" onclick="window.askAiAboutQuestionImage()">
+                <i class="fas fa-wand-magic-sparkles"></i> ให้ AI ช่วยอ่านภาพนี้
+            </button>
 
             <!-- MEQ Mode: recall panel — hidden unless meqMode ON and question unanswered (js/meq.js) -->
             <div id="meq-recall-panel" style="display:none;">
@@ -1266,6 +1270,7 @@
         <i class="fas fa-robot"></i>
     </button>
     <div id="quiz-chatbot-panel" class="chatbot-drawer" style="text-align: left; font-family: var(--font-primary);">
+        <div id="chatbot-resize-handle"></div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
             <span style="font-weight: 800; font-size: 1.05rem; color: var(--color-primary); display: inline-flex; align-items: center; gap: 8px;">
                 <i class="fas fa-robot"></i> MDKKUQUIZ AI Passport EIEI
@@ -1287,13 +1292,30 @@
                 <button type="button" class="btn-xs" onclick="$('#chatbot-newq-banner').hide()" style="background: var(--color-surface-3); color: var(--color-text);">ใช้ต่อ</button>
             </div>
         </div>
-        <div id="chatbot-conversation" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; background: var(--color-surface); padding: 10px; border-radius: 8px; border: 1px solid var(--color-border-soft); margin-bottom: 12px; font-size: 1.05rem; display: flex; flex-direction: column; gap: 8px;">
+        <div id="chatbot-conversation" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; background: var(--color-surface); padding: 10px; border-radius: 8px; border: 1px solid var(--color-border-soft); margin-bottom: 12px; font-size: 1.08rem; display: flex; flex-direction: column; gap: 8px;">
             <p class="text-muted mb-0" style="font-style: italic;">พิมพ์คำถามเพื่อให้ AI อธิบายกลไกการเกิดโรคหรือขยายความเฉลยได้ทันที...</p>
+        </div>
+        <!-- รูปโจทย์ที่รอแนบไปกับคำถามถัดไป -->
+        <div id="chatbot-img-chip" style="display:none;">
+            <i class="fas fa-image"></i> แนบรูปโจทย์ <span id="chatbot-img-count">0</span> รูป
+            <button type="button" onclick="window.clearPendingImages()" title="เอารูปออก">&times;</button>
+        </div>
+        <!-- โหมดคำตอบ: คุมรูปแบบคำตอบเสมอ และคุมการเลือกโมเดลเฉพาะตอนอยู่โหมด Auto -->
+        <div id="chatbot-mode-bar">
+            <button type="button" class="chat-mode-btn" data-mode="flash" aria-pressed="false"
+                title="ตอบสั้น เป็น bullet เน้นประเด็นที่ออกสอบบ่อย">⚡ Flash</button>
+            <button type="button" class="chat-mode-btn" data-mode="think" aria-pressed="true"
+                title="อธิบายลึก ไล่กลไกพยาธิสรีรวิทยาและไล่ตัดตัวเลือก">🧠 Think</button>
+            <span class="chat-mode-hint">ถ้าเลือกโมเดลเองด้านบน โมเดลนั้นจะถูกใช้เสมอ</span>
         </div>
         <div style="display: flex; gap: 8px;">
             <input type="text" id="chatbot-input" class="edit-choice-input" style="flex: 1;" placeholder="เช่น ทำไมถึงไม่ใช่ข้อ C? อธิบาย mechanism หน่อยได้ไหม">
             <button type="button" class="btn-xs teal" id="btn-send-chat" onclick="window.sendChatbotQuery()">
                 <i class="fas fa-paper-plane"></i>
+            </button>
+            <button type="button" class="btn-xs" id="btn-stop-chat" style="display:none;background:var(--color-wrong);color:#fff;"
+                onclick="window.stopChatGeneration()" title="หยุดรอคำตอบ (โควต้าที่ใช้ไปแล้วไม่คืน)">
+                <i class="fas fa-stop"></i>
             </button>
         </div>
         <div style="margin-top: 8px; font-size: 0.9rem; color: var(--color-text-muted); text-align: right;">

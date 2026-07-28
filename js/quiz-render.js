@@ -75,6 +75,7 @@ window.renderMarkdownSafe = function (mdText) {
 
     var codeStore = [];
     var mathStore = [];
+    var htmlStore = [];
 
     text = text.replace(/```[\w-]*\n?([\s\S]*?)```/g, function (_m, code) {
         codeStore.push({ block: true, code: code.replace(/\n$/, '') });
@@ -94,7 +95,17 @@ window.renderMarkdownSafe = function (mdText) {
         return '\u0000M' + (mathStore.length - 1) + '\u0000';
     });
 
+    // เก็บ legacy HTML tags (b/i/br/u/sup/sub/span) — DB มี tag จริงปนมากับคำอธิบาย
+    text = text.replace(/<\/?(?:b|i|br|u|sup|sub|span)[^>]*>/gi, function (m) {
+        htmlStore.push(m);
+        return "___HTML_TAG_" + (htmlStore.length - 1) + "___";
+    });
+
     text = escapeHtml(text);
+
+    text = text.replace(/___HTML_TAG_(\d+)___/g, function (_m, n) {
+        return htmlStore[+n];
+    });
 
     var inlineMd = function (s) {
         return s

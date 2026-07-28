@@ -71,35 +71,45 @@ body.chatbot-open #chatbot-fab {
 }
 
 /* Markdown styling inside chat bubbles */
+.chat-md {
+    font-size: 1.08rem;
+    line-height: 1.75;
+}
+
 .chat-md h4,
 .chat-md h5 {
-    margin: 8px 0 4px;
-    font-size: 1rem;
+    margin: 10px 0 6px;
+    font-size: 1.1rem;
 }
 
 .chat-md p {
-    margin: 4px 0;
+    margin: 6px 0;
 }
 
 .chat-md ul,
 .chat-md ol {
-    margin: 4px 0 4px 20px;
+    margin: 6px 0 6px 20px;
     padding: 0;
+}
+
+.chat-md li {
+    margin-bottom: 3px;
 }
 
 .chat-md pre {
     background: var(--color-surface-3);
-    padding: 8px;
+    padding: 10px;
     border-radius: 6px;
     overflow-x: auto;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
 }
 
 .chat-md code {
     background: var(--color-surface-3);
-    padding: 1px 4px;
+    padding: 1px 5px;
     border-radius: 4px;
-    font-size: 0.88em;
+    font-size: 0.92em;
 }
 
 .chat-md pre code {
@@ -109,8 +119,8 @@ body.chatbot-open #chatbot-fab {
 
 .chat-md table {
     border-collapse: collapse;
-    margin: 6px 0;
-    font-size: 0.9rem;
+    margin: 8px 0;
+    font-size: 0.92rem;
     display: block;
     overflow-x: auto;
     max-width: 100%;
@@ -119,20 +129,50 @@ body.chatbot-open #chatbot-fab {
 .chat-md th,
 .chat-md td {
     border: 1px solid var(--color-border);
-    padding: 3px 8px;
+    padding: 4px 10px;
 }
 
 .chat-md blockquote {
     border-left: 3px solid var(--color-border);
-    margin: 6px 0;
-    padding: 2px 10px;
+    margin: 8px 0;
+    padding: 4px 12px;
     color: var(--color-text-muted);
 }
 
 .chat-md hr {
     border: none;
     border-top: 1px solid var(--color-border);
-    margin: 8px 0;
+    margin: 12px 0;
+}
+
+.chat-md strong {
+    color: var(--color-text);
+}
+
+/* Resize handle — left edge of chatbot drawer (tablet+ only) */
+#chatbot-resize-handle {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+    background: transparent;
+    transition: background 0.15s;
+}
+
+#chatbot-resize-handle:hover,
+#chatbot-resize-handle.dragging {
+    background: var(--color-primary);
+    opacity: 0.5;
+}
+
+@media (min-width: 768px) {
+    #chatbot-resize-handle {
+        display: block;
+    }
 }
 
 /* Phone only: bottom sheet + scrim overlay (traditional method). ≤767 so iPad portrait (768) gets the docked panel */
@@ -195,6 +235,110 @@ body.chatbot-open #chatbot-fab {
 
 .ai-fb-bar button:disabled {
     cursor: default;
+}
+
+/* ปุ่ม "ถามใหม่" ในฟองคำตอบ — แยกสไตล์จากปุ่ม emoji feedback ให้ดูเป็นการกระทำ ไม่ใช่การให้คะแนน */
+.chat-retry-btn {
+    margin-left: auto;
+    font-size: 0.75rem !important;
+    font-weight: 600;
+    color: var(--color-primary) !important;
+    border: 1px solid var(--color-border-soft) !important;
+    border-radius: 6px !important;
+    padding: 2px 8px !important;
+    background: var(--color-surface) !important;
+    white-space: nowrap;
+}
+
+.chat-retry-btn:hover {
+    background: var(--color-primary-pale) !important;
+}
+
+/* ตัวเลือกโหมดคำตอบ (Flash / Think) เหนือช่องพิมพ์ */
+#chatbot-mode-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.chat-mode-btn {
+    border: 1px solid var(--color-border-soft);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.chat-mode-btn:hover {
+    border-color: var(--color-primary);
+}
+
+.chat-mode-btn.active {
+    background: var(--color-primary-pale);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.chat-mode-hint {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    flex: 1 1 100%;
+}
+
+/* ชิปบอกว่ามีรูปโจทย์รอแนบไปกับคำถามถัดไป */
+#chatbot-img-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: var(--color-primary-pale);
+    color: var(--color-primary);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+#chatbot-img-chip button {
+    margin-left: auto;
+    border: none;
+    background: none;
+    color: inherit;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+}
+
+/* ปุ่ม "ให้ AI ช่วยอ่านภาพนี้" ใต้รูปโจทย์ */
+#btn-ask-ai-image {
+    display: block;
+    margin: 8px auto 0;
+    border: 1px solid var(--color-primary);
+    background: var(--color-surface);
+    color: var(--color-primary);
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: var(--font-primary);
+    cursor: pointer;
+}
+
+#btn-ask-ai-image:hover {
+    background: var(--color-primary-pale);
+}
+
+/* ช่องว่างรอคำตอบ AI ของแต่ละเทิร์น — ให้ลูกข้างในจัดตัวเองชิดซ้ายเหมือนฟองเดิม */
+.chat-ai-slot {
+    display: flex;
+    flex-direction: column;
 }
 
 /* =========================================

@@ -62,21 +62,28 @@ window.fetchGAS = async function (buildUrl, retries) {
     }
 };
 
-window.sendWithRetry = async function (payload, retries = 3) {
+// signal (optional): AbortSignal — ใช้กับปุ่ม "หยุด" ของแชท
+//   หมายเหตุสำคัญ: abort หยุดได้แค่ฝั่ง browser เท่านั้น GAS ที่รันอยู่ไม่หยุดตาม
+//   โควต้า/rate-limit ที่ใช้ไปแล้วไม่คืน — เป็นแค่การเลิกรอคำตอบ ไม่ใช่การประหยัดโควต้า
+window.sendWithRetry = async function (payload, retries = 3, signal = null) {
     // T2.2: Exponential backoff with full jitter; 4xx (ยกเว้น 429) ไม่ retry; 429/5xx/network retry
     const BASE_MS = 1000;
     const CAP_MS = 10000;
 
     for (let i = 0; i < retries; i++) {
+        if (signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
         let response;
         try {
             response = await fetch(window.APPSCRIPT_URL, {
                 method: 'POST',
                 redirect: 'follow', // บังคับสิทธิ์ตามพิกัด 302 Redirect ของกูเกิลอย่างน่าเชื่อถือ
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                signal: signal || undefined
             });
         } catch (networkErr) {
+            // ผู้ใช้กดหยุดเอง — ห้าม retry ต่อ ไม่งั้นยิงซ้ำทั้งที่สั่งหยุดไปแล้ว
+            if (networkErr && networkErr.name === 'AbortError') throw networkErr;
             // Network error (offline, DNS, etc.) — retry with backoff
             if (i === retries - 1) throw networkErr;
             const netDelay = Math.random() * Math.min(BASE_MS * Math.pow(2, i), CAP_MS);

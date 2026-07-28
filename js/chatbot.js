@@ -50,8 +50,86 @@ window.toggleChatbotPanel = function (force) {
     }
     document.body.classList.toggle('chatbot-open', open);
     try { localStorage.setItem('mdkku_chatbot_open', open ? '1' : '0'); } catch (e) { }
-    if (open) setTimeout(function () { $('#chatbot-input').trigger('focus'); }, 260);
+    if (open) {
+        window.applyChatbotWidth();
+        setTimeout(function () { $('#chatbot-input').trigger('focus'); }, 260);
+    }
 };
+
+// Resize handle: drag left edge เพื่อปรับความกว้างของ panel (min 300px, max 65vw)
+// ค่าถูกเก็บใน localStorage และ sync กับ CSS variable --chatbot-dock-w
+window.applyChatbotWidth = function () {
+    var w = 380;
+    try { var v = localStorage.getItem('mdkku_chatbot_w'); if (v) w = parseInt(v, 10) || 380; } catch (e) { }
+    w = Math.max(300, Math.min(w, Math.floor(window.innerWidth * 0.65)));
+    document.documentElement.style.setProperty('--chatbot-dock-w', w + 'px');
+};
+
+$(document).on('mousedown', '#chatbot-resize-handle', function (e) {
+    e.preventDefault();
+    var $panel = $('#quiz-chatbot-panel');
+    var startX = e.clientX;
+    var startW = $panel.width();
+    var $handle = $(this);
+    $handle.addClass('dragging');
+    var rafPending = null;
+
+    function onMove(ev) {
+        if (!rafPending) {
+            rafPending = requestAnimationFrame(function () {
+                rafPending = null;
+                var delta = startX - ev.clientX;
+                var newW = Math.max(300, Math.min(startW + delta, Math.floor(window.innerWidth * 0.65)));
+                document.documentElement.style.setProperty('--chatbot-dock-w', newW + 'px');
+            });
+        }
+    }
+
+    function onUp(ev) {
+        if (rafPending) { cancelAnimationFrame(rafPending); rafPending = null; }
+        $(document).off('mousemove', onMove).off('mouseup', onUp);
+        $handle.removeClass('dragging');
+        var finalW = $panel.width();
+        try { localStorage.setItem('mdkku_chatbot_w', finalW); } catch (e) { }
+    }
+
+    $(document).on('mousemove', onMove).on('mouseup', onUp);
+});
+
+$(document).on('touchstart', '#chatbot-resize-handle', function (e) {
+    e.preventDefault();
+    var $panel = $('#quiz-chatbot-panel');
+    var startX = e.originalEvent.touches[0].clientX;
+    var startW = $panel.width();
+    var $handle = $(this);
+    $handle.addClass('dragging');
+
+    var rafPendingTouch = null;
+    function onMove(ev) {
+        var touchX = ev.originalEvent.touches[0].clientX;
+        if (!rafPendingTouch) {
+            rafPendingTouch = requestAnimationFrame(function () {
+                rafPendingTouch = null;
+                var delta = startX - touchX;
+                var newW = Math.max(300, Math.min(startW + delta, Math.floor(window.innerWidth * 0.65)));
+                document.documentElement.style.setProperty('--chatbot-dock-w', newW + 'px');
+            });
+        }
+    }
+
+    function onUp() {
+        if (rafPendingTouch) { cancelAnimationFrame(rafPendingTouch); rafPendingTouch = null; }
+        $(document).off('touchmove', onMove).off('touchend', onUp);
+        $handle.removeClass('dragging');
+        var finalW = $panel.width();
+        try { localStorage.setItem('mdkku_chatbot_w', finalW); } catch (e) { }
+    }
+
+    $(document).on('touchmove', onMove).on('touchend', onUp);
+});
+
+// Restore width on page load (before panel open)
+$(document).ready(function () { window.applyChatbotWidth(); });
 
 // คู่มือ: โมเดลไหนเหมาะกับงานแบบไหน
 window.showChatbotModelGuide = function () {
@@ -118,6 +196,8 @@ window.CHATBOT_PLACEHOLDER_HTML =
 // เริ่มเซสชันใหม่: ล้างประวัติ + รีเซ็ตกล่องสนทนา + ซ่อนแบนเนอร์
 window.startNewChatSession = function () {
     window._chatHistory = [];
+    window._chatTurns = {};   // snapshot ของเทิร์นเก่าไม่มีความหมายแล้ว ปุ่ม Retry หายไปพร้อมฟองแชท
+    if (window.clearPendingImages) window.clearPendingImages();
     $('#chatbot-conversation').html(window.CHATBOT_PLACEHOLDER_HTML);
     $('#chatbot-newq-banner').hide();
     $('#chatbot-input').trigger('focus');
@@ -147,35 +227,226 @@ window.submitAiFeedbackRating = function (fbId, rating, btn) {
     }).catch(function () { /* fire-and-forget */ });
 };
 
+// ── โหมดคำตอบ (Flash / Think) ────────────────────────────────────────────────
+// mode คุมสองอย่าง: (1) คำสั่งรูปแบบคำตอบที่ต่อท้าย prompt (2) โมเดลที่เลือกเมื่ออยู่โหมด Auto
+// ลำดับความสำคัญ: ถ้านิสิตเลือกโมเดลเองใน dropdown → โมเดลนั้นชนะเสมอ mode คุมแค่รูปแบบคำตอบ
+window.CHAT_MODES = {
+    flash: {
+        labelTh: '⚡ Flash',
+        taskKey: 'quick_fact',
+        instr: 'ตอบสั้น กระชับ เป็น bullet ไม่เกิน 5 ข้อ เอาเฉพาะประเด็นที่ออกสอบบ่อย (high-yield) ห้ามเกริ่นนำ ห้ามสรุปซ้ำท้ายคำตอบ'
+    },
+    think: {
+        labelTh: '🧠 Think',
+        taskKey: 'reasoning_deep',
+        instr: 'อธิบายเป็นลำดับเหตุ-ผล (causal chain) ตั้งแต่กลไกระดับเซลล์/พยาธิสรีรวิทยา ไปจนถึงอาการทางคลินิกและแนวทางเวชปฏิบัติ ' +
+            'ถ้ามีตัวเลือกให้ไล่ตัดทีละข้อพร้อมเหตุผล และถ้าไม่แน่ใจให้บอกตรงๆ ว่าไม่แน่ใจ ห้ามเดาแบบมั่นใจ'
+    }
+};
+window.CHAT_MODE_DEFAULT = 'think';
+
+window.getChatMode = function () {
+    try {
+        var m = localStorage.getItem('mdkku_chat_mode');
+        if (m && window.CHAT_MODES[m]) return m;
+    } catch (e) { }
+    return window.CHAT_MODE_DEFAULT;
+};
+
+window.setChatMode = function (mode) {
+    if (!window.CHAT_MODES[mode]) return;
+    try { localStorage.setItem('mdkku_chat_mode', mode); } catch (e) { }
+    window.updateChatModeUI();
+};
+
+window.updateChatModeUI = function () {
+    var cur = window.getChatMode();
+    $('.chat-mode-btn').each(function () {
+        var on = $(this).data('mode') === cur;
+        $(this).toggleClass('active', on).attr('aria-pressed', on ? 'true' : 'false');
+    });
+};
+
+// เลือกโมเดลที่อ่านรูปได้ — ต้องตรงกับ whitelist ฝั่ง backend (isVisionModel ใน intelsphere.gs)
+// ถ้าไม่เจอเลย คืน null แล้วปล่อยให้ backend ตอบกลับว่าไม่ได้ส่งรูป (imagesSent=false)
+window.VISION_MODEL_PREFS = [/^gemini-.*flash/, /^gemini-/, /^claude-sonnet/, /^claude-/, /^gpt-(4o|5)/, /^nova-(lite|pro)/];
+window.pickVisionModel = function () {
+    var ids = [];
+    var cat = window._chatbotCatalog;
+    if (cat) Object.keys(cat).forEach(function (p) { (cat[p] || []).forEach(function (id) { ids.push(id); }); });
+    for (var i = 0; i < window.VISION_MODEL_PREFS.length; i++) {
+        for (var j = 0; j < ids.length; j++) {
+            if (window.VISION_MODEL_PREFS[i].test(ids[j])) return ids[j];
+        }
+    }
+    return null;
+};
+
+// ── สถานะการยิงคำถาม ────────────────────────────────────────────────────────
+window._chatAbort = null;   // AbortController ของเทิร์นที่กำลังรันอยู่
+window._chatTurns = {};     // turnId → snapshot ของบริบทตอนกดส่ง (ใช้ตอน Retry)
+window._chatTurnSeq = 0;
+
+// สลับปุ่มส่ง ↔ ปุ่มหยุด
+window.setChatBusy = function (busy) {
+    $('#chatbot-input').prop('disabled', busy);
+    $('#btn-send-chat').toggle(!busy);
+    $('#btn-stop-chat').toggle(!!busy);
+    if (!busy) $('#chatbot-input').trigger('focus');
+};
+
+// ปุ่มหยุด — ยกเลิกการ "รอ" เท่านั้น GAS ฝั่งเซิร์ฟเวอร์ยังรันต่อและโควต้าที่ใช้ไปแล้วไม่คืน
+window.stopChatGeneration = function () {
+    if (!window._chatAbort) return;
+    var ctrl = window._chatAbort;
+    var tid = window._chatCurrentTurnId;
+
+    // ตอบสนอง UI ทันที: ถ้า abort ตกอยู่กลาง backoff sleep ของ sendWithRetry
+    // กว่า catch จะทำงานอาจกินเวลาถึง 10 วิ — นิสิตจะนึกว่าปุ่มไม่ทำงาน
+    if (tid) $('#chat-ai-' + tid).html(window.buildChatStoppedHtml(tid));
+    window._chatAbort = null;
+    window._chatCurrentTurnId = null;
+    window.setChatBusy(false);
+    ctrl.abort();
+};
+
+window.buildChatStoppedHtml = function (turnId) {
+    return '<div style="align-self:flex-start;background:var(--color-surface-3);color:var(--color-text-muted);' +
+        'padding:8px 12px;border-radius:12px;max-width:85%;font-size:0.85rem;">' +
+        '⏹️ หยุดรอคำตอบแล้ว (โควต้าที่ใช้ไปรอบนี้ไม่ได้คืนนะ) ' +
+        '<button type="button" class="chat-retry-btn" onclick="window.retryChatTurn(' + turnId + ')">↻ ถามใหม่</button></div>';
+};
+
+// เก็บ snapshot บริบทของข้อ ณ เวลาที่กดส่ง — Retry ต้องใช้ชุดนี้ ไม่ใช่ข้อที่เปิดอยู่ตอนกด Retry
+window.snapshotQuestionCtx = function () {
+    var q = window.APP.current_question || {};
+    return {
+        questionId: q.questionId || '',
+        problem: q.problem || '',
+        choices: q.choices || '',
+        answer: q.answer || '',
+        explain: q.explain || '',
+        subject: new URLSearchParams(location.search).get('subject') || ''
+    };
+};
+
+// URL รูปของข้อปัจจุบัน แปลงเป็นลิงก์สาธารณะ (lh3.googleusercontent.com) จำกัด 4 รูป
+window.getCurrentQuestionImageUrls = function () {
+    var q = window.APP.current_question || {};
+    if (!q.img) return [];
+    // transformUrl คืน URL ของ PDF/preview ตามเดิมโดยไม่แปลง (config.js) — ส่งไปเป็นรูปไม่ได้
+    // ถ้าปล่อยไป gateway จะตอบ 400 แล้วเสีย call ของ donor key ฟรีๆ
+    return String(q.img).split('///')
+        .map(function (u) { return window.transformUrl(String(u).trim()); })
+        .filter(function (u) { return u && /^https:\/\//.test(u) && !/\.pdf|\/preview/i.test(u); })
+        .slice(0, 4);
+};
+
+// ปุ่ม "ให้ AI ช่วยอ่านภาพนี้" ข้างรูปโจทย์
+window.askAiAboutQuestionImage = function () {
+    var imgs = window.getCurrentQuestionImageUrls();
+    if (!imgs.length) return;
+
+    // toggleChatbotPanel จะ early-return + เปิด modal ล็อกอินถ้ายังไม่ได้ล็อกอิน
+    // ต้องเช็คก่อนยิง ไม่งั้นคำถามจะถูกส่งเข้า panel ที่ไม่เคยเปิด
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn) {
+        window.toggleChatbotPanel(true);
+        return;
+    }
+    window.toggleChatbotPanel(true);
+
+    // ไม่ยิงเองทันที — เติมคำถามให้แล้วให้นิสิตกดส่งเอง (1 คลิกพลาด = เสียโควต้า 1 ครั้งจาก 15/ชม.)
+    $('#chatbot-input').val('ช่วยอ่านภาพในโจทย์ข้อนี้ให้หน่อย: เห็นอะไรบ้าง มี finding ที่สำคัญอะไร และเกี่ยวกับโจทย์ยังไง');
+    window._chatPendingImages = imgs;
+    $('#chatbot-img-chip').show().find('#chatbot-img-count').text(imgs.length);
+    setTimeout(function () { $('#chatbot-input').trigger('focus'); }, 300);
+};
+
+window.clearPendingImages = function () {
+    window._chatPendingImages = null;
+    $('#chatbot-img-chip').hide();
+};
+
 // ส่งคำถามนิสิต + context ข้อสอบปัจจุบันไป askAIExpert (provider: IntelSphere)
-window.sendChatbotQuery = async function () {
+window.sendChatbotQuery = function () {
     var query = $('#chatbot-input').val().trim();
     if (!query) return;
+    if (window._chatAbort) return; // กันยิงซ้อนขณะยังรออยู่
 
-    var q = window.APP.current_question;
-    var model = $('#chatbot-model-select').val();
-    var autoTask = null;
-    if (!model || model === '__auto__') {
-        autoTask = window.classifyQueryTask(query);
-        model = window.pickAutoModel(autoTask.key);
-    }
-    var token = localStorage.getItem("mdkku_session_token") || "guest_user";
+    var turnId = ++window._chatTurnSeq;
+    window._chatTurns[turnId] = {
+        query: query,
+        ctx: window.snapshotQuestionCtx(),
+        imageUrls: window._chatPendingImages || [],
+        mode: window.getChatMode(),
+        chosenModel: $('#chatbot-model-select').val()
+    };
 
-    // Audit (ไม่ระบุตัวตน): จำแนก intent ฝั่ง client แล้วส่งเฉพาะ tag + model — ไม่ส่งข้อความดิบ
-    if (window.logAiIntent) {
-        window.logAiIntent(query, model);
-    }
-
-    $('#chatbot-input').val('').prop('disabled', true);
-    $('#btn-send-chat').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+    $('#chatbot-input').val('');
+    window.clearPendingImages();
 
     var $conv = $('#chatbot-conversation');
     $conv.append(
         '<div style="align-self:flex-end;background:var(--color-primary-pale);color:var(--color-primary);' +
         'padding:8px 12px;border-radius:12px 12px 0 12px;max-width:85%;font-weight:600;">' +
-        $('<div>').text(query).html() + '</div>'  // XSS-safe: escape user input before inserting
+        $('<div>').text(query).html() +   // XSS-safe: escape user input before inserting
+        (window._chatTurns[turnId].imageUrls.length
+            ? '<div style="font-size:0.75rem;opacity:0.85;margin-top:4px;">🖼️ แนบรูปโจทย์ ' + window._chatTurns[turnId].imageUrls.length + ' รูป</div>'
+            : '') +
+        '</div>'
     );
+    $conv.append('<div id="chat-ai-' + turnId + '" class="chat-ai-slot"></div>');
     $conv.scrollTop($conv[0].scrollHeight);
+
+    return window.runChatTurn(turnId);
+};
+
+// ยิงคำถามซ้ำด้วย snapshot เดิมเป๊ะๆ — ไม่หยิบข้อที่เปิดอยู่ปัจจุบันมาใช้
+window.retryChatTurn = function (turnId) {
+    var turn = window._chatTurns[turnId];
+    if (!turn || window._chatAbort) return;
+    // ลบคำตอบเก่าของเทิร์นนี้ออกจากประวัติก่อน ไม่งั้น context จะมีคำตอบซ้ำสองรอบ
+    if (turn.histRefs) {
+        turn.histRefs.forEach(function (ref) {
+            var idx = window._chatHistory.indexOf(ref);
+            if (idx >= 0) window._chatHistory.splice(idx, 1);
+        });
+        turn.histRefs = null;
+    }
+    return window.runChatTurn(turnId);
+};
+
+window.runChatTurn = async function (turnId) {
+    var turn = window._chatTurns[turnId];
+    if (!turn) return;
+
+    var q = turn.ctx;
+    var modeDef = window.CHAT_MODES[turn.mode] || window.CHAT_MODES[window.CHAT_MODE_DEFAULT];
+    var hasImages = turn.imageUrls && turn.imageUrls.length > 0;
+
+    // เลือกโมเดล: dropdown ชนะ mode → mode เลือกให้เมื่อเป็น Auto → รูปบังคับใช้โมเดลสาย vision
+    var model = turn.chosenModel;
+    var pickedBy = '';
+    if (!model || model === '__auto__') {
+        model = window.pickAutoModel(modeDef.taskKey);
+        pickedBy = modeDef.labelTh;
+        if (hasImages) {
+            var vm = window.pickVisionModel();
+            if (vm) { model = vm; pickedBy = modeDef.labelTh + ' + อ่านรูป'; }
+        }
+    }
+    var token = localStorage.getItem("mdkku_session_token") || "guest_user";
+
+    // Audit (ไม่ระบุตัวตน): จำแนก intent ฝั่ง client แล้วส่งเฉพาะ tag + model — ไม่ส่งข้อความดิบ
+    if (window.logAiIntent) window.logAiIntent(turn.query, model);
+
+    var $slot = $('#chat-ai-' + turnId);
+    $slot.html('<div style="align-self:flex-start;color:var(--color-text-muted);font-size:0.9rem;">' +
+        '<i class="fas fa-spinner fa-spin"></i> กำลังคิด…</div>');
+
+    window._chatAbort = new AbortController();
+    window._chatCurrentTurnId = turnId;
+    window.setChatBusy(true);
 
     // พับประวัติบทสนทนา (session memory) เข้า prompt — backend stateless จึงต้องส่งเป็นข้อความเดียว
     var histText = '';
@@ -197,37 +468,52 @@ window.sendChatbotQuery = async function () {
         'ตัวเลือก: "' + (q.choices || '') + '"\n' +
         'เฉลย: "' + (q.answer || '') + '"\n' +
         'คำอธิบาย: "' + (q.explain || '') + '"\n' +
-        '(บริบทโจทย์ด้านบนคือข้อปัจจุบันที่นิสิตกำลังดูอยู่ตอนนี้)\n\n' +
-        'คำถามใหม่จากนิสิต: "' + query + '"\n\n' +
-        'กรุณาตอบกระชับ ตรงประเด็น ภาษาไทย';
+        '(บริบทโจทย์ด้านบนคือข้อที่นิสิตถามถึง)\n\n' +
+        (hasImages ? 'หมายเหตุ: มีรูปประกอบโจทย์แนบมาด้วย กรุณาอ่านรูปประกอบการตอบ\n\n' : '') +
+        'คำถามใหม่จากนิสิต: "' + turn.query + '"\n\n' +
+        'รูปแบบคำตอบที่ต้องการ: ' + modeDef.instr + '\n' +
+        'กรุณาตอบเป็นภาษาไทย';
 
     try {
         var res = await window.sendWithRetry({
-            action: 'askAIExpert', prompt: prompt, provider: 'IntelSphere', sessionToken: token, model: model
-        });
+            action: 'askAIExpert', prompt: prompt, provider: 'IntelSphere',
+            sessionToken: token, model: model,
+            imageUrls: hasImages ? turn.imageUrls : undefined
+        }, 3, window._chatAbort.signal);
 
         if (res.result === 'success') {
             var safeAnswer = window.renderMarkdownSafe(res.answer); // sanitize-by-construction: escaped text + whitelist tags
-            // เก็บเทิร์นนิสิต + คำตอบ AI (plain text) เข้าประวัติ เฉพาะเมื่อสำเร็จ (เลี่ยง user turn ค้างเมื่อ error)
-            window._chatHistory.push({ role: 'user', text: query, questionId: (q.questionId || '') });
-            window._chatHistory.push({ role: 'ai', text: String(res.answer || ''), questionId: (q.questionId || '') });
+            // เก็บ reference ไว้เพื่อให้ Retry ถอนคู่นี้ออกได้ ไม่ให้ประวัติซ้ำ
+            var uRef = { role: 'user', text: turn.query, questionId: q.questionId };
+            var aRef = { role: 'ai', text: String(res.answer || ''), questionId: q.questionId };
+            turn.histRefs = [uRef, aRef];
+            window._chatHistory.push(uRef, aRef);
             if (window._chatHistory.length > 20) window._chatHistory.splice(0, window._chatHistory.length - 20);
+
             var servedSafe = $('<div>').text(res.servedModel || model).html();
-            var autoBadge = autoTask
+            var modeBadge = pickedBy
                 ? '<div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:4px;">' +
-                '🤖 Auto เลือก <b>' + servedSafe + '</b> · ประเภทคำถาม: ' + autoTask.labelTh + '</div>'
+                pickedBy + ' → <b>' + servedSafe + '</b></div>'
                 : '';
             var switchNote = res.switched
                 ? '<div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:4px;">' +
                 'ℹ️ โควต้าของโมเดลที่เลือกหมดชั่วคราว ระบบตอบด้วย <b>' + servedSafe + '</b> แทน</div>'
                 : '';
+            // เตือนตรงๆ เมื่อ AI ไม่ได้เห็นรูป — ห้ามปล่อยให้นิสิตเข้าใจผิดว่าคำตอบมาจากการดูรูป
+            // เช็คจาก "ไม่มีคำยืนยันว่าส่งรูปแล้ว" ไม่ใช่ "มี flag บอกว่ารูปหลุด"
+            // backend เก่าที่ยังไม่ได้ deploy จะไม่ส่ง imagesSent กลับมา → ต้องเตือน ไม่ใช่เงียบ
+            var imgWarn = (hasImages && !res.imagesSent)
+                ? '<div style="font-size:0.78rem;color:var(--color-wrong);margin-bottom:6px;font-weight:600;">' +
+                '⚠️ โมเดลนี้อ่านรูปไม่ได้ คำตอบนี้อ้างอิงจากข้อความโจทย์เท่านั้น (ไม่ได้ดูรูป)</div>'
+                : '';
+
             // เก็บ context ไว้ส่งกับ feedback (👍/😐/👎) — ลบทิ้งหลังส่ง
             var fbId = ++window._chatbotFeedbackSeq;
             window._chatbotFeedbackCtx[fbId] = {
                 model: res.servedModel || model,
                 questionId: q.questionId || '',
-                subject: new URLSearchParams(location.search).get('subject') || '',
-                promptSnippet: query.slice(0, 200),
+                subject: q.subject || '',
+                promptSnippet: turn.query.slice(0, 200),
                 answerSnippet: String(res.answer || '').slice(0, 200)
             };
             var fbBar =
@@ -235,29 +521,43 @@ window.sendChatbotQuery = async function () {
                 '<button type="button" onclick="window.submitAiFeedbackRating(' + fbId + ',\'good\',this)">👍</button>' +
                 '<button type="button" onclick="window.submitAiFeedbackRating(' + fbId + ',\'neutral\',this)">😐</button>' +
                 '<button type="button" onclick="window.submitAiFeedbackRating(' + fbId + ',\'bad\',this)">👎</button>' +
+                '<button type="button" class="chat-retry-btn" onclick="window.retryChatTurn(' + turnId + ')" ' +
+                'title="ถามใหม่ด้วยโจทย์เดิม (ใช้โควต้าเพิ่ม 1 ครั้ง)">↻ ถามใหม่</button>' +
                 '</div>';
-            $conv.append(
+            $slot.html(
                 '<div class="chat-md" style="align-self:flex-start;background:var(--color-surface-3);color:var(--color-text);' +
-                'padding:8px 12px;border-radius:12px 12px 12px 0;max-width:85%;font-weight:500;font-size:0.95rem;">' +
-                autoBadge + switchNote + safeAnswer + fbBar + '</div>'
+                'padding:10px 14px;border-radius:12px 12px 12px 0;max-width:85%;font-weight:500;">' +
+                modeBadge + switchNote + imgWarn + safeAnswer + fbBar + '</div>'
             );
         } else {
-            $conv.append(
+            $slot.html(
                 '<div style="align-self:flex-start;background:var(--color-wrong-bg);color:var(--color-wrong);' +
                 'padding:8px 12px;border-radius:12px;max-width:85%;font-size:0.9rem;">⚠️ ' +
-                $('<div>').text(res.message || '').html() + '</div>'
+                $('<div>').text(res.message || '').html() +
+                '<button type="button" class="chat-retry-btn" onclick="window.retryChatTurn(' + turnId + ')">↻ ลองใหม่</button></div>'
             );
         }
     } catch (e) {
-        $conv.append(
-            '<div style="align-self:flex-start;background:var(--color-wrong-bg);color:var(--color-wrong);' +
-            'padding:8px 12px;border-radius:12px;max-width:85%;font-size:0.9rem;">' +
-            '⚠️ เกิดข้อผิดพลาดทางเทคนิค กรุณาลองใหม่อีกครั้ง</div>'
-        );
+        if (e && e.name === 'AbortError') {
+            // ปกติ stopChatGeneration วาดข้อความนี้ไปแล้ว — วาดซ้ำเผื่อ abort มาจากทางอื่น
+            $slot.html(window.buildChatStoppedHtml(turnId));
+        } else {
+            $slot.html(
+                '<div style="align-self:flex-start;background:var(--color-wrong-bg);color:var(--color-wrong);' +
+                'padding:8px 12px;border-radius:12px;max-width:85%;font-size:0.9rem;">' +
+                '⚠️ เกิดข้อผิดพลาดทางเทคนิค กรุณาลองใหม่อีกครั้ง ' +
+                '<button type="button" class="chat-retry-btn" onclick="window.retryChatTurn(' + turnId + ')">↻ ลองใหม่</button></div>'
+            );
+        }
     } finally {
-        $('#chatbot-input').prop('disabled', false).focus();
-        $('#btn-send-chat').prop('disabled', false).html('<i class="fas fa-paper-plane"></i>');
-        $conv.scrollTop($conv[0].scrollHeight);
+        // ถ้านิสิตกดหยุดแล้วเริ่มเทิร์นใหม่ทันที เทิร์นเก่าที่เพิ่งจบต้องไม่ไปรีเซ็ตสถานะของเทิร์นใหม่
+        if (window._chatCurrentTurnId === turnId) {
+            window._chatAbort = null;
+            window._chatCurrentTurnId = null;
+            window.setChatBusy(false);
+        }
+        var $conv2 = $('#chatbot-conversation');
+        $conv2.scrollTop($conv2[0].scrollHeight);
         if (typeof window.renderAllMath === 'function') setTimeout(window.renderAllMath, 50);
     }
 };
@@ -266,7 +566,15 @@ $(document).on('keypress', '#chatbot-input', function (e) {
     if (e.which === 13) window.sendChatbotQuery();
 });
 
-$(document).ready(function () { window.loadChatbotModelCatalog(); });
+$(document).on('click', '.chat-mode-btn', function () {
+    window.setChatMode($(this).data('mode'));
+});
+
+$(document).ready(function () {
+    window.loadChatbotModelCatalog();
+    window.updateChatModeUI();
+    $('#btn-stop-chat').hide();
+});
 
 // Hook showQuestion: โชว์ FAB + เคลียร์บทสนทนาเมื่อเปลี่ยนข้อ (สถานะเปิด/ปิด panel คงไว้ตาม localStorage)
 (function () {
@@ -282,6 +590,11 @@ $(document).ready(function () { window.loadChatbotModelCatalog(); });
         var curQid = (window.APP.current_question && window.APP.current_question.questionId) || '';
         var qChanged = (window._chatLastQid !== undefined && window._chatLastQid !== curQid);
         window._chatLastQid = curQid;
+
+        // ปุ่ม "ให้ AI ช่วยอ่านภาพนี้" โผล่เฉพาะข้อที่มีรูปจริง
+        $('#btn-ask-ai-image').toggle(window.getCurrentQuestionImageUrls().length > 0);
+        // เปลี่ยนข้อแล้วรูปที่ค้างรอส่งเป็นของข้อเก่า — ทิ้งไปกันแนบรูปผิดข้อ
+        if (qChanged && window.clearPendingImages) window.clearPendingImages();
         if (window._chatHistory && window._chatHistory.length > 0) {
             if (qChanged) window.showNewQuestionBanner();
         } else {

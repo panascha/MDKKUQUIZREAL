@@ -639,7 +639,8 @@ window.showSubmission = function (filter = 'all') {
 window.renderExplainHtmlForCard = function (explainRaw) {
     if (!explainRaw) return '';
     const parsed = window.parseExplain(explainRaw);
-    let html = `<b>อธิบาย:</b><br>${parsed.text || 'ไม่มีคำอธิบาย'}`;
+    const renderedMd = window.renderMarkdownSafe(parsed.text || '');
+    let html = `<b>อธิบาย:</b><br>${renderedMd || 'ไม่มีคำอธิบาย'}`;
 
     if (parsed.media && parsed.media.length > 0) {
         html += `<div class="explain-media-group" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; width: 100%;">`;
