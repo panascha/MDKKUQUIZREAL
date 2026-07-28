@@ -625,6 +625,9 @@ window.showSubmission = function (filter = 'all') {
                     <button class="btn-search-action btn-search-vote" onclick="event.stopPropagation(); window.openVoteModal(window.APP.currentQuestions[${realIdx}], false)">
                         <i class="fas fa-tags"></i> แยกเลค
                     </button>
+                    <button class="btn-search-action btn-search-copy" onclick="event.stopPropagation(); window.copyQuestionPrompt(window.APP.currentQuestions[${realIdx}])" title="คัดลอกโจทย์และตัวเลือกไปถาม AI">
+                        <i class="fas fa-copy"></i> คัดลอกคำถาม
+                    </button>
                 </div>
             </div>`;
     });

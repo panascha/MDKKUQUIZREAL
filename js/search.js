@@ -444,6 +444,9 @@ window.performSearch = function () {
                     <button class="btn-search-action btn-search-edit" data-idx="${index}">
                         <i class="fas fa-edit"></i> แก้ไข
                     </button>
+                    <button class="btn-search-action btn-search-copy" data-idx="${index}" title="คัดลอกโจทย์และตัวเลือกไปถาม AI">
+                        <i class="fas fa-copy"></i> คัดลอกคำถาม
+                    </button>
                 </div>
             </div>`;
     });
@@ -465,6 +468,11 @@ window.performSearch = function () {
     $('.btn-search-edit').on('click', function () {
         const idx = $(this).data('idx');
         window.openEditModal(searchResults[idx]);
+    });
+
+    $('.btn-search-copy').on('click', function () {
+        const idx = $(this).data('idx');
+        window.copyQuestionPrompt(searchResults[idx]);
     });
 
     window.renderAllMath();

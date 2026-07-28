@@ -1474,18 +1474,21 @@ $(function () {
     });
 });
 
-window.copyQuestionForAI = function () {
-    const q = window.APP.current_question;
-    if (!q || !q.problem) return;
+// สร้าง prompt วิเคราะห์ข้อสอบ 5 ส่วน (มาตรฐานกลาง)
+// NOTE: มีสำเนาชุดเดียวกันอยู่ที่ MDKKUQUIZDATABASE/js/ui.js — แก้ที่นี่แล้วต้องแก้อีกฝั่งด้วย
+// choices รับได้ทั้ง array และ string ที่คั่นด้วย '///'
+window.buildQuestionAiPrompt = function (problem, choices) {
+    const choicesArray = Array.isArray(choices) ? choices : String(choices || "").split("///");
 
-    const choicesArray = (q.choices || "").split("///").map(s => s.trim()).filter(Boolean);
-    const choicesText = choicesArray.map((c, i) => {
-        if (c.startsWith('<svg')) return `${String.fromCharCode(65 + i)}. [รูปภาพ SVG]`;
-        if (window.isUrl(c)) return `${String.fromCharCode(65 + i)}. [รูปภาพประกอบ]`;
-        return `${String.fromCharCode(65 + i)}. ${c}`;
+    const choicesText = choicesArray.map(c => String(c || "").trim()).filter(Boolean).map((c, i) => {
+        // ถ้าตัวเลือกมี prefix (A. / B)) มาในข้อมูลอยู่แล้ว ไม่ต้องใส่ซ้ำ — เกณฑ์เดียวกับการ์ดใน search.js/app.js
+        const prefix = /^[A-E]\s*[\.\)]/i.test(c) ? "" : `${String.fromCharCode(65 + i)}. `;
+        if (c.startsWith('<svg')) return `${prefix}[รูปภาพ SVG]`;
+        if (window.isUrl(c)) return `${prefix}[รูปภาพประกอบ]`;
+        return `${prefix}${c}`;
     }).join("\n");
 
-    const textToCopy = `
+    return `
 คุณคือผู้เชี่ยวชาญทางการแพทย์ ช่วยวิเคราะห์ข้อสอบแพทย์ข้อนี้ โดยอธิบายตามหลักการทางวิทยาศาสตร์และการแพทย์ตรงๆ ไม่ต้องใช้การเปรียบเทียบหรืออุปมา
 
 อธิบายตาม 5 ส่วนนี้:
@@ -1506,16 +1509,23 @@ window.copyQuestionForAI = function () {
 บอกว่า concept นี้เจอในคลินิกหรือข้อสอบในบริบทใด และระบุแหล่งอ้างอิง (เช่น Harrison's, Robbins, UpToDate, หรือ guideline ที่เกี่ยวข้อง) พร้อมบอกหน้า/บทถ้าทราบ
 
 ---
-โจทย์: ${q.problem}
+โจทย์: ${problem}
 
 ตัวเลือก:
 ${choicesText}
 `.trim();
+};
+
+// คัดลอก prompt ของข้อสอบที่ส่งเข้ามา (ใช้ได้กับทั้งข้อปัจจุบัน การ์ดสรุปผล และการ์ดผลค้นหา)
+window.copyQuestionPrompt = function (q) {
+    if (!q || !q.problem) return;
+
+    const textToCopy = window.buildQuestionAiPrompt(q.problem, q.choices);
 
     navigator.clipboard.writeText(textToCopy).then(() => {
         window.bgToast.fire({
             icon: 'success',
-            title: 'คัดลอกโจทย์และตัวเลือกแล้ว!',
+            title: 'คัดลอกโจทย์พร้อม Prompt สำเร็จ!',
             timer: 2000
         });
     }).catch(err => {
@@ -1529,7 +1539,7 @@ ${choicesText}
             document.execCommand('copy');
             window.bgToast.fire({
                 icon: 'success',
-                title: 'คัดลอกโจทย์และตัวเลือกแล้ว! (Fallback)',
+                title: 'คัดลอกโจทย์พร้อม Prompt สำเร็จ! (Fallback)',
                 timer: 2000
             });
         } catch (e) {
@@ -1538,6 +1548,10 @@ ${choicesText}
             document.body.removeChild(tempTextarea);
         }
     });
+};
+
+window.copyQuestionForAI = function () {
+    window.copyQuestionPrompt(window.APP.current_question);
 };
 
 window.renderAnnouncementsUI = function (announcements) {

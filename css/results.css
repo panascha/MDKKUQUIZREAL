@@ -394,6 +394,7 @@
 
     .search-card-actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 7px;
         padding: 10px 13px;
         background: var(--color-surface-2);
@@ -402,6 +403,7 @@
 
     .btn-search-action {
         flex: 1;
+        min-width: 108px;
         padding: 7px;
         border: none;
         border-radius: 6px;
@@ -456,6 +458,17 @@
 
     .btn-search-edit:hover {
         background: #0284C7;
+    }
+
+    /* ปุ่มคัดลอกโจทย์พร้อม prompt ถาม AI (การ์ดสรุปผล + การ์ดผลค้นหา) */
+    .btn-search-copy {
+        background: var(--color-surface);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+    }
+
+    .btn-search-copy:hover {
+        background: var(--color-surface-2);
     }
 
     /* Search Suggestions */
