@@ -416,6 +416,33 @@ window.retryChatTurn = function (turnId) {
     return window.runChatTurn(turnId);
 };
 
+// สร้างต่อจากคำตอบที่ถูกตัด — ส่ง prompt ใหม่ที่ขอให้ AI ตอบต่อจากเดิม โดยใช้ context ทั้งหมด
+window.continueChatTurn = function (prevTurnId) {
+    var prev = window._chatTurns[prevTurnId];
+    if (!prev || window._chatAbort) return;
+    // หาคำตอบ AI ล่าสุดของเทิร์นนี้จาก history
+    var lastAiText = '';
+    if (prev.histRefs) {
+        for (var i = prev.histRefs.length - 1; i >= 0; i--) {
+            if (prev.histRefs[i].role === 'ai') { lastAiText = prev.histRefs[i].text; break; }
+        }
+    }
+    var contQuery = '【คำตอบก่อนหน้านี้ถูกตัดกลางคัน — กรุณาสร้างต่อจากจุดที่ค้างไว้ด้านล่างนี้ โดยไม่ต้องอธิบายซ้ำหัวข้อเดิม】\n\n' +
+        '--- คำตอบที่ถูกตัด (สร้างต่อจากนี้) ---\n' +
+        lastAiText.slice(-2000) + // เอาเฉพาะท้ายๆ กัน prompt บวม
+        '\n--- จบคำตอบที่ถูกตัด ---\n\n' +
+        'โปรดตอบต่อจากจุดที่ค้างไว้ด้านบน อย่างเป็นธรรมชาติ (เหมือนเป็นการตอบคราวเดียว)';
+    var turnId = ++window._chatTurnSeq;
+    window._chatTurns[turnId] = {
+        query: contQuery,
+        ctx: window.snapshotQuestionCtx(),
+        imageUrls: prev.imageUrls || [],    // ส่งรูปเดิมไปด้วยเผื่อยังต้องใช้
+        mode: prev.mode,
+        chosenModel: prev.chosenModel
+    };
+    return window.runChatTurn(turnId);
+};
+
 window.runChatTurn = async function (turnId) {
     var turn = window._chatTurns[turnId];
     if (!turn) return;
@@ -506,6 +533,18 @@ window.runChatTurn = async function (turnId) {
                 ? '<div style="font-size:0.78rem;color:var(--color-wrong);margin-bottom:6px;font-weight:600;">' +
                 '⚠️ โมเดลนี้อ่านรูปไม่ได้ คำตอบนี้อ้างอิงจากข้อความโจทย์เท่านั้น (ไม่ได้ดูรูป)</div>'
                 : '';
+            // finishReason === "length" = โดน max_tokens หรือ token limit ตัดจบกลางคัน
+            var truncWarn = '';
+            var contBtn = '';
+            if (res.finishReason === 'length') {
+                truncWarn =
+                    '<div style="font-size:0.78rem;color:var(--color-warning, #c79100);margin-bottom:6px;font-weight:600;">' +
+                    '⚠️ คำตอบถูกตัดกลางคันเพราะเกินความยาวสูงสุด (token limit)</div>';
+                contBtn =
+                    '<button type="button" class="chat-retry-btn" onclick="window.continueChatTurn(' + turnId + ')" ' +
+                    'title="ขอให้ AI ตอบต่อจากเดิม (ใช้โควต้าเพิ่ม 1 ครั้ง)" ' +
+                    'style="margin-left:4px;background:var(--color-primary,#3b82f6);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.8rem;">▶ สร้างต่อ</button>';
+            }
 
             // เก็บ context ไว้ส่งกับ feedback (👍/😐/👎) — ลบทิ้งหลังส่ง
             var fbId = ++window._chatbotFeedbackSeq;
@@ -527,7 +566,7 @@ window.runChatTurn = async function (turnId) {
             $slot.html(
                 '<div class="chat-md" style="align-self:flex-start;background:var(--color-surface-3);color:var(--color-text);' +
                 'padding:10px 14px;border-radius:12px 12px 12px 0;max-width:85%;font-weight:500;">' +
-                modeBadge + switchNote + imgWarn + safeAnswer + fbBar + '</div>'
+                modeBadge + switchNote + imgWarn + truncWarn + safeAnswer + fbBar + contBtn + '</div>'
             );
         } else {
             $slot.html(
