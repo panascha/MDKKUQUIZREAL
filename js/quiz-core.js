@@ -455,9 +455,17 @@ window.getCategoryPool = function (catId) {
 };
 
 // อ่านลิมิตของหมวดจาก SSOT — ไม่มี/ไม่ถูกต้อง = เอาทั้งหมด, และไม่เกินจำนวนที่มีจริง
+// รองรับทั้ง fixed number ("10") และ percentage ("50%") — % คำนวณจาก poolSize แล้ว clamp 1..poolSize
 window.getCategoryLimit = function (catId, poolSize) {
     const raw = (window.APP.categoryLimits || {})[catId];
-    const n = parseInt(raw, 10);
+    if (raw == null) return poolSize;
+    const s = String(raw).trim();
+    if (s.endsWith('%')) {
+        const pct = parseFloat(s);
+        if (pct > 0 && pct <= 100) return Math.max(1, Math.min(poolSize, Math.round(poolSize * pct / 100)));
+        return poolSize;
+    }
+    const n = parseInt(s, 10);
     if (!Number.isFinite(n) || n < 1) return poolSize;
     return Math.min(n, poolSize);
 };

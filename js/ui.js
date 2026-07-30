@@ -21,6 +21,23 @@ window.isLectureCategory = function (catId) {
     return false;
 };
 
+// สกัดชื่อ discipline จาก categoryId — ใช้แยก "by AI" ตามกลุ่มวิชา
+// คืน "" ถ้าไม่เจอ discipline token ในส่วนใดส่วนหนึ่งของ categoryId
+window.extractDisciplineFromCategory = function (catId) {
+    const MAP = {
+        ANA: 'ANATOMY', BIOCHEM: 'PHYSIO and BIOCHEM', PHYSIO: 'PHYSIO and BIOCHEM', PHY: 'PHYSIO and BIOCHEM',
+        MICRO: 'PARASITO and MICRO', PARASITO: 'PARASITO and MICRO',
+        PATHO: 'PATHO',
+        PHARM: 'PHARM', PHARMACO: 'PHARM',
+        RADIO: 'RADIO and CLINICAL', IMAGE: 'RADIO and CLINICAL', CLINICAL: 'RADIO and CLINICAL'
+    };
+    const parts = String(catId).toUpperCase().split('_');
+    for (let i = 1; i < parts.length; i++) {
+        if (MAP[parts[i]]) return MAP[parts[i]];
+    }
+    return '';
+};
+
 window.displayAnswerContent = function (text) {
     if (!text) return "";
     const trimmed = text.trim();
@@ -357,6 +374,8 @@ window.renderAccordionUI = function (data) {
             <button type="button" class="limit-preset-btn" data-limit="5">5</button>
             <button type="button" class="limit-preset-btn" data-limit="10">10</button>
             <button type="button" class="limit-preset-btn" data-limit="20">20</button>
+            <button type="button" class="limit-preset-btn" data-limit="25%">25%</button>
+            <button type="button" class="limit-preset-btn" data-limit="50%">50%</button>
             <button type="button" class="limit-preset-btn" data-limit="all">ทั้งหมด</button>
             <span class="limit-preset-hint">มีผลกับหัวข้อที่เลือกไว้แล้วเท่านั้น</span>
         </div>
@@ -423,7 +442,7 @@ window.renderAccordionUI = function (data) {
                 </label>
                 <div class="limit-stepper" data-cat-id="${catId}" data-max="${poolSize}" style="display: none;">
                     <button type="button" class="lim-btn" data-act="dec" title="ลดจำนวนข้อ">−</button>
-                    <input type="number" class="lim-input" inputmode="numeric" min="1" max="${poolSize}" value="${limitVal}">
+                    <input type="text" class="lim-input" inputmode="decimal" value="${limitVal}">
                     <span class="lim-max">/${poolSize}</span>
                     <button type="button" class="lim-btn" data-act="inc" title="เพิ่มจำนวนข้อ">+</button>
                     <button type="button" class="lim-btn lim-full" data-act="full" title="เอาทั้งหมดของหัวข้อนี้">ทั้งหมด</button>
@@ -435,10 +454,15 @@ window.renderAccordionUI = function (data) {
     function buildAccordion(groupName, categories, isExcludedGroup) {
         const helperText = !isExcludedGroup ? " (คำถามที่แยกเลคแล้ว/คำถามทั้งหมด)" : "";
         const btns = categories.map(c => buildCategoryButton(c, isExcludedGroup)).join('');
+        // แปลงชื่อกลุ่มภายในให้สวยขึ้น — "GI_by AI_ANATOMY" → "GI by AI (ANATOMY)"
+        var displayName = groupName;
+        if (/by AI_/i.test(groupName)) {
+            displayName = groupName.replace(/_?by AI_/i, ' by AI (') + ')';
+        }
         return `
             <details class="accordion-group">
                 <summary class="accordion-header">
-                    ${groupName} <span style="font-size: 0.85rem; font-weight: normal; margin-left: 5px; color: var(--color-text-muted);">${helperText}</span>
+                    ${displayName} <span style="font-size: 0.85rem; font-weight: normal; margin-left: 5px; color: var(--color-text-muted);">${helperText}</span>
                     <span class="selected-count-badge">0</span>
                 </summary>
                 <div class="button-grid">
@@ -450,7 +474,14 @@ window.renderAccordionUI = function (data) {
 
     const groups = {};
     data.category.forEach(cat => {
-        const key = cat.accordionGroup || 'Uncategorized';
+        var key = cat.accordionGroup || 'Uncategorized';
+        // แยก "by AI" ตาม discipline — สร้าง accordionGroup เสมือน (เช่น "GI_by AI_ANATOMY")
+        if (key.toUpperCase().includes("BY AI")) {
+            var disc = window.extractDisciplineFromCategory(cat.categoryId);
+            if (disc) {
+                key = key + '_' + disc;
+            }
+        }
         if (!groups[key]) groups[key] = [];
         groups[key].push(cat);
     });
@@ -570,22 +601,37 @@ window.renderAccordionUI = function (data) {
 };
 
 // เขียนค่าลง SSOT (window.APP.categoryLimits) — ค่าว่าง/เต็มจำนวน = ลบคีย์ทิ้งให้เหลือ default เดียว
+// รองรับ string: fixed number ("10") และ percentage ("50%")
 window.setCategoryLimit = function (catId, value, max) {
     if (!window.APP.categoryLimits) window.APP.categoryLimits = {};
 
     // ยังไม่รู้จำนวนข้อจริงของหมวด (ตอนเรนเดอร์ก่อนโหลดข้อสอบเสร็จ data-max=0) → อย่าเพิ่งเขียนค่า
     if (typeof max !== 'number' || max <= 0) return;
 
-    const cap = max;
-    const n = parseInt(value, 10);
-
-    if (value === null || !Number.isFinite(n)) {
+    if (value === null || value === undefined) {
         delete window.APP.categoryLimits[catId];
         return;
     }
 
-    const clamped = Math.max(1, Math.min(n, cap));
-    if (clamped >= cap) {
+    var s = String(value).trim();
+    if (s.endsWith('%')) {
+        var pct = parseFloat(s);
+        if (pct > 0 && pct <= 100) {
+            window.APP.categoryLimits[catId] = s;
+        } else {
+            delete window.APP.categoryLimits[catId];
+        }
+        return;
+    }
+
+    var n = parseInt(s, 10);
+    if (!Number.isFinite(n) || n < 1) {
+        delete window.APP.categoryLimits[catId];
+        return;
+    }
+
+    var clamped = Math.max(1, Math.min(n, max));
+    if (clamped >= max) {
         delete window.APP.categoryLimits[catId];
         return;
     }
@@ -604,7 +650,9 @@ window.syncCategoryLimitUI = function () {
 
         const catId = $item.attr('data-cat-id');
         const max = parseInt($stepper.attr('data-max'), 10) || 0;
-        $stepper.find('.lim-input').val(window.getCategoryLimit(catId, max));
+        // แสดงค่า raw จาก SSOT (อาจเป็น % string) กัน % กลายเป็น NaN — getCategoryLimit ใช้ resolve value
+        var rawVal = (window.APP.categoryLimits || {})[catId];
+        $stepper.find('.lim-input').val(rawVal != null ? String(rawVal) : window.getCategoryLimit(catId, max));
     });
 };
 
@@ -634,8 +682,10 @@ window.bindCategoryLimitHandlers = function () {
     const $area = $('#dynamic-accordion-area');
 
     $area.on('click', '.limit-preset-btn', function () {
-        const raw = $(this).attr('data-limit');
-        window.applyLimitPreset(raw === 'all' ? null : parseInt(raw, 10));
+        var raw = $(this).attr('data-limit');
+        if (raw === 'all') { window.applyLimitPreset(null); return; }
+        // ส่ง raw string ไปให้ setCategoryLimit จัดการ (%/number)
+        window.applyLimitPreset(raw);
     });
 
     $area.on('click', '.lim-btn', function () {
