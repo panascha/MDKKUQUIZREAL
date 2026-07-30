@@ -170,6 +170,10 @@ window.parseQuestionMetadata = function (q) {
         if (bestCat) {
             const parts = bestCat.split('_');
             topic = parts[parts.length - 1];
+            // ถ้า topic นี้มาจากหมวดหมู่ที่ AI จัดกลุ่มไว้ ให้ติดป้าย "(by AI)"
+            if (/by ai/i.test(bestCat) && !topic.includes('(by AI)')) {
+                topic = topic + ' (by AI)';
+            }
         }
     }
 
