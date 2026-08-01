@@ -2,7 +2,15 @@
 // version ต้องตรงกับ CACHE_NAME ใน service-worker.js หลังตัด 'mdkkuquiz-' ออก (เช่น 'v3.2.0')
 // เวอร์ชันที่เป็น internal-only ไม่ต้องมี entry ที่นี่ — กล่องอัปเดตจะแสดงข้อความ fallback แทน
 
-window.CHANGELOG = [
+windwindow.CHANGELOG = [
+    {
+        version: 'v3.12.2',
+        date: '2026-08-01',
+        new: [
+            'เพิ่ม Super-Group Header สำหรับรวบกลุ่มหัวข้อข้อสอบที่จัดหมวดหมู่โดย AI (by AI) ไว้ในแถบเดียว'
+        ],
+        fixed: []
+    },
     {
         version: 'v3.12.1',
         date: '2026-07-30',

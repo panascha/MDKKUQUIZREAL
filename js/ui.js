@@ -540,6 +540,16 @@ window.renderAccordionUI = function (data) {
                 accordions: []
             };
             superGroups[key].accordions.push({ groupName, categories, isExcluded });
+        } else if (groupName.toUpperCase().includes("BY AI")) {
+            const key = `${subjectId}|BYAI`;
+            if (!superGroups[key]) superGroups[key] = {
+                label: `${subjectId} by AI`,
+                variant: 'ai',
+                subjectId,
+                isExcluded,
+                accordions: []
+            };
+            superGroups[key].accordions.push({ groupName, categories, isExcluded });
         } else {
             standaloneAccordions.push({ groupName, categories, isExcluded });
         }
@@ -563,11 +573,15 @@ window.renderAccordionUI = function (data) {
 
         const icon = sg.variant === 'lec'
             ? '<i class="fas fa-book-open"></i>'
-            : '<i class="fas fa-graduation-cap"></i>';
+            : sg.variant === 'ai'
+                ? '<i class="fas fa-robot"></i>'
+                : '<i class="fas fa-graduation-cap"></i>';
+
+        const headerClass = sg.variant === 'lec' ? 'lec-header' : (sg.variant === 'ai' ? 'ai-header' : 'mcq-header');
 
         const html = `
             <div class="super-group">
-                <div class="super-group-header ${sg.variant === 'lec' ? 'lec-header' : 'mcq-header'}" onclick="window.toggleSuperGroup(this)">
+                <div class="super-group-header ${headerClass}" onclick="window.toggleSuperGroup(this)">
                     ${icon}
                     <span>${sg.label}</span>
                     <span class="super-group-badge" style="display: none;">0</span>

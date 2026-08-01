@@ -130,15 +130,27 @@
     background: #3a5e50;
 }
 
+/* AI header variant */
+.super-group-header.ai-header {
+    background: #6a4108;
+}
+
+.super-group-header.ai-header:hover {
+    background: #7c4a0f;
+}
+
 /* dark theme overrides */
 [data-theme="dark"] .super-group-header.mcq-header { background: #0c2340; color: #f8fafc !important; }
 [data-theme="dark"] .super-group-header.mcq-header:hover { background: #0f2d52; }
 [data-theme="dark"] .super-group-header.lec-header { background: #0a2a1e; color: #f8fafc !important; }
 [data-theme="dark"] .super-group-header.lec-header:hover { background: #0e3528; }
+[data-theme="dark"] .super-group-header.ai-header { background: #4d2e0a; color: #f8fafc !important; }
+[data-theme="dark"] .super-group-header.ai-header:hover { background: #5e3a0f; }
 
 /* claude theme overrides */
 [data-theme="claude"] .super-group-header.mcq-header { background: #7c3d1a; }
 [data-theme="claude"] .super-group-header.lec-header { background: #1a4a2e; }
+[data-theme="claude"] .super-group-header.ai-header { background: #6a4108; }
 
 
     .accordion-group {
