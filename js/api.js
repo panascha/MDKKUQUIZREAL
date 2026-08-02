@@ -21,6 +21,8 @@ window.questionStartTime = Date.now();
 //   กติกา: retry เฉพาะที่ "ล้มเร็ว" (cold-start / echo key หมดอายุ — ล้มในไม่กี่วินาที) เท่านั้น
 //   ล้มช้า = เซิร์ฟเวอร์กำลังทำงานจริง → ยิงซ้ำมีแต่ทำให้แย่ลง
 var GAS_SLOW_FAIL_MS = 15000;
+// เขียน (editQuestion ฯลฯ) ใช้เวลานาน 15-25s ปกติ (Sheet sort + lock) — timeout สั้นตัด save ที่สำเร็จอยู่แล้วออกก่อนเวลา
+var POST_SLOW_FAIL_MS = 60000;
 window.fetchGAS = async function (buildUrl, retries) {
     retries = (typeof retries === 'number') ? retries : 3;
     var BASE_MS = 1500;
@@ -103,7 +105,7 @@ window.sendWithRetry = async function (payload, retries = 3, signal = null) {
             if (i === retries - 1) throw networkErr;
             // ล้มหลังรอนาน = GAS รับงานไปแล้วและยังรันอยู่ (write action อาจสำเร็จไปแล้วด้วยซ้ำ)
             // → retry = execution ซ้อน + เสี่ยงเขียนซ้ำ
-            if (Date.now() - attemptStart > GAS_SLOW_FAIL_MS) throw networkErr;
+            if (Date.now() - attemptStart > POST_SLOW_FAIL_MS) throw networkErr;
             const netDelay = Math.random() * Math.min(BASE_MS * Math.pow(2, i), CAP_MS);
             console.warn(`Attempt ${i + 1} failed (network). Retrying in ${Math.round(netDelay)}ms...`);
             await new Promise(res => setTimeout(res, netDelay));
@@ -123,7 +125,7 @@ window.sendWithRetry = async function (payload, retries = 3, signal = null) {
             if (i === retries - 1) throw new Error('Server error ' + status + ' after ' + retries + ' attempts');
             // 404 cold-start เกิดในไม่กี่วินาที — 404/5xx ที่มาช้าแปลว่า GAS ประมวลผลจริงอยู่ ห้ามยิงซ้ำ
             // (429 ยกเว้น: rate-limit ตอบเร็วเสมอ และมี Retry-After กำกับ)
-            if (status !== 429 && Date.now() - attemptStart > GAS_SLOW_FAIL_MS) {
+            if (status !== 429 && Date.now() - attemptStart > POST_SLOW_FAIL_MS) {
                 throw new Error('Server error ' + status + ' after ' + Math.round((Date.now() - attemptStart) / 1000) + 's — ไม่ retry (คำขอเดิมอาจยังทำงานอยู่)');
             }
             let retryDelay;
