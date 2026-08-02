@@ -122,7 +122,7 @@ window.showQuestion = function (shouldFocus = true) {
         window.renderVoteNotificationUI(window.APP.current_question.questionId, window.APP.pendingVotesCache[window.APP.current_question.questionId]);
     }
     // T1.1: per-qid fetch เฉพาะกรณี bulk ยังไม่เสร็จ (fallback สำหรับข้อปัจจุบัน)
-    if (!window._bulkPendingLoaded) {
+    if (!window._bulkPendingLoaded && !window._bulkPendingInFlight) {
         window.fetchPendingVotes(window.APP.current_question.questionId);
     }
 
@@ -131,7 +131,7 @@ window.showQuestion = function (shouldFocus = true) {
         window.renderReportNotificationUI(window.APP.current_question.questionId, window.APP.pendingReportsCache[window.APP.current_question.questionId]);
     }
     // T1.1: per-qid fetch เฉพาะกรณี bulk ยังไม่เสร็จ (fallback สำหรับข้อปัจจุบัน)
-    if (!window._bulkPendingLoaded) {
+    if (!window._bulkPendingLoaded && !window._bulkPendingInFlight) {
         window.fetchPendingReports(window.APP.current_question.questionId);
     }
 
@@ -227,7 +227,7 @@ window.showQuestion = function (shouldFocus = true) {
         window.renderVoteNotificationUI(window.APP.current_question.questionId, window.APP.pendingVotesCache[window.APP.current_question.questionId]);
     }
     // T1.1: per-qid fetch เฉพาะกรณี bulk ยังไม่เสร็จ
-    if (!window._bulkPendingLoaded) {
+    if (!window._bulkPendingLoaded && !window._bulkPendingInFlight) {
         window.fetchPendingVotes(window.APP.current_question.questionId);
     }
 

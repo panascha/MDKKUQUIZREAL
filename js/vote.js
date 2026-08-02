@@ -5,6 +5,8 @@ window.activeVoteFetches = window.activeVoteFetches || new Set();
 
 // T1.1: flag ว่า Bulk Votes/Reports โหลดครบแล้ว — เมื่อ true ไม่ต้อง per-qid fetch อีก
 window._bulkPendingLoaded = false;
+// flag ว่า Bulk กำลังโหลดอยู่ — กัน showQuestion ยิง per-qid ซ้อนระหว่างที่ bulk ยังไม่เสร็จ (แข่งกันแย่ง GAS execution)
+window._bulkPendingInFlight = false;
 
 window.fetchPendingVotes = function (questionId) {
     if (window.activeVoteFetches.has(questionId)) return;
@@ -725,6 +727,7 @@ window.submitReportVote = async function (reportTimestamp, delta, questionId) {
 
 window.fetchAllPendingVotesReports = async function (subjectParam) {
     if (!subjectParam) return;
+    window._bulkPendingInFlight = true;
     try {
         const json = await window.fetchGAS(
             () => `${window.APPSCRIPT_URL}?action=getPendingVotesReports&subject=${encodeURIComponent(subjectParam)}&_=${Date.now()}`
@@ -748,5 +751,7 @@ window.fetchAllPendingVotesReports = async function (subjectParam) {
     } catch (err) {
         console.warn('[Bulk VR] fetchAllPendingVotesReports failed:', err);
         // ไม่ set _bulkPendingLoaded → showQuestion จะ fallback per-qid ตามเดิม
+    } finally {
+        window._bulkPendingInFlight = false;
     }
 };

@@ -952,6 +952,11 @@ window.initApp = async function () {
             window.fetchAllPendingVotesReports(subjectParam).then(function () {
                 var curQ = window.APP.current_question;
                 if (curQ && curQ.questionId) {
+                    if (!window._bulkPendingLoaded) {
+                        // bulk ล้มเหลว/ไม่สำเร็จ (early-return หรือ catch ข้างใน) → fallback per-qid สำหรับข้อที่กำลังแสดงอยู่ ไม่งั้น badge หาย
+                        window.fetchPendingVotes(curQ.questionId);
+                        window.fetchPendingReports(curQ.questionId);
+                    }
                     if (window.APP.pendingVotesCache[curQ.questionId]) {
                         window.renderVoteNotificationUI(curQ.questionId, window.APP.pendingVotesCache[curQ.questionId]);
                     }
@@ -968,7 +973,8 @@ window.initApp = async function () {
         window.startPendingUpdateWatcher();   // ตัวคอยตรวจสิทธิ์ว่างทุกๆ 5 วินาที
         window.startIncrementalPolling();      // บูตลูปตรวจสอบเซิร์ฟเวอร์ทุกๆ 5 นาที (active) / 10 นาที (background)
 
-        window.checkPendingReports();
+        // ไม่เร่งด่วน (badge แจ้งเตือน) — หน่วง 4s กันชนกับ getStructure/getQuestions/bulk VR ตอนโหลดหน้าแรก
+        setTimeout(window.checkPendingReports, 4000);
         window.finishLoading();
     }
 };

@@ -610,7 +610,7 @@ $(document).on('click', '.chat-mode-btn', function () {
 });
 
 $(document).ready(function () {
-    window.loadChatbotModelCatalog();
+    setTimeout(function () { window.loadChatbotModelCatalog(); }, 4000);
     window.updateChatModeUI();
     $('#btn-stop-chat').hide();
 });

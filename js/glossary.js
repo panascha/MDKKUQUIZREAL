@@ -522,9 +522,14 @@ $(document).on('click', '.glossary-known', function (e) {
         window.hideGlossaryPopup();
         window.hideGlossaryChip();
         // preload glossary ครั้งเดียวต่อวิชา — hit-path (0 network) ต้องมี map ก่อนผู้ใช้แตะคำ; throttle 60s กันยิงรัวตอน backend ล่ม
+        // หน่วง 4s กันชนกับ getStructure/getQuestions/bulk VR ตอนโหลดหน้าแรก (re-check flags ตอนหมดเวลา เผื่อผู้ใช้เปิด panel เองก่อนแล้ว)
         if (!window.APP._glossaryLoaded && !window.APP._glossaryLoading &&
             (!window.APP._glossaryLastAttempt || Date.now() - window.APP._glossaryLastAttempt > 60000)) {
-            window.loadGlossary(new URLSearchParams(location.search).get('subject') || '');
+            setTimeout(function () {
+                if (!window.APP._glossaryLoaded && !window.APP._glossaryLoading) {
+                    window.loadGlossary(new URLSearchParams(location.search).get('subject') || '');
+                }
+            }, 4000);
         }
         // mark หลัง DOM ของข้อวาดเสร็จ (100ms > renderAllMath ที่ 50ms — ให้ KaTeX เสร็จก่อน)
         setTimeout(window.markGlossaryTerms, 120);
