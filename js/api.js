@@ -14,6 +14,13 @@ window.questionStartTime = Date.now();
 //   เพราะ url_content_key ฝัง timestamp อยู่แล้ว — การเรียก exec URL ใหม่จะได้
 //   echo URL ใหม่ที่ยังไม่หมดอายุ
 // ──────────────────────────────────────────────────────────────────────────────
+// ⚠️ RETRY AMPLIFICATION GUARD (2026-08-02)
+//   abort/ล้มฝั่ง browser ไม่ได้หยุด execution ฝั่ง GAS — retry ด้วย URL ใหม่ = execution ที่ 2 ซ้อนตัวแรก
+//   ที่ยังรันอยู่ ทั้งคู่กินโควต้า simultaneous executions ของบัญชีเจ้าของ (deployment รันแบบ USER_DEPLOYING)
+//   → คำขอหนักๆ เร่งกันจนคิวเต็ม แล้วทุกตัวไปตายที่เพดาน 6 นาที (369.99s ในหน้า Executions)
+//   กติกา: retry เฉพาะที่ "ล้มเร็ว" (cold-start / echo key หมดอายุ — ล้มในไม่กี่วินาที) เท่านั้น
+//   ล้มช้า = เซิร์ฟเวอร์กำลังทำงานจริง → ยิงซ้ำมีแต่ทำให้แย่ลง
+var GAS_SLOW_FAIL_MS = 15000;
 window.fetchGAS = async function (buildUrl, retries) {
     retries = (typeof retries === 'number') ? retries : 3;
     var BASE_MS = 1500;
@@ -21,11 +28,13 @@ window.fetchGAS = async function (buildUrl, retries) {
 
     for (var i = 0; i < retries; i++) {
         var url = typeof buildUrl === 'function' ? buildUrl() : buildUrl;
+        var attemptStart = Date.now();
         var response;
         try {
             response = await fetch(url, { redirect: 'follow' });
         } catch (netErr) {
             if (i === retries - 1) throw netErr;
+            if (Date.now() - attemptStart > GAS_SLOW_FAIL_MS) throw netErr;
             var nd = Math.random() * Math.min(BASE_MS * Math.pow(2, i), CAP_MS);
             console.warn('[fetchGAS] Network error attempt ' + (i + 1) + '. Retry in ' + Math.round(nd) + 'ms');
             await new Promise(function(r){ setTimeout(r, nd); });
@@ -35,6 +44,10 @@ window.fetchGAS = async function (buildUrl, retries) {
         // GAS cold-start / stale echo key → 404 หรือ 5xx
         if (!response.ok) {
             if (i === retries - 1) throw new Error('[fetchGAS] HTTP ' + response.status + ' after ' + retries + ' attempts');
+            // 404 ที่มาหลังรอนาน ≠ cold-start — GAS ทำงานอยู่จริงและ echo key หมดอายุระหว่างทาง
+            if (Date.now() - attemptStart > GAS_SLOW_FAIL_MS) {
+                throw new Error('[fetchGAS] HTTP ' + response.status + ' after ' + Math.round((Date.now() - attemptStart) / 1000) + 's — ไม่ retry (เซิร์ฟเวอร์ยังประมวลผลคำขอเดิมอยู่)');
+            }
             var hd = Math.random() * Math.min(BASE_MS * Math.pow(2, i), CAP_MS);
             console.warn('[fetchGAS] HTTP ' + response.status + ' attempt ' + (i + 1) + '. Retry in ' + Math.round(hd) + 'ms');
             await new Promise(function(r){ setTimeout(r, hd); });
@@ -52,6 +65,7 @@ window.fetchGAS = async function (buildUrl, retries) {
         // GAS อาจ redirect ไป echo แล้วได้รับ HTML (overload / transient error)
         if (!text || text.trimStart().startsWith('<')) {
             if (i === retries - 1) throw new SyntaxError('[fetchGAS] Got HTML instead of JSON after ' + retries + ' attempts');
+            if (Date.now() - attemptStart > GAS_SLOW_FAIL_MS) throw new SyntaxError('[fetchGAS] Got HTML body หลังรอ ' + Math.round((Date.now() - attemptStart) / 1000) + 's — ไม่ retry');
             var pd = Math.random() * Math.min(BASE_MS * Math.pow(2, i), CAP_MS);
             console.warn('[fetchGAS] Got HTML body attempt ' + (i + 1) + '. Retry in ' + Math.round(pd) + 'ms');
             await new Promise(function(r){ setTimeout(r, pd); });
@@ -72,6 +86,7 @@ window.sendWithRetry = async function (payload, retries = 3, signal = null) {
 
     for (let i = 0; i < retries; i++) {
         if (signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
+        const attemptStart = Date.now();
         let response;
         try {
             response = await fetch(window.APPSCRIPT_URL, {
@@ -86,6 +101,9 @@ window.sendWithRetry = async function (payload, retries = 3, signal = null) {
             if (networkErr && networkErr.name === 'AbortError') throw networkErr;
             // Network error (offline, DNS, etc.) — retry with backoff
             if (i === retries - 1) throw networkErr;
+            // ล้มหลังรอนาน = GAS รับงานไปแล้วและยังรันอยู่ (write action อาจสำเร็จไปแล้วด้วยซ้ำ)
+            // → retry = execution ซ้อน + เสี่ยงเขียนซ้ำ
+            if (Date.now() - attemptStart > GAS_SLOW_FAIL_MS) throw networkErr;
             const netDelay = Math.random() * Math.min(BASE_MS * Math.pow(2, i), CAP_MS);
             console.warn(`Attempt ${i + 1} failed (network). Retrying in ${Math.round(netDelay)}ms...`);
             await new Promise(res => setTimeout(res, netDelay));
@@ -103,6 +121,11 @@ window.sendWithRetry = async function (payload, retries = 3, signal = null) {
             }
             // 429, 404 หรือ 5xx: retry ด้วย backoff
             if (i === retries - 1) throw new Error('Server error ' + status + ' after ' + retries + ' attempts');
+            // 404 cold-start เกิดในไม่กี่วินาที — 404/5xx ที่มาช้าแปลว่า GAS ประมวลผลจริงอยู่ ห้ามยิงซ้ำ
+            // (429 ยกเว้น: rate-limit ตอบเร็วเสมอ และมี Retry-After กำกับ)
+            if (status !== 429 && Date.now() - attemptStart > GAS_SLOW_FAIL_MS) {
+                throw new Error('Server error ' + status + ' after ' + Math.round((Date.now() - attemptStart) / 1000) + 's — ไม่ retry (คำขอเดิมอาจยังทำงานอยู่)');
+            }
             let retryDelay;
             if (status === 429) {
                 const retryAfterHdr = response.headers.get('Retry-After');
