@@ -688,6 +688,111 @@ window.renderExplainHtmlForCard = function (explainRaw) {
 // 4. ระบบกู้คืนสถานะและความคืบหน้าการทำงาน (Progress Recovery)
 // =========================================================
 
+window._syncInBackground = function (subjectParam, localVer, verKey, cacheKey, sessionKey) {
+    (async function () {
+        try {
+            const resVer = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=checkVersion&_=${Date.now()}`);
+            const serverVersion = resVer.v;
+
+            if (localVer !== serverVersion) {
+                console.log('[SWR] Version mismatch, running background incremental sync...');
+                let incrementalOk = false;
+                try {
+                    const lastSync = await window.getLastSyncTime(subjectParam);
+                    const res = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getChangedSince&since=${lastSync}${subjectParam ? '&subject=' + subjectParam : ''}&_=${Date.now()}`);
+
+                    if (res.changed && res.changed.length > 0) {
+                        await window.mergeChangedQuestionsToCache(res.changed, subjectParam);
+                        const mergedCache = await window.getCacheDB(cacheKey);
+                        if (mergedCache) {
+                            window.APP.allQuestions = mergedCache.questions.map((q, index) => ({
+                                ...q,
+                                _originalIndex: (q._originalIndex !== undefined) ? q._originalIndex : index,
+                                category: Array.isArray(q.category) ? q.category : (q.category ? [q.category] : [])
+                            }));
+                            window.searchDictionaryDirty = true;
+                        }
+                    } else {
+                        const structRes = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`);
+                        if (structRes && structRes.subjects) {
+                            const existingCache = await window.getCacheDB(cacheKey);
+                            if (existingCache) {
+                                existingCache.structure = structRes;
+                                await window.setCacheDB(cacheKey, existingCache);
+                                window.APP.globalStructure = structRes;
+                                window.renderAccordionUI(window.APP.globalStructure);
+                                window.renderAnnouncementsUI(window.APP.globalStructure.announcements || []);
+                                console.log('[SWR] Structure & Categories updated in background');
+                            }
+                        }
+                    }
+
+                    await window.setCacheDB(verKey, serverVersion);
+                    await window.saveLastSyncTime(subjectParam, res.serverTime || Date.now());
+                    incrementalOk = true;
+                } catch (incErr) {
+                    console.warn('[SWR] Background incremental sync failed:', incErr);
+                }
+
+                if (!incrementalOk) {
+                    const [resStruct, resQues] = await Promise.all([
+                        window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`),
+                        window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}&_=${Date.now()}`)
+                    ]);
+                    const newData = {
+                        structure: resStruct,
+                        questions: resQues.map((q, index) => ({
+                            ...q,
+                            _originalIndex: index,
+                            category: Array.isArray(q.category) ? q.category : (q.category ? [q.category] : [])
+                        }))
+                    };
+                    await window.setCacheDB(cacheKey, newData);
+                    await window.setCacheDB(verKey, serverVersion);
+                    await window.saveLastSyncTime(subjectParam, Date.now());
+
+                    window.APP.globalStructure = newData.structure;
+                    window.APP.allQuestions = newData.questions;
+                    window.renderAccordionUI(window.APP.globalStructure);
+                    window.renderAnnouncementsUI(window.APP.globalStructure.announcements || []);
+                    window.renderAttributeFilterUI();
+                    window.searchDictionaryDirty = true;
+                }
+            } else {
+                console.log('[SWR] Cache up to date (version match)');
+            }
+        } catch (err) {
+            console.warn('[SWR] Background version check/sync failed (offline or GAS cold-start error):', err);
+        }
+
+        // T1.1: Bulk Pending Votes/Reports (fire-and-forget)
+        if (subjectParam) {
+            window.fetchAllPendingVotesReports(subjectParam).then(function () {
+                var curQ = window.APP.current_question;
+                if (curQ && curQ.questionId) {
+                    if (!window._bulkPendingLoaded) {
+                        window.fetchPendingVotes(curQ.questionId);
+                        window.fetchPendingReports(curQ.questionId);
+                    }
+                    if (window.APP.pendingVotesCache[curQ.questionId]) {
+                        window.renderVoteNotificationUI(curQ.questionId, window.APP.pendingVotesCache[curQ.questionId]);
+                    }
+                    if (window.APP.pendingReportsCache[curQ.questionId]) {
+                        window.renderReportNotificationUI(curQ.questionId, window.APP.pendingReportsCache[curQ.questionId]);
+                    }
+                }
+            }).catch(function (err) {
+                console.warn('[Bulk VR] background fetch failed:', err);
+            });
+        }
+
+        // Start watchers & polling
+        window.startPendingUpdateWatcher();
+        window.startIncrementalPolling();
+        setTimeout(window.checkPendingReports, 4000);
+    })();
+};
+
 window.checkAndPromptRestoreProgress = async function (sessionKey) {
     // reload จากการอัปเดตเวอร์ชันแอป (version.js doReload) → กู้คืนเงียบๆ ไม่ต้องถาม
     // กันชุดข้อสอบรีเซ็ตเพราะผู้ใช้เผลอกด "เริ่มใหม่ทั้งหมด" หลังอัปเดต
@@ -779,29 +884,44 @@ window.initApp = async function () {
     // 1. ตรวจค้นโครงสร้างและโจทย์วิชาจาก Cache ท้องถิ่น (IndexedDB)
     const localData = await window.getCacheDB(cacheKey);
     const localVer = await window.getCacheDB(verKey);
-    let loadedSuccessfully = false;
-    let subjectSelectorPopulated = false;
 
+    // =============================
+    // STALE-WHILE-REVALIDATE: มี Cache → แสดงทันที แล้วซิงค์เบื้องหลัง
+    // =============================
     if (localData) {
+        // แสดง UI จาก cache ทันที โดยไม่รอ GAS checkVersion
         window.APP.globalStructure = localData.structure;
         window.APP.allQuestions = localData.questions.map((q, index) => ({
             ...q,
-            _originalIndex: (q._originalIndex !== undefined) ? q._originalIndex : index, // backfill cache เก่าที่ merge แล้ว _originalIndex หาย
+            _originalIndex: (q._originalIndex !== undefined) ? q._originalIndex : index,
             category: Array.isArray(q.category) ? q.category : (q.category ? [q.category] : [])
         }));
         window.renderAccordionUI(window.APP.globalStructure);
         window.renderAnnouncementsUI(window.APP.globalStructure.announcements || []);
-        window.renderAttributeFilterUI(); // สร้างชุดตัวกรองละเอียดแบบไดนามิก
-        window.searchDictionaryDirty = true; // T3.2: Lazy build — สร้าง Dictionary เมื่อค้นหาจริง
+        window.renderAttributeFilterUI();
+        window.searchDictionaryDirty = true;
         window.updateSubjectUI(subjectParam);
-        loadedSuccessfully = true;
 
-        // โหลด Dropdown ทันทีจาก Cache โดยไม่รอ checkVersion
         await window.populateSubjectSelector(subjectParam);
-        subjectSelectorPopulated = true;
-    } else {
-        $('#loading-overlay').css('display', 'flex');
+
+        // กู้คืนความคืบหน้าหรือสร้างชุดใหม่ → แสดงข้อสอบทันที
+        await window.checkAndPromptRestoreProgress(sessionKey);
+
+        // ปิด loading overlay ทันที (GAS ยังไม่ได้ถูกเรียก)
+        window.finishLoading();
+
+        // ซิงค์เบื้องหลัง (fire-and-forget) — ไม่บล็อก UI
+        window._syncInBackground(subjectParam, localVer, verKey, cacheKey, sessionKey);
+
+        return; // ออกจาก initApp ทันที — ผู้ใช้ใช้แอปได้แล้ว
     }
+
+    // =============================
+    // FIRST RUN (no cache) → blocking fetch
+    // =============================
+    $('#loading-overlay').css('display', 'flex');
+    let loadedSuccessfully = false;
+    let subjectSelectorPopulated = false;
 
     try {
         // 2. เปรียบเทียบเวอร์ชันและดึงข้อมูลอัปเดตจากเครื่องเซิร์ฟเวอร์หลัก (GAS) - แนบ cache-buster ป้องกัน browser ค้างไฟล์เก่า
