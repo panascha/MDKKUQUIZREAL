@@ -74,6 +74,55 @@ window.getAllSubjectsList = async function () {
     return allSubjects || null;
 };
 
+// ── ความถี่การเลือกวิชา (ดันวิชาที่ใช้บ่อยขึ้นบนสุด) ──────────────────────────
+// นับไว้ใน localStorage แล้วยิง "ยอดสะสม" (absolute ไม่ใช่ delta) ขึ้น cloud ด้วย beacon
+// ต้องเป็น beacon เพราะทุกทางที่เลือกวิชาจะ navigate ทันที — setTimeout/fetch ธรรมดาตายไปพร้อมหน้า
+window.getSubjectPopularityCounts = function () {
+    try { return JSON.parse(localStorage.getItem('mdkku_subject_popularity') || '{}'); }
+    catch (e) { return {}; }
+};
+
+window.sortSubjectsByPopularity = function (list) {
+    if (!Array.isArray(list)) return list;
+    const counts = window.getSubjectPopularityCounts();
+    return list.slice().sort((a, b) => {
+        const ca = counts[a.id] || 0;
+        const cb = counts[b.id] || 0;
+        if (cb !== ca) return cb - ca;                    // ใช้บ่อยสุดขึ้นก่อน
+        const ya = Number(a.year || 0), yb = Number(b.year || 0);
+        if (ya !== yb) return ya - yb;                    // เสมอกัน → ปีน้อยก่อน
+        return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+};
+
+window.trackSubjectSelect = function (subjectId) {
+    if (!subjectId) return;
+    const counts = window.getSubjectPopularityCounts();
+    counts[subjectId] = (counts[subjectId] || 0) + 1;
+    try { localStorage.setItem('mdkku_subject_popularity', JSON.stringify(counts)); }
+    catch (e) { return; }
+
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.sessionToken) return;
+    const payload = JSON.stringify({
+        action: 'syncSubjectPopularity',
+        sessionToken: window.EDIT_SESSION.sessionToken,
+        subjectId: subjectId,
+        count: counts[subjectId]
+    });
+    try {
+        // text/plain เท่านั้น — application/json ทำให้เกิด CORS preflight ที่ GAS ไม่ตอบ
+        const blob = new Blob([payload], { type: 'text/plain;charset=utf-8' });
+        const sent = navigator.sendBeacon ? navigator.sendBeacon(window.APPSCRIPT_URL, blob) : false;
+        if (!sent) {
+            fetch(window.APPSCRIPT_URL, {
+                method: 'POST', redirect: 'follow', keepalive: true,
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: payload
+            }).catch(function () { /* fire-and-forget */ });
+        }
+    } catch (e) { /* fire-and-forget */ }
+};
+
 window.populateSubjectSelector = async function (subjectParam) {
     let allSubjects = null;
     try {
@@ -97,6 +146,10 @@ window.populateSubjectSelector = async function (subjectParam) {
         $yearSelect.val(currentYear);
     }
 
+    // เรียงตามความถี่ที่ผู้ใช้เลือก — วิชาที่กำลังเรียนอยู่จะลอยขึ้นบนสุดเอง
+    if (window.APP.allSubjectsList) {
+        window.APP.allSubjectsList = window.sortSubjectsByPopularity(window.APP.allSubjectsList);
+    }
     window.filterSubjectOptions(currentYear, subjectParam);
 };
 
@@ -154,6 +207,9 @@ window.showSubjectPickerModal = async function () {
                 return;
             }
 
+            // เรียงตามความถี่ที่ผู้ใช้เลือก — วิชาที่ใช้บ่อยขึ้นบนสุด
+            subjects = window.sortSubjectsByPopularity(subjects);
+
             const renderList = (year) => {
                 $list.empty();
                 subjects.forEach(s => {
@@ -170,6 +226,7 @@ window.showSubjectPickerModal = async function () {
                             })
                             .text(`${yearLabel}${s.id} - ${s.name}`)
                             .on('click', function () {
+                                window.trackSubjectSelect(s.id);
                                 window.location.search = '?subject=' + encodeURIComponent(s.id);
                             })
                     );
@@ -1160,6 +1217,7 @@ $(function () {
         const selectedSubj = $(this).val();
         if (selectedSubj) {
             sessionStorage.removeItem('mdkku_load_all');
+            window.trackSubjectSelect(selectedSubj);
             window.location.search = '?subject=' + encodeURIComponent(selectedSubj);
         } else {
             // เลือก "แสดงทั้งหมด" จาก dropdown = ตั้งใจโหลดทุกวิชา — ตั้ง flag กัน popup เด้งซ้ำ

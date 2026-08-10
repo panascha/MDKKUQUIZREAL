@@ -113,12 +113,47 @@ window.resumeSessionFromToken = async function (token) {
             console.log("Session restored for:", res.user.displayName);
             if (typeof window.onSyncSessionReady === 'function') window.onSyncSessionReady();
             window.promptStudentIdIfNeeded();
+            // merge server-side subject popularity counts into local storage
+            window._mergeServerPopularity();
         } else {
             localStorage.removeItem("mdkku_session_token");
             console.log("Session expired, user must re-login.");
         }
     } catch (err) {
         console.warn("Session resume failed:", err);
+    }
+};
+
+// รวมยอดความถี่การเลือกวิชาจาก cloud เข้ากับของในเครื่อง (ข้ามอุปกรณ์)
+// ยิงครั้งเดียวต่อแท็บ — การเลือกวิชาทุกครั้งทำให้หน้า navigate ใหม่ ถ้าไม่กันไว้จะสแกนชีตทุกครั้งที่โหลด
+window._mergeServerPopularity = async function () {
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.sessionToken) return;
+    if (sessionStorage.getItem('mdkku_pop_merged')) return;
+    sessionStorage.setItem('mdkku_pop_merged', '1');
+    try {
+        const res = await window.sendWithRetry({
+            action: 'getSubjectPopularity',
+            sessionToken: window.EDIT_SESSION.sessionToken
+        });
+        if (!res || res.result !== 'success' || !res.counts) return;
+
+        const local = JSON.parse(localStorage.getItem('mdkku_subject_popularity') || '{}');
+        let changed = false;
+        Object.keys(res.counts).forEach(subj => {
+            const merged = Math.max(local[subj] || 0, res.counts[subj] || 0);
+            if (merged !== (local[subj] || 0)) { local[subj] = merged; changed = true; }
+        });
+        if (!changed) return;
+        localStorage.setItem('mdkku_subject_popularity', JSON.stringify(local));
+
+        // การ merge เสร็จหลัง dropdown ถูกวาดไปแล้ว (setupGoogleSSO หน่วง 1.2s + verifySession)
+        // ถ้าไม่วาดใหม่ ยอดจากเครื่องอื่นจะไม่มีผลจนกว่าจะรีโหลดรอบถัดไป
+        if (window.APP && window.APP.allSubjectsList && typeof window.sortSubjectsByPopularity === 'function') {
+            window.APP.allSubjectsList = window.sortSubjectsByPopularity(window.APP.allSubjectsList);
+            window.filterSubjectOptions($('#year-select').val() || '', $('#subject-select').val() || '');
+        }
+    } catch (err) {
+        console.warn('[popularity] merge failed:', err);
     }
 };
 
