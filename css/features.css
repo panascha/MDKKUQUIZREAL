@@ -209,6 +209,8 @@ body.chatbot-open #chatbot-fab {
     }
     body.chatbot-open {
         padding-right: var(--chatbot-dock-w);
+        margin: 0 0;                /* kill base.css auto-centering so padding actually shifts .container left */
+        justify-content: flex-start; /* align .container left of gutter instead of re-centering over it */
     }
     body.chatbot-open #chatbot-scrim {
         display: none !important;
