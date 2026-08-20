@@ -525,7 +525,10 @@ window.startIncrementalPolling = function () {
 
     // ปรับ schedule ใหม่เมื่อ visibility เปลี่ยน (เพื่อใช้ interval ที่เหมาะสม)
     document.removeEventListener('visibilitychange', scheduleNextPoll);
-    document.addEventListener('visibilitychange', scheduleNextPoll);
+    document.addEventListener('visibilitychange', function () {
+        scheduleNextPoll();
+        if (!document.hidden) window.runIncrementalSync();
+    });
 
     scheduleNextPoll();
     console.log('[Sync] Adaptive incremental polling system active (5 min active / 10 min background, ±30s jitter)');
