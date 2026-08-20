@@ -115,9 +115,14 @@ window.resumeSessionFromToken = async function (token) {
             window.promptStudentIdIfNeeded();
             // merge server-side subject popularity counts into local storage
             window._mergeServerPopularity();
-        } else {
+        } else if (res.result === 'error' &&
+                   (res.message === 'session_expired' || res.message === 'token_expired' || res.message === 'Session หมดอายุ กรุณาล็อกอินใหม่')) {
+            // backend บอกชัดเจนว่า token หมดอายุหรือเพิกถอน → ล้างทิ้ง
             localStorage.removeItem("mdkku_session_token");
             console.log("Session expired, user must re-login.");
+        } else {
+            // transient error (เครือข่าย/overload) → เก็บ token ไว้ลองใหม่
+            console.warn("verifySession transient error, keeping token:", res && res.message);
         }
     } catch (err) {
         console.warn("Session resume failed:", err);

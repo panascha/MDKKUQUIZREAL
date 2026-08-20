@@ -156,10 +156,12 @@ window.sendWithRetry = async function (payload, retries = 3, signal = null) {
         }
 
         // ตรวจสอบความถูกต้องของสิทธิ์จากทางหลังบ้านแบบเรียลไทม์ (Global Interceptor)
+        // เดิมใช้ substring 'หมดอายุ' ทำให้ logout จาก error ทั่วไป (เช่น rate limit/parse fail ของฝั่งหลังบ้าน)
+        // ตอนนี้รับเฉพาะ code error ที่ backend ส่งมาอย่างชัดเจนเท่านั้น
         if (resJson && resJson.result === 'error' &&
-            (resJson.message === 'token_expired' ||
-                resJson.message === 'Session หมดอายุ กรุณาล็อกอินใหม่' ||
-                (typeof resJson.message === 'string' && resJson.message.indexOf('หมดอายุ') !== -1))) {
+            (resJson.message === 'session_expired' ||
+             resJson.message === 'token_expired' ||
+             resJson.message === 'Session หมดอายุ กรุณาล็อกอินใหม่')) {
 
             if (typeof window.logoutEditModeSilent === 'function') {
                 window.logoutEditModeSilent();
