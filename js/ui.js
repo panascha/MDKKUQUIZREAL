@@ -21,6 +21,15 @@ window.isLectureCategory = function (catId) {
     return false;
 };
 
+// สกัดชนิดข้อสอบจากชื่อกลุ่ม เช่น "51LAB" -> LAB, "FMT1"/"FMT" -> FMT, "MCQ2" -> MCQ
+// ตัวจำแนกกลางที่ใช้ร่วมกัน (vote.js) — renderAccordionUI มีสำเนา local ของตัวเองอยู่ (ไม่แตะ)
+window.extractExamType = function (groupName) {
+    const clean = String(groupName || '').toUpperCase();
+    if (clean.includes("LEC") || clean.includes("BY AI") || clean.includes("(EXTRACTED)")) return null;
+    const m = clean.match(/(?:^|[\s_])\d*(MCQ|FMT|LAB|QUIZ|OSCE|MEQ)\d*(?=$|[\s_)])/);
+    return m ? m[1] : null;
+};
+
 // สกัดชื่อ discipline จาก categoryId — ใช้แยก "by AI" ตามกลุ่มวิชา
 // คืน "" ถ้าไม่เจอ discipline token ในส่วนใดส่วนหนึ่งของ categoryId
 window.extractDisciplineFromCategory = function (catId) {
@@ -490,8 +499,15 @@ window.renderAccordionUI = function (data) {
         groups[key].push(cat);
     });
 
-    const MCQ_PATTERN = /MCQ\d+/i;
-    const FMT_PATTERN = /FMT\d+/i;
+    // สกัดชนิดข้อสอบจากชื่อกลุ่มแบบไดนามิก — "51LAB" -> LAB, "FMT1"/"FMT" -> FMT, "MCQ2" -> MCQ
+    // คืน null ถ้าเป็นกลุ่มเลคเชอร์ / by AI / (Extracted) เพื่อให้ตกไปเข้าเงื่อนไขของกลุ่มนั้นแทน
+    // ต้องมีขอบเขตคำ (ต้นสตริง/ช่องว่าง/ขีดล่าง) กัน token ไปโผล่กลางคำอย่าง "CLINICAL"/"Uncategorized"
+    function extractExamType(groupName) {
+        const clean = String(groupName || '').toUpperCase();
+        if (clean.includes("LEC") || clean.includes("BY AI") || clean.includes("(EXTRACTED)")) return null;
+        const m = clean.match(/(?:^|[\s_])\d*(MCQ|FMT|LAB|QUIZ|OSCE|MEQ)\d*(?=$|[\s_)])/);
+        return m ? m[1] : null;
+    }
 
     const superGroups = {};
     const standaloneAccordions = [];
@@ -505,21 +521,14 @@ window.renderAccordionUI = function (data) {
 
         const firstCat = categories[0];
         const subjectId = firstCat ? (firstCat.subjectRef || '') : '';
+        const examType = extractExamType(groupName);
 
-        if (MCQ_PATTERN.test(groupName)) {
-            const key = `${subjectId}|MCQ`;
+        // เช็คกลุ่มข้อสอบก่อนเสมอ — กัน LAB/QUIZ ถูกดูดเข้า Lecture ผ่าน isLectureCategory
+        // ที่เป็น true เพราะมีข้อถูกแยกเลคเชอร์ไปแล้ว
+        if (examType) {
+            const key = `${subjectId}|${examType}`;
             if (!superGroups[key]) superGroups[key] = {
-                label: `${subjectId} MCQ`,
-                variant: 'mcq',
-                subjectId,
-                isExcluded,
-                accordions: []
-            };
-            superGroups[key].accordions.push({ groupName, categories, isExcluded });
-        } else if (FMT_PATTERN.test(groupName)) {
-            const key = `${subjectId}|FMT`;
-            if (!superGroups[key]) superGroups[key] = {
-                label: `${subjectId} FMT`,
+                label: `${subjectId} ${examType}`,
                 variant: 'mcq',
                 subjectId,
                 isExcluded,

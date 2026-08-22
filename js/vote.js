@@ -247,6 +247,7 @@ window.renderQuickCatPanel = function () {
         if (c.subjectRef !== currentSubject) return false;
         const agU = (c.accordionGroup || '').toUpperCase();
         if (agU.includes("BY AI") || agU.includes("(EXTRACTED)")) return false;
+        if (window.extractExamType(agU)) return false; // กันกลุ่มข้อสอบ (MCQ/FMT/LAB/QUIZ/OSCE/MEQ) หลุดเข้ามาเหมือน ui.js
         return agU.includes("LEC") || window.isLectureCategory(c.categoryId);
     });
 

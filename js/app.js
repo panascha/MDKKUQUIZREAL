@@ -318,6 +318,8 @@ window.applyPendingUpdates = function () {
             return q.questionId === newQ.questionId;
         });
 
+        var isNewGlobally = allIdx === -1;
+
         if (allIdx !== -1) {
             // อัปเดตข้อมูลเก่า โดยรักษาสถานะคำตอบเดิม
             var preserved = {
@@ -338,34 +340,45 @@ window.applyPendingUpdates = function () {
             }, newQ));
             applied++;
         }
+
+        // อัปเดต currentQuestions (ชุดข้อสอบที่กำลังทำอยู่) แบบ in-place ตาม questionId เดียวกัน
+        // ไม่เรียก updateQuestionSet เพื่อไม่ให้สุ่ม/กรองชุดข้อสอบใหม่ทั้งหมดระหว่างทำข้อสอบอยู่
+        var curIdx = window.APP.currentQuestions.findIndex(function (q) {
+            return q.questionId === newQ.questionId;
+        });
+        if (curIdx !== -1) {
+            var curPreserved = {
+                state: window.APP.currentQuestions[curIdx].state,
+                select: window.APP.currentQuestions[curIdx].select,
+                attemptCount: window.APP.currentQuestions[curIdx].attemptCount,
+                failCount: window.APP.currentQuestions[curIdx].failCount,
+                _originalIndex: window.APP.currentQuestions[curIdx]._originalIndex
+            };
+            window.APP.currentQuestions[curIdx] = Object.assign({}, newQ, curPreserved);
+        } else if (isNewGlobally) {
+            // ข้อใหม่ทั้งระบบ (ไม่เคยมีมาก่อน) — ต่อท้ายชุดข้อสอบปัจจุบันเฉพาะถ้าตรงกับตัวกรองหมวดที่เลือกอยู่
+            var matchesActiveFilter = true;
+            if (window.APP.filterMode === 'category') {
+                var selectedCategoryIds = $('input[type="checkbox"][name="category"]:checked').map(function () {
+                    return this.value;
+                }).get();
+                if (selectedCategoryIds.length > 0) {
+                    matchesActiveFilter = newQ.category.some(function (c) { return selectedCategoryIds.indexOf(c) !== -1; });
+                }
+            }
+            if (matchesActiveFilter) {
+                // ใช้สำเนาแยกจาก allQuestions กัน submitQuestion() แก้ currentQuestions แล้วดันไปกระทบ allQuestions โดยไม่ตั้งใจ
+                window.APP.currentQuestions.push(Object.assign({}, window.APP.allQuestions[window.APP.allQuestions.length - 1]));
+            }
+        }
     });
 
     if (applied > 0) {
-        var currentActiveQId = window.APP.currentQuestions[window.APP.questionIndex] ? window.APP.currentQuestions[window.APP.questionIndex].questionId : null;
-        var orderedIds = window.APP.currentQuestions.map(function (q) { return q.questionId; });
-
-        window.updateQuestionSet(false, false);
-
-        // Restore original quiz order; new questions fall to end
-        var orderMap = {};
-        orderedIds.forEach(function (id, idx) { orderMap[id] = idx; });
-        window.APP.currentQuestions.sort(function (a, b) {
-            var ia = orderMap[a.questionId];
-            var ib = orderMap[b.questionId];
-            if (ia === undefined && ib === undefined) return 0;
-            if (ia === undefined) return 1;
-            if (ib === undefined) return -1;
-            return ia - ib;
-        });
-
-        if (currentActiveQId) {
-            var newActiveIdx = window.APP.currentQuestions.findIndex(function (q) {
-                return q.questionId === currentActiveQId;
-            });
-            if (newActiveIdx !== -1) {
-                window.APP.questionIndex = newActiveIdx;
-            }
-        }
+        // นับคะแนนใหม่ — เดิม updateQuestionSet() เป็นคนคำนวณส่วนนี้ให้
+        window.APP.score = window.APP.currentQuestions.filter(function (q) {
+            return q.state && q.select === q.answer;
+        }).length;
+        $('#score').text(window.APP.score + '/' + window.APP.currentQuestions.length);
 
         window.bgToast.fire({
             icon: 'info',
@@ -373,8 +386,18 @@ window.applyPendingUpdates = function () {
             timer: 2000
         });
 
-        window.showQuestion(false);
-        window.renderIndexPanel();
+        // การ์ดกันชุดข้อสอบว่าง (เช่น sync auto-apply ทำงานตอนยังไม่เลือกหมวด/ยังไม่เริ่มทำข้อสอบ)
+        if (window.APP.currentQuestions.length > 0) {
+            window.APP.current_question = window.APP.currentQuestions[window.APP.questionIndex];
+            window.showQuestion(false);
+            window.renderIndexPanel();
+            window.updateProgressHeader();
+
+            // บันทึกสถานะที่รวมแล้วลง IndexedDB ทันที — เดิม updateQuestionSet() เป็นคนเรียกให้
+            // ต้องอยู่ในเงื่อนไขนี้เท่านั้น ไม่งั้นตอน currentQuestions ว่าง (sync มาเจอตอนยังไม่เริ่มทำ)
+            // จะเขียนทับ session เดิมที่บันทึกไว้ใน IndexedDB ด้วยชุดว่าง
+            window.saveProgressToCache();
+        }
 
         console.log('[Sync] Applied ' + applied + ' updates and preserved active question state');
     }
@@ -476,7 +499,9 @@ window._showPendingBadge = function (count) {
             boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
             fontFamily: 'var(--font-primary)'
         }).on('click', function () {
-            if (!window.isUserBusy()) {
+            // ผู้ใช้กดขอเอง — ไม่เช็ค isUserBusy() (จะบล็อกผิดตอนข้อยังไม่ตอบ) เช็คเฉพาะหน้าต่างแก้ไข/แจ้งปัญหาที่เปิดค้างอยู่
+            var isBlocked = $('#quiz-edit-modal').is(':visible') || $('#report-card').is(':visible') || $('#vote-category-modal').is(':visible');
+            if (!isBlocked) {
                 $badge.html('<i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...').css('pointer-events', 'none');
                 setTimeout(function () {
                     window.applyPendingUpdates();
