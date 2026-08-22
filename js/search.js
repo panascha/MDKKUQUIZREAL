@@ -617,11 +617,9 @@ $(document).on('click', '.suggestion-chip', function () {
 window.renderExplainHtmlForSearchCard = function (explainRaw) {
     if (!explainRaw) return '';
     const parsed = window.parseExplain(explainRaw);
-    const hasSearchTerms = window.APP.termColors && Object.keys(window.APP.termColors).length > 0;
-    // เมื่อมี search terms → ใช้ highlight (plain text); เมื่อไม่มี → render Markdown เต็มรูปแบบ
-    const textHtml = hasSearchTerms
-        ? window.highlight(parsed.text)
-        : window.renderMarkdownSafe(parsed.text);
+    // render Markdown ก่อนเสมอ แล้วค่อย highlight — window.highlight ข้าม token ที่เป็น HTML tag อยู่แล้ว
+    // (ถ้าไม่มี search terms window.highlight จะคืนค่าเดิมทันที)
+    const textHtml = window.highlight(window.renderMarkdownSafe(parsed.text));
     let html = `<b>คำอธิบาย:</b><br>${textHtml || 'ไม่มีคำอธิบาย'}`;
 
     if (parsed.media && parsed.media.length > 0) {

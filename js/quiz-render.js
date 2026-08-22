@@ -9,7 +9,7 @@ window.renderExplainMediaInQuiz = function (explainRaw, containerSelector) {
 
     // 1. Text Explanation
     if (parsed.text) {
-        $container.append(`<div class="explain-text-content" style="margin-top: 10px; font-weight: 500; font-size: 1.15rem; line-height: 1.6; color: var(--color-text);">${parsed.text}</div>`);
+        $container.append(`<div class="explain-text-content" style="margin-top: 10px; font-weight: 500; font-size: 1.15rem; line-height: 1.6; color: var(--color-text);">${window.renderMarkdownSafe(parsed.text)}</div>`);
     }
 
     // 2. Media container
@@ -96,8 +96,9 @@ window.renderMarkdownSafe = function (mdText) {
     });
 
     // เก็บ legacy HTML tags (b/i/br/u/sup/sub/span) — DB มี tag จริงปนมากับคำอธิบาย
-    text = text.replace(/<\/?(?:b|i|br|u|sup|sub|span)[^>]*>/gi, function (m) {
-        htmlStore.push(m);
+    // เก็บเฉพาะชื่อ tag ทิ้ง attribute ทั้งหมด (กัน onclick/onerror ที่มากับข้อความ AI)
+    text = text.replace(/<(\/?)(b|i|br|u|sup|sub|span)\b[^>]*>/gi, function (_m, slash, tag) {
+        htmlStore.push('<' + slash + tag.toLowerCase() + '>');
         return "___HTML_TAG_" + (htmlStore.length - 1) + "___";
     });
 
