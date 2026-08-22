@@ -166,10 +166,20 @@ window.parseQuestionMetadata = function (q) {
     // 3. สกัดหา Topic Name (ข้อความหลังเครื่องหมาย _ ลำดับสุดท้ายของหมวดหมู่หัวข้อที่ตรงที่สุด)
     if (q.category) {
         const cats = Array.isArray(q.category) ? q.category : [q.category];
+        // ลำดับแรก: หมวดหมู่เลคเชอร์จริง (มี SUBGROUP token) และไม่ใช่กลุ่มข้อสอบ (เช่น 51LAB/MCQ/QUIZ)
+        // กัน "KUB_51LAB_Gross" ถูกดูดเป็น topic ทั้งที่เป็นชื่อกลุ่มข้อสอบ ไม่ใช่หัวข้อเลคเชอร์
         let bestCat = cats.find(c => {
             const parts = c.split('_');
-            return parts.length >= 3 && !c.endsWith('_Extracted') && !c.includes('_by AI_');
+            if (parts.length < 3 || c.endsWith('_Extracted') || c.includes('_by AI_')) return false;
+            if (window.extractExamType(c) || (parts[1] && window.extractExamType(parts[1]))) return false;
+            return window.isLectureCategory(c);
         });
+        if (!bestCat) {
+            bestCat = cats.find(c => {
+                const parts = c.split('_');
+                return parts.length >= 3 && !c.endsWith('_Extracted') && !c.includes('_by AI_');
+            });
+        }
         if (!bestCat) {
             bestCat = cats.find(c => c.split('_').length >= 3);
         }
