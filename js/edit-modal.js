@@ -638,10 +638,21 @@ window.askAIForEdit = async function () {
         if (txt) choices.push(txt);
     });
 
+    window.syncChoicesToHiddenInput();
+    const answer = $('#edit-answer').val().trim();
+
     const payload = {
         action: 'askAIExpert',
         sessionToken: window.EDIT_SESSION.sessionToken,
-        prompt: `คุณคืออาจารย์แพทย์ ช่วยเขียนคำอธิบายเฉลย (Explanation) 1 ย่อหน้าสั้นๆ สำหรับโจทย์: "${prob}" ตัวเลือก: ${choices.join(', ')}`,
+        prompt: `คุณคืออาจารย์แพทย์ ช่วยเขียนคำอธิบายเฉลย (Explanation) สำหรับโจทย์แพทย์ข้อนี้
+โจทย์: "${prob}"
+ตัวเลือก: ${choices.map((c, i) => `${String.fromCharCode(65 + i)}. ${c}`).join(', ')}${answer ? `\nคำตอบที่ถูกต้อง: "${answer}"` : ''}
+
+เขียนเป็นภาษาไทยผสมศัพท์การแพทย์ภาษาอังกฤษ ย่อหน้าเดียวต่อเนื่อง (ห้ามขึ้นบรรทัดใหม่/bullet) ยาว 4-6 ประโยค ไม่มีคำเกริ่นนำ ครอบคลุมตามลำดับนี้:
+1. ชี้ diagnostic clues ในโจทย์ที่นำไปสู่คำตอบ${answer ? ` "${answer}"` : ''}
+2. อธิบาย causal chain ของกลไก/พยาธิสรีรวิทยาแบบเหตุ-ผลต่อเนื่อง (A → B → C) ว่าทำไมแต่ละขั้นตอนจึงเกิดขึ้น
+3. ชี้แจงว่าตัวเลือกอื่นที่ไม่ใช่คำตอบผิดเพราะอะไร (เช่น "ส่วนข้อ B ผิดเพราะ...")
+4. ปิดท้ายด้วย Clinical pearl หรือ keyword สำคัญที่เกี่ยวข้อง`,
         images: window.editImageArray.filter(i => i.startsWith('http'))
     };
 

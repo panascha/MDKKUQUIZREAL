@@ -4,6 +4,14 @@
 
 window.CHANGELOG = [
     {
+        version: 'v3.12.13',
+        date: '2026-08-22',
+        new: [
+            'ปรับ prompt วิเคราะห์ข้อสอบด้วย AI (คัดลอก prompt) ให้อธิบายกลไก/พยาธิสรีรวิทยาแบบเหตุ-ผลต่อเนื่อง (A → B → C) และสรุป Key Concepts/Keywords ชัดเจนขึ้น'
+        ],
+        fixed: []
+    },
+    {
         version: 'v3.12.12',
         date: '2026-08-22',
         new: [],
