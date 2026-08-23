@@ -183,8 +183,7 @@ window.openWrongPicker = function () {
     const log = window._wrongHistCache[subj] || {};
     const byCat = window.getWrongQuestionsByLecture();
 
-    // ชื่อเลคเชอร์เป็น free-text (มี ' " ได้) จึงไม่ยัดลง data-cat ตรงๆ — ใช้ index key + lookup เหมือน openStudyPicker
-    window._wrongPickCats = {};
+    // ชื่อเลคเชอร์เป็น free-text (มี ' " ได้) จึงไม่ยัดลง data-cat ตรงๆ — ใช้ index key เหมือน openStudyPicker
     let html = '';
     Object.keys(byCat).sort((a, b) => {
         if (a === window.WRONG_NO_LECTURE_KEY) return 1; // กลุ่มสำรองอยู่ล่างสุดเสมอ
@@ -193,7 +192,6 @@ window.openWrongPicker = function () {
     }).forEach((realCatId, idx) => {
         const grp = byCat[realCatId];
         const catId = 'wc' + idx;
-        window._wrongPickCats[catId] = { catId: realCatId, catName: grp.catName };
         html += `
         <div class="study-pick-cat" style="flex-shrink:0;border:1px solid var(--color-border-soft);border-radius:8px;overflow:hidden;margin-bottom:6px;">
             <div class="study-pick-cat-header" style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--color-surface-2);font-weight:700;cursor:pointer;user-select:none;">
@@ -264,33 +262,24 @@ window.wrongPickerPractice = function () {
     window.bgToast.fire({ icon: 'success', title: 'โหมดฝึกข้อที่เคยผิด (' + picked.length + ' ข้อ)' });
 };
 
-// บันทึกข้อที่เลือกเป็นชุดใหม่ — แยก 1 ชุดต่อหัวข้อ
+// บันทึกข้อที่เลือกเป็นชุดใหม่ — รวมทุกหัวข้อไว้ในชุดเดียว
 window.wrongPickerSaveSets = async function () {
     const sel = window.getWrongPickerSelection();
     if (!sel.length) { window.bgToast.fire({ icon: 'info', title: 'ยังไม่ได้เลือกข้อ' }); return; }
     const subj = window.studySubjectKey();
     const sets = await window.ensureCustomSets(subj);
-    const groups = {};
-    sel.forEach(s => {
-        const g = (groups[s.cat] = groups[s.cat] || []);
-        if (!g.some(x => String(x) === String(s.id))) g.push(s.id); // กันซ้ำภายในชุดเดียวกัน
-    });
-    let created = 0;
-    Object.keys(groups).forEach(catId => {
-        const meta = (window._wrongPickCats || {})[catId];
-        const catName = meta ? meta.catName : catId;
-        sets.push({
-            id: 'set_' + Date.now() + '_' + created + '_' + Math.floor(Math.random() * 1000),
-            name: 'ผิดบ่อย: ' + catName,
-            qids: groups[catId],
-            createdAt: Date.now()
-        });
-        created++;
+    // ตัดข้อซ้ำ — ข้อที่อยู่หลายเลคเชอร์ถูกติ๊กมาหลายครั้ง
+    const uniqueQids = [...new Set(sel.map(s => s.id))];
+    sets.push({
+        id: 'set_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        name: `ข้อที่เคยผิด (${uniqueQids.length} ข้อ) - ${new Date().toLocaleDateString('th-TH')}`,
+        qids: uniqueQids,
+        createdAt: Date.now()
     });
     await window.setCacheDB('custom_sets_' + subj, sets);
     window.renderMySetsList();
     $('#wrong-picker-overlay').fadeOut(120);
-    window.bgToast.fire({ icon: 'success', title: 'สร้าง ' + created + ' ชุดจากข้อที่เคยผิด (แยกตามหัวข้อ)' });
+    window.bgToast.fire({ icon: 'success', title: 'บันทึกชุดข้อที่เคยผิด (' + uniqueQids.length + ' ข้อ) แล้ว' });
 };
 
 // ── II. Shared loader: ยัด question array ลง currentQuestions แล้วแสดง ─────
@@ -503,7 +492,7 @@ window.studyEnsureModals = function () {
                     <i class="fas fa-play"></i> ฝึกเลย (<span id="wrong-picker-count">0</span> ข้อ)
                 </button>
                 <button id="wrong-picker-save" class="quiz-button" style="flex:1;min-width:150px;margin:0;background:var(--color-primary);color:white;border:none;min-height:44px;font-weight:700;">
-                    <i class="fas fa-layer-group"></i> บันทึกเป็นชุด (แยกตามหัวข้อ)
+                    <i class="fas fa-layer-group"></i> บันทึกเป็นชุดเดียว
                 </button>
             </div>
         </div>

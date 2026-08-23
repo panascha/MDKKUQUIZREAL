@@ -1800,11 +1800,40 @@ window.renderWeaknessStats = function () {
         return originalSuffix;
     };
 
-    const stats = {}; // { suffix: { total: 0, correct: 0, lectures: {} } }
+    // แปลงชื่อกลุ่ม discipline ที่ extractDisciplineFromCategory คืนมา กลับเป็นรหัสสั้นสำหรับติดป้าย
+    const DISCIPLINE_TO_SFX = {
+        'ANATOMY': 'ANA',
+        'PHYSIO and BIOCHEM': 'PHYSIO',
+        'PARASITO and MICRO': 'MICRO',
+        'PATHO': 'PATHO',
+        'PHARM': 'PHARM',
+        'RADIO and CLINICAL': 'CLINICAL'
+    };
+
+    // หา suffix (สาขาวิชา) ของหมวดหมู่หนึ่ง ๆ — รองรับหมวด "by AI" ที่ฝังชื่อสาขาไว้ในรหัส
+    // คืน 'OTHER' ถ้าไม่มีสัญญาณสาขาวิชาในรหัสเลย (ไม่เดา)
+    const detectSuffix = (catId) => {
+        const corrected = getSystemCorrectedSuffix(catId, 'OTHER');
+        if (corrected !== 'OTHER') return corrected;
+
+        const parts = String(catId).toUpperCase().split('_');
+        for (let i = 1; i < parts.length; i++) {
+            const hit = SUBGROUPS_LOCAL.find(sg => parts[i].includes(sg));
+            if (hit) return hit;
+        }
+
+        const disc = window.extractDisciplineFromCategory(catId);
+        if (disc && DISCIPLINE_TO_SFX[disc]) return DISCIPLINE_TO_SFX[disc];
+
+        return 'OTHER';
+    };
+
+    // โครงสร้าง 3 ชั้น: ชุดข้อสอบ (q.category[0]) → สาขาวิชา → หัวข้อเลคเชอร์
+    // { examSetId: { name, total, correct, disciplines: { sfx: { total, correct, topics: { key: { name, total, correct } } } } } }
+    const sets = {};
     answered.forEach(q => {
         const qCats = Array.isArray(q.category) ? q.category : [q.category];
 
-        let detectedSfx = 'OTHER';
         let detectedLectureCatId = null;
 
         // สกัดหา Lecture Category ดั้งเดิมที่มีสิทธิ์ใช้งานจริง (และข้าม Extracted)
@@ -1820,50 +1849,53 @@ window.renderWeaknessStats = function () {
             }
         }
 
-        // จัดหมวดหมู่ Suffix (หมวดหลัก) ให้แม่นยำขึ้นสำหรับวิชากลุ่มสากลหลักสูตรใหม่
+        // ชั้นที่ 3: หัวข้อเลคเชอร์ + สาขาวิชาของหัวข้อนั้น
+        let sfx, topicKey, topicName;
         if (detectedLectureCatId) {
-            detectedSfx = getSystemCorrectedSuffix(detectedLectureCatId, 'OTHER');
-        } else if (qCats.length > 0) {
-            const meta = window.parseQuestionMetadata(q);
-            detectedSfx = getSystemCorrectedSuffix(qCats[0], meta.suffix || 'OTHER');
-        }
-
-        const sfx = detectedSfx;
-        if (!stats[sfx]) {
-            stats[sfx] = { total: 0, correct: 0, lectures: {} };
-        }
-
-        stats[sfx].total++;
-        const isCorrect = (q.select === q.answer);
-        if (isCorrect) {
-            stats[sfx].correct++;
-        }
-
-        if (detectedLectureCatId) {
-            if (!stats[sfx].lectures[detectedLectureCatId]) {
-                stats[sfx].lectures[detectedLectureCatId] = {
-                    name: window.getCategoryNameById(detectedLectureCatId) || detectedLectureCatId,
-                    total: 0,
-                    correct: 0
-                };
-            }
-            stats[sfx].lectures[detectedLectureCatId].total++;
-            if (isCorrect) {
-                stats[sfx].lectures[detectedLectureCatId].correct++;
+            topicKey = detectedLectureCatId;
+            sfx = detectSuffix(detectedLectureCatId);
+            topicName = window.getCategoryNameById(detectedLectureCatId) || detectedLectureCatId;
+            // ติดป้าย (by AI) ให้ตรงกับที่ตัวกรองแสดง
+            if (/by ai/i.test(detectedLectureCatId) && !/by ai/i.test(topicName)) {
+                topicName = topicName + ' (by AI)';
             }
         } else {
-            const fallbackId = sfx + "_GENERAL_FALLBACK";
-            if (!stats[sfx].lectures[fallbackId]) {
-                stats[sfx].lectures[fallbackId] = {
-                    name: "หัวข้อทั่วไป / ยังไม่แยกเลคเชอร์",
-                    total: 0,
-                    correct: 0
-                };
-            }
-            stats[sfx].lectures[fallbackId].total++;
-            if (isCorrect) {
-                stats[sfx].lectures[fallbackId].correct++;
-            }
+            sfx = detectSuffix(qCats[0]);
+            if (sfx === 'OTHER' && qCats.length > 1) sfx = detectSuffix(qCats[1]);
+            topicKey = sfx + '_GENERAL_FALLBACK';
+            topicName = 'หัวข้อทั่วไป / ยังไม่แยกเลคเชอร์';
+        }
+
+        // ชั้นที่ 1: ชุดข้อสอบจากหมวดหมู่แรกของคำถาม
+        const examSetId = qCats[0] || 'UNKNOWN_SET';
+        if (!sets[examSetId]) {
+            sets[examSetId] = {
+                name: window.getCategoryNameById(examSetId) || examSetId,
+                total: 0,
+                correct: 0,
+                disciplines: {}
+            };
+        }
+        const set = sets[examSetId];
+
+        // ชั้นที่ 2: สาขาวิชาภายในชุดข้อสอบ
+        if (!set.disciplines[sfx]) {
+            set.disciplines[sfx] = { total: 0, correct: 0, topics: {} };
+        }
+        const disc = set.disciplines[sfx];
+
+        if (!disc.topics[topicKey]) {
+            disc.topics[topicKey] = { name: topicName, total: 0, correct: 0 };
+        }
+
+        const isCorrect = (q.select === q.answer);
+        set.total++;
+        disc.total++;
+        disc.topics[topicKey].total++;
+        if (isCorrect) {
+            set.correct++;
+            disc.correct++;
+            disc.topics[topicKey].correct++;
         }
     });
 
@@ -1880,99 +1912,108 @@ window.renderWeaknessStats = function () {
         'OTHER': { name: 'หมวดหมู่อื่น ๆ', icon: 'fas fa-folder', bg: '#f3f4f6', border: '#e5e7eb', text: '#374151' }
     };
 
-    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; width: 100%; box-sizing: border-box;">';
+    // ระดับสถานะ (ใช้ร่วมกันทั้งหัวการ์ดและป้ายสาขาวิชา)
+    const gradeOf = (pct) => {
+        if (pct >= 80) return { text: 'ดีเยี่ยม 🎉', color: 'var(--color-correct, #16a34a)', bg: 'var(--color-correct-bg, #dcfce7)', border: '#86efac' };
+        if (pct >= 50) return { text: 'พอใช้ได้ ⚠️', color: '#f59e0b', bg: 'var(--pastel-pharm, #fff9f0)', border: '#fde68a' };
+        return { text: 'ควรปรับปรุง ❌', color: 'var(--color-wrong, #dc2626)', bg: 'var(--color-wrong-bg, #fee2e2)', border: '#fca5a5' };
+    };
 
-    Object.keys(stats).sort().forEach(sfx => {
-        const item = stats[sfx];
-        const pct = Math.round((item.correct / item.total) * 100);
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; width: 100%; box-sizing: border-box;">';
 
-        const config = sfxConfig[sfx.toUpperCase()] || sfxConfig['OTHER'];
-        const displayName = config.name;
-        const iconClass = config.icon;
+    // ชุดข้อสอบที่ทำได้แย่สุดขึ้นก่อน
+    const sortedSetIds = Object.keys(sets).sort((a, b) => {
+        const pA = sets[a].correct / sets[a].total, pB = sets[b].correct / sets[b].total;
+        if (pA !== pB) return pA - pB;
+        return sets[a].name.localeCompare(sets[b].name);
+    });
 
-        let statusText = 'ควรปรับปรุง ❌';
-        let statusColor = 'var(--color-wrong, #dc2626)';
-        let statusBg = 'var(--color-wrong-bg, #fee2e2)';
-        let statusBorderColor = '#fca5a5';
+    sortedSetIds.forEach(setId => {
+        const set = sets[setId];
+        const pct = Math.round((set.correct / set.total) * 100);
+        const grade = gradeOf(pct);
 
-        if (pct >= 80) {
-            statusText = 'ดีเยี่ยม 🎉';
-            statusColor = 'var(--color-correct, #16a34a)';
-            statusBg = 'var(--color-correct-bg, #dcfce7)';
-            statusBorderColor = '#86efac';
-        } else if (pct >= 50) {
-            statusText = 'พอใช้ได้ ⚠️';
-            statusColor = '#f59e0b';
-            statusBg = 'var(--pastel-pharm, #fff9f0)';
-            statusBorderColor = '#fde68a';
-        }
+        // ---- ชั้นที่ 2: สาขาวิชาภายในชุดข้อสอบ (แย่สุดขึ้นก่อน) ----
+        let discHtml = '';
+        const sortedSfx = Object.keys(set.disciplines).sort((a, b) => {
+            const A = set.disciplines[a], B = set.disciplines[b];
+            const pA = A.correct / A.total, pB = B.correct / B.total;
+            if (pA !== pB) return pA - pB;
+            return a.localeCompare(b);
+        });
 
-        // จัดทำชุดข้อมูลการแจกแจงราย Lecture (Lectures Breakdown)
-        let lecturesHtml = '';
-        const lectureIds = Object.keys(item.lectures);
-        if (lectureIds.length > 0) {
-            lecturesHtml += `
-                <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--color-border-soft, #e2e8f0); display: flex; flex-direction: column; gap: 8px;">
-                    <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-text-muted, #475569);"><i class="fas fa-list-ul"></i> สถิติรายเลคเชอร์:</div>
-            `;
-            lectureIds.forEach(catId => {
-                const lect = item.lectures[catId];
-                const lPct = Math.round((lect.correct / lect.total) * 100);
+        sortedSfx.forEach(sfx => {
+            const disc = set.disciplines[sfx];
+            const dPct = Math.round((disc.correct / disc.total) * 100);
+            const config = sfxConfig[sfx] || sfxConfig['OTHER'];
+            const dGrade = gradeOf(dPct);
 
-                let lColor = '#16a34a';
-                if (lPct < 50) lColor = '#dc2626';
-                else if (lPct < 80) lColor = '#f59e0b';
+            // ---- ชั้นที่ 3: หัวข้อเลคเชอร์ภายในสาขาวิชา (แย่สุดขึ้นก่อน) ----
+            let topicHtml = '';
+            const sortedTopics = Object.keys(disc.topics).sort((a, b) => {
+                const A = disc.topics[a], B = disc.topics[b];
+                const pA = A.correct / A.total, pB = B.correct / B.total;
+                if (pA !== pB) return pA - pB;
+                return A.name.localeCompare(B.name);
+            });
 
-                lecturesHtml += `
-                    <div style="font-size: 0.85rem; color: var(--color-text, #0f172a);">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-                            <span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 72%;" title="${lect.name}">• ${lect.name}</span>
-                            <span style="font-weight: 700; color: ${lColor}; flex-shrink: 0; margin-left: 4px;">${lect.correct}/${lect.total} ข้อ (${lPct}%)</span>
+            sortedTopics.forEach(tKey => {
+                const t = disc.topics[tKey];
+                const tPct = Math.round((t.correct / t.total) * 100);
+                const tColor = gradeOf(tPct).color;
+
+                topicHtml += `
+                    <div style="font-size: 0.82rem; color: var(--color-text, #0f172a);">
+                        <div style="display: flex; justify-content: space-between; gap: 6px; margin-bottom: 2px;">
+                            <span title="${t.name}" style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">• ${t.name}</span>
+                            <span style="font-weight: 700; color: ${tColor}; flex-shrink: 0;">${t.correct}/${t.total} (${tPct}%)</span>
                         </div>
-                        <div style="width: 100%; background: var(--color-surface-3, #e2e8f0); height: 5px; border-radius: 4px; overflow: hidden;">
-                            <div style="width: ${lPct}%; background: ${lColor}; height: 100%; border-radius: 4px;"></div>
+                        <div style="width: 100%; background: var(--color-surface-3, #e2e8f0); height: 4px; border-radius: 4px; overflow: hidden;">
+                            <div style="width: ${tPct}%; background: ${tColor}; height: 100%; border-radius: 4px;"></div>
                         </div>
                     </div>
                 `;
             });
-            lecturesHtml += `</div>`;
-        }
+
+            discHtml += `
+                <div style="margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px;">
+                        <span title="${config.name}" style="display: inline-flex; align-items: center; gap: 4px; background: ${config.bg}; border: 1px solid ${config.border}; color: ${config.text}; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 10px; flex-shrink: 0;">
+                            <i class="${config.icon}"></i> [${sfx}]
+                        </span>
+                        <span style="font-size: 0.82rem; font-weight: 700; color: ${dGrade.color};">${disc.correct}/${disc.total} ข้อ (${dPct}%)</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; padding-left: 6px; border-left: 2px solid ${config.border};">
+                        ${topicHtml}
+                    </div>
+                </div>
+            `;
+        });
 
         html += `
-            <div style="background: var(--color-surface, #fff); border: 1.5px solid var(--color-border, #cbd5e1); padding: 14px; border-radius: var(--border-radius, 8px); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
-                <div>
-                    <!-- รายชื่อบทเรียนและไอคอนสี Soft-palette -->
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                        <span style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: ${config.bg}; border: 1px solid ${config.border}; color: ${config.text}; font-size: 0.9rem; flex-shrink: 0;">
-                            <i class="${iconClass}"></i>
-                        </span>
-                        <span style="font-weight: 700; font-size: 1.05rem; color: var(--color-text, #0f172a); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 36px);">${displayName}</span>
-                    </div>
-
-                    <!-- ค่าประเมินสถานะคำตอบหลัก -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size: 0.95rem; color: var(--color-text-muted, #475569);">
-                            ภาพรวม: ถูกต้อง <b>${item.correct}</b> / <b>${item.total}</b> ข้อ
-                        </span>
-                        <span style="background: ${statusBg}; color: ${statusColor}; border: 1px solid ${statusBorderColor}; font-size: 0.8rem; padding: 1px 8px; border-radius: 12px; font-weight: 700;">
-                            ${statusText}
-                        </span>
-                    </div>
+            <div style="background: var(--color-surface, #fff); border: 1.5px solid var(--color-border, #cbd5e1); padding: 14px; border-radius: var(--border-radius, 8px); box-shadow: var(--shadow-sm); box-sizing: border-box;">
+                <!-- ชั้นที่ 1: หัวการ์ด = ชุดข้อสอบ -->
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px;">
+                    <span title="${set.name}" style="font-weight: 800; font-size: 1rem; color: var(--color-text, #0f172a); overflow-wrap: anywhere;">
+                        <i class="fas fa-layer-group" style="color: var(--color-text-muted, #475569);"></i> ${set.name}
+                    </span>
+                    <span style="background: ${grade.bg}; color: ${grade.color}; border: 1px solid ${grade.border}; font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; flex-shrink: 0;">
+                        ${grade.text}
+                    </span>
                 </div>
 
-                <!-- แถบประเมินทักษะอย่างละเอียดเชิงเปอร์เซ็นต์ (Progress Bar) -->
-                <div style="margin-top: 6px; margin-bottom: 2px;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px;">
-                        <span style="font-size: 0.8rem; color: var(--color-text-muted, #475569); font-weight: 600;">ความแม่นยำภาพรวม</span>
-                        <span style="font-size: 1.15rem; font-weight: 800; color: ${statusColor}; line-height: 1;">${pct}%</span>
-                    </div>
-                    <div style="width: 100%; background: var(--color-surface-3, #e2e8f0); height: 10px; border-radius: 10px; overflow: hidden; border: 1px solid var(--color-border-soft, #e2e8f0);">
-                        <div style="width: ${pct}%; background: ${statusColor}; height: 100%; border-radius: 10px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);"></div>
-                    </div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px;">
+                    <span style="font-size: 0.85rem; color: var(--color-text-muted, #475569);">ถูก <b>${set.correct}</b> / <b>${set.total}</b> ข้อ</span>
+                    <span style="font-size: 1.15rem; font-weight: 800; color: ${grade.color}; line-height: 1;">${pct}%</span>
+                </div>
+                <div style="width: 100%; background: var(--color-surface-3, #e2e8f0); height: 10px; border-radius: 10px; overflow: hidden; border: 1px solid var(--color-border-soft, #e2e8f0);">
+                    <div style="width: ${pct}%; background: ${grade.color}; height: 100%; border-radius: 10px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);"></div>
                 </div>
 
-                <!-- การแสดงสถิติแจกแจงรายเลคเชอร์ที่ซ้อนอยู่ภายใน -->
-                ${lecturesHtml}
+                <!-- ชั้นที่ 2 + 3: สาขาวิชา → หัวข้อเลคเชอร์ -->
+                <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--color-border-soft, #e2e8f0);">
+                    ${discHtml}
+                </div>
             </div>
         `;
     });
