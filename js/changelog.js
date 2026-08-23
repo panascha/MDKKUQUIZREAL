@@ -4,6 +4,14 @@
 
 window.CHANGELOG = [
     {
+        version: 'v3.13.2',
+        date: '2026-08-23',
+        new: [],
+        fixed: [
+            'สรุป Med-Keywords ของข้อที่ตอบผิดแสดงเป็นข้อความธรรมดา (Plain Text) แล้ว — ไม่ติดสัญลักษณ์ Markdown, Bullet หรือ Emoji ที่หลุดมาจาก AI, และปุ่มคัดลอกเปลี่ยนเป็น "คัดลอกข้อความ" แทน "คัดลอก Markdown"'
+        ]
+    },
+    {
         version: 'v3.13.1',
         date: '2026-08-23',
         new: [

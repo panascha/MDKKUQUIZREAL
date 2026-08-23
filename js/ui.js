@@ -1642,6 +1642,7 @@ window.copyQuestionForAI = function () {
 };
 
 // สรุป Med-Keywords (จำสั้นๆ) ของข้อที่ตอบผิดในเซสชันนี้ด้วย AI — ตามสเปก med-keyword.md
+// สรุป Med-Keywords (จำสั้นๆ) ของข้อที่ตอบผิดในเซสชันนี้ด้วย AI — รูปแบบ Plain Text ธรรมดา
 window.generateMedKeywordsForWrongAnswers = function () {
     const wrong = (window.APP.currentQuestions || []).filter(q => q.state && q.select !== q.answer);
 
@@ -1660,8 +1661,21 @@ window.generateMedKeywordsForWrongAnswers = function () {
         return `${i + 1}. โจทย์: ${q.problem}\nตัวเลือก: ${choicesText}\nเฉลยที่ถูกต้อง: ${q.answer}\nนิสิตตอบ: ${q.select}\nคำอธิบาย: ${(q.explain || '-').slice(0, 250)}`;
     }).join('\n\n');
 
+    const plainTextInstruction = `
+[คำสั่งบังคับรูปแบบผลลัพธ์: สำคัญที่สุด]
+- ตอบเป็นข้อความธรรมดา (Plain Text) เท่านั้น
+- ห้ามใช้สัญลักษณ์ Markdown ทุกชนิด (ห้ามใช้ **, *, #, ##, ###, _, \`, >, หรือตาราง)
+- ห้ามใส่ Emoji หรือสัญลักษณ์ตกแต่งพิเศษ
+- ใช้การขึ้นบรรทัดใหม่และการเว้นวรรคปกติในการจัดรูปแบบ
+- ตัวอย่างรูปแบบที่ต้องการ:
+ข้อ 1: [ชื่อโรค/ประเด็นหลัก]
+คีย์เวิร์ด: [คำสำคัญ]
+จุดจำ: [สรุปสั้นๆ ตรงไปตรงมา]
+`;
+
     const prompt =
         (window.MED_KEYWORD_SKILL || '') +
+        plainTextInstruction +
         `\n\n---\n\nข้อที่ตอบผิด (${wrong.length} ข้อ):\n\n${items}`;
 
     Swal.fire({
@@ -1681,21 +1695,28 @@ window.generateMedKeywordsForWrongAnswers = function () {
             return;
         }
 
-        const md = String(res.answer || '');
+        // ล้างสัญลักษณ์พิเศษและ Markdown ตกค้างเพื่อให้เป็นข้อความธรรมดา 100%
+        let plainText = String(res.answer || '')
+            .replace(/[*#_`~>]/g, '')
+            .replace(/^[ \t]*[-*+][ \t]+/gm, '')
+            .trim();
+
+        const safeHtml = $('<div>').text(plainText).html().replace(/\n/g, '<br>');
+
         Swal.fire({
             title: 'สรุป Med-Keywords ข้อที่ผิด',
-            html: `<div style="text-align:left; max-height:50vh; overflow-y:auto; white-space:pre-wrap; font-size:0.92rem; line-height:1.5;">${window.renderMarkdownSafe(md)}</div>`,
-            confirmButtonText: '📋 คัดลอก Markdown ทั้งหมด',
+            html: `<div style="text-align:left; max-height:50vh; overflow-y:auto; font-size:0.92rem; line-height:1.6; font-family:var(--font-primary);">${safeHtml}</div>`,
+            confirmButtonText: '📋 คัดลอกข้อความ',
             showCancelButton: true,
             cancelButtonText: 'ปิด',
             width: 640
         }).then(result => {
             if (!result.isConfirmed) return;
-            const done = () => window.bgToast.fire({ icon: 'success', title: 'คัดลอก Markdown สำเร็จ!' });
+            const done = () => window.bgToast.fire({ icon: 'success', title: 'คัดลอกข้อความสำเร็จ!' });
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(md).then(done).catch(() => window.similarCopyFallback(md, done));
+                navigator.clipboard.writeText(plainText).then(done).catch(() => window.similarCopyFallback(plainText, done));
             } else {
-                window.similarCopyFallback(md, done);
+                window.similarCopyFallback(plainText, done);
             }
         });
     }).catch(err => {
