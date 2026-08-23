@@ -93,6 +93,17 @@ window.preloadQuizImages = function (questions) {
 };
 
 // 3. ระบบแสดงคำถาม (Show Question)
+// แก้ข้อมูลข้อสอบในเครื่องทั้ง allQuestions และ currentQuestions (คนละสำเนากัน)
+// ห้ามใช้ updateQuestionSet() แทน — มันสร้างชุดข้อสอบใหม่ทั้งชุด ทำให้ลำดับข้อที่กำลังทำอยู่รีเซ็ตเป็นลำดับฐานข้อมูล
+// forEach ไม่ใช่ find เพราะโหมดทวนข้อผิดใส่ข้อเดิมซ้ำในชุดได้มากกว่าหนึ่งครั้ง
+window.applyQuestionPatchLocally = function (qId, patch) {
+    const localQ = window.APP.allQuestions.find(q => q.questionId === qId);
+    if (localQ) Object.assign(localQ, patch);
+    window.APP.currentQuestions.forEach(q => {
+        if (q.questionId === qId) Object.assign(q, patch);
+    });
+};
+
 window.showQuestion = function (shouldFocus = true) {
     if (!window.APP.currentQuestions.length) return;
 
@@ -155,25 +166,43 @@ window.showQuestion = function (shouldFocus = true) {
     const choicesRaw = window.APP.current_question.choices || "";
     const choicesArray = choicesRaw.split("///").map(s => s.trim()).filter(Boolean);
 
-    let indices = choicesArray.map((_, i) => i);
-    // Shuffle choices only if the question has not been answered yet
-    if (!window.APP.current_question.state) {
-        for (let i = indices.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [indices[i], indices[j]] = [indices[j], indices[i]];
+    // ลำดับตัวเลือกจำไว้ต่อ questionId — วาดหน้าจอใหม่กี่ครั้ง (ซิงค์ / โหวต / MEQ / ส่งคำตอบ) ก็ไม่สลับซ้ำ
+    // sig ผูกกับ choices+answer: ถ้าเนื้อหาข้อถูกแก้หรือซิงค์มาใหม่ ให้ทิ้งลำดับเดิมแล้วสุ่มใหม่ (กัน index ค้างเกินจำนวนตัวเลือก)
+    // sig สร้างจาก choicesArray ที่ trim แล้ว ไม่ใช่ choicesRaw — ช่องว่างรอบตัวเลือกที่เปลี่ยนไม่ควรทำให้ลำดับสุ่มใหม่
+    // เฉลยอาจเป็น base64/SVG ยาวเป็นหมื่นตัว — เก็บแค่ความยาว+50 ตัวแรก (ใส่ความยาวด้วยกัน prefix ซ้ำของ base64 ชนกัน)
+    const rawAnswer = window.APP.current_question.answer || "";
+    const answerKey = rawAnswer.length > 50 ? rawAnswer.length + ":" + rawAnswer.slice(0, 50) : rawAnswer;
+    const orderSig = choicesArray.join("///") + "|#ANS#|" + answerKey;
+    const orderQid = window.APP.current_question.questionId;
+    let choiceMemo = window.APP._choiceOrderByQid[orderQid];
+    if (!choiceMemo || choiceMemo.sig !== orderSig) {
+        const order = choicesArray.map((_, i) => i);
+        // สุ่มเฉพาะข้อที่ยังไม่ได้ตอบ — ข้อที่ตอบไปแล้ว (เช่นกู้คืน session) คงลำดับตามฐานข้อมูล
+        if (!window.APP.current_question.state) {
+            for (let i = order.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [order[i], order[j]] = [order[j], order[i]];
+            }
         }
+        choiceMemo = { sig: orderSig, order: order, allowed: null };
+        window.APP._choiceOrderByQid[orderQid] = choiceMemo;
     }
+    const indices = choiceMemo.order;
 
     let allowedOriginalIndices = [];
     if (window.APP.isFastMode && !window.APP.current_question.state) {
-        const correctOriginalIdx = choicesArray.indexOf(window.APP.current_question.answer);
-        if (correctOriginalIdx !== -1) {
-            const incorrectOriginalIndices = choicesArray.map((_, idx) => idx).filter(idx => idx !== correctOriginalIdx);
-            if (incorrectOriginalIndices.length > 0) {
-                const randomIncorrectIdx = incorrectOriginalIndices[Math.floor(Math.random() * incorrectOriginalIndices.length)];
-                allowedOriginalIndices = [correctOriginalIdx, randomIncorrectIdx];
+        // ตัวลวงที่ไม่ถูกจางก็จำไว้ด้วย ไม่งั้นวาดใหม่ทีไรก็สุ่มตัวลวงใหม่ทุกครั้ง
+        if (!choiceMemo.allowed) {
+            const correctOriginalIdx = choicesArray.indexOf(window.APP.current_question.answer);
+            if (correctOriginalIdx !== -1) {
+                const incorrectOriginalIndices = choicesArray.map((_, idx) => idx).filter(idx => idx !== correctOriginalIdx);
+                if (incorrectOriginalIndices.length > 0) {
+                    const randomIncorrectIdx = incorrectOriginalIndices[Math.floor(Math.random() * incorrectOriginalIndices.length)];
+                    choiceMemo.allowed = [correctOriginalIdx, randomIncorrectIdx];
+                }
             }
         }
+        allowedOriginalIndices = choiceMemo.allowed || [];
     }
 
     indices.forEach((i, idx) => {
@@ -309,7 +338,7 @@ window.submitQuestion = function () {
     $('#score').text(`${window.APP.score}/${window.APP.currentQuestions.length}`);
     $('#questionIndex').text(`${window.APP.questionIndex + 1}/${window.APP.currentQuestions.length}`);
 
-    // Re-draw choices in their original database order (since state is now true, showQuestion will not shuffle)
+    // วาดตัวเลือกใหม่โดยคงลำดับเดิมไว้ (ลำดับถูกจำไว้ใน window.APP._choiceOrderByQid แล้ว) — ตัวเลือกจะไม่กระโดดสลับตอนส่งคำตอบ
     window.showQuestion(false);
 
     if (selectedAnswer !== window.APP.current_question.answer && window.APP.isReviewMode) {

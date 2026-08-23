@@ -803,17 +803,25 @@ window.saveEditChanges = async function () {
     }
 
     // --- STEP 2: Optimistic UI Update (แสดงผลลัพธ์แก้ไขล่าสุดบนหน้าจอนิสิตทันทีระดับมิลลิวินาที) ---
-    const localQ = window.APP.allQuestions.find(q => q.questionId === qId);
-    if (localQ) {
-        Object.assign(localQ, {
-            problem: problem,
-            explain: window.serializeExplain(explainText, explainMediaSnapshot),
-            category: categories,
-            img: mainImgsSnapshot.join('///'),
-            choices: choicesOptimisticList.join('///'),
-            answer: answerOptimistic
-        });
-    }
+    // เก็บค่าเดิมไว้ก่อนทับ เผื่อบันทึกเบื้องหลังล้มเหลวจะได้ย้อนกลับ ไม่ค้างข้อมูลปลอมบนหน้าจอ
+    const preEditQ = window.APP.allQuestions.find(q => q.questionId === qId);
+    const preEditSnapshot = preEditQ ? {
+        problem: preEditQ.problem,
+        explain: preEditQ.explain,
+        category: preEditQ.category,
+        img: preEditQ.img,
+        choices: preEditQ.choices,
+        answer: preEditQ.answer
+    } : null;
+
+    window.applyQuestionPatchLocally(qId, {
+        problem: problem,
+        explain: window.serializeExplain(explainText, explainMediaSnapshot),
+        category: categories,
+        img: mainImgsSnapshot.join('///'),
+        choices: choicesOptimisticList.join('///'),
+        answer: answerOptimistic
+    });
 
     // สั่งวาดหน้าจอแสดงข้อสอบ, ประวัติ และระบบค้นหาใหม่ทันที
     window.showQuestion(false);
@@ -837,6 +845,7 @@ window.saveEditChanges = async function () {
     });
 
     // --- STEP 3: ทำงานเบื้องหลัง (Background Thread Async Task) ---
+    let savedToServer = false;
     (async () => {
         try {
             // 3.1 ดำเนินการอัปโหลดไฟล์ภาพตัวเลือกที่ติดค้างอยู่ (Choices Upload)
@@ -908,22 +917,23 @@ window.saveEditChanges = async function () {
             });
 
             if (res.result === "success") {
+                savedToServer = true;
                 // ซิงค์บันทึก URL จริงของฝั่งเซิร์ฟเวอร์ทับข้อมูลจำลองในเครื่องเพื่อความถูกต้องถาวร
-                if (localQ) {
-                    Object.assign(localQ, {
-                        explain: serializedExplain,
-                        img: finalMainImgs.join('///'),
-                        choices: finalChoices.join('///'),
-                        answer: finalAnswer
-                    });
-                }
+                window.applyQuestionPatchLocally(qId, {
+                    explain: serializedExplain,
+                    img: finalMainImgs.join('///'),
+                    choices: finalChoices.join('///'),
+                    answer: finalAnswer
+                });
 
                 await window.syncQuestionsToCache();
 
-                // Rebuild currentQuestions from fresh allQuestions to pick up edits, preserve position & answer order
-                const savedIdx = window.APP.questionIndex;
-                window.updateQuestionSet(false, false);
-                window.APP.questionIndex = Math.min(savedIdx, window.APP.currentQuestions.length - 1);
+                // เดิม updateQuestionSet() ทำสามอย่างนี้ให้ตอนท้าย — เลิกเรียกแล้วต้องทำเอง ไม่งั้นพฤติกรรมเดิมหาย
+                // (ไม่ต้อง saveProgressToCache เพราะ session state เก็บแค่ questionId/state/select ซึ่งการแก้เนื้อหาข้อไม่ได้เปลี่ยน)
+                window.APP.score = window.APP.currentQuestions.filter(q => q.state && q.select === q.answer).length;
+                $('#score').text(`${window.APP.score}/${window.APP.currentQuestions.length}`);
+                window.updateSelectedCategoryStatus();
+                if (window.APP.currentQuestions.length > 0) window.preloadQuizImages(window.APP.currentQuestions);
 
                 // วาดการแสดงผลใหม่อีกครั้งอย่างเงียบๆ (Silent Re-render) ด้วยข้อมูล URL สมบูรณ์
                 window.showQuestion(false);
@@ -937,6 +947,13 @@ window.saveEditChanges = async function () {
             }
         } catch (err) {
             console.error("Background sync failed for question:", qId, err);
+            // ย้อนข้อมูลกลับเฉพาะกรณีที่ยังไม่ได้บันทึกขึ้นเซิร์ฟเวอร์ — ถ้าเซิร์ฟเวอร์รับไปแล้วแต่มาพังตอนซิงค์ทีหลัง
+            // การย้อนกลับจะทำให้ข้อมูลในเครื่องต่างจากของจริงบนเซิร์ฟเวอร์
+            if (!savedToServer && preEditSnapshot) {
+                window.applyQuestionPatchLocally(qId, preEditSnapshot);
+                window.showQuestion(false);
+                window.showSubmission($('#submission-filter').val());
+            }
             window.bgToast.fire({
                 icon: "error",
                 title: `ซิงค์ข้อสอบ ${qId} ล้มเหลว!`,

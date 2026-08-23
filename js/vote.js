@@ -119,11 +119,15 @@ window.submitVoteData = async function (categoryArray, q, shouldRefreshUI = fals
     try {
         await window.sendWithRetry(payload);
 
+        // แก้ผ่าน applyQuestionPatchLocally — q ที่ส่งเข้ามาอาจเป็นสำเนาจาก allQuestions หรือ currentQuestions
+        // การ push ตรงๆ จะอัปเดตแค่สำเนาเดียว อีกฝั่ง (และข้อซ้ำในโหมดทวนข้อผิด) ยังเป็นหมวดเก่า
+        const updatedCategories = (Array.isArray(q.category) ? q.category : [q.category]).filter(Boolean).slice();
         categoryArray.forEach(newCatId => {
-            if (!q.category.includes(newCatId)) {
-                q.category.push(newCatId);
+            if (!updatedCategories.includes(newCatId)) {
+                updatedCategories.push(newCatId);
             }
         });
+        window.applyQuestionPatchLocally(q.questionId, { category: updatedCategories });
 
         await window.syncQuestionsToCache();
 

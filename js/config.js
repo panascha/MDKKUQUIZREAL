@@ -146,7 +146,9 @@ window.APP = {
     allSubjectsList: [],
     meqMode: false,
     // จำนวนข้อที่สุ่มต่อหมวด (SSOT) — { categoryId: number } ; ไม่มีคีย์ = เอาทั้งหมดของหมวดนั้น
-    categoryLimits: {}
+    categoryLimits: {},
+    // ลำดับตัวเลือกที่สุ่มไว้แล้วต่อ questionId — { qid: { sig, order, allowed } } ; อยู่ในหน่วยความจำอย่างเดียว (ไม่บันทึกลง IndexedDB)
+    _choiceOrderByQid: {}
 };
 
 // 7. โหมด MEQ (Hidden Choices + Free-Recall) — persist ต่างจากค่าอื่นใน APP ที่เก็บผ่าน IndexedDB session state
