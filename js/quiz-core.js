@@ -354,6 +354,15 @@ window.submitQuestion = function () {
         window.openVoteModal(window.APP.current_question, true);
 
     }, 80);
+
+    const allDone = window.APP.currentQuestions.length > 0 && window.APP.currentQuestions.every(q => q.state);
+    if (allDone && !window.APP._quizCompletedHandled) {
+        window.APP._quizCompletedHandled = true;
+        setTimeout(() => {
+            window.renderWeaknessStats();
+            $('#stats-modal-card').css('display', 'flex').hide().fadeIn(250);
+        }, 1500);
+    }
 };
 
 // 6. ระบบระบุสีให้กับปุ่มตัวเลือก
@@ -489,6 +498,8 @@ window.getSampledCategoryOrder = function (catId, pool) {
 
 // 8. การกรองและเปลี่ยนชุดข้อสอบ (Modified to support both categories and dynamic attribute filters)
 window.updateQuestionSet = function (shouldSort = true, shouldShow = true) {
+    window.APP._quizCompletedHandled = false;
+
     const previouslyAnswered = {};
     window.APP.currentQuestions.forEach(q => {
         if (q.state) {

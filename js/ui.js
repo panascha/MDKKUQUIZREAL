@@ -1641,6 +1641,69 @@ window.copyQuestionForAI = function () {
     window.copyQuestionPrompt(window.APP.current_question);
 };
 
+// สรุป Med-Keywords (จำสั้นๆ) ของข้อที่ตอบผิดในเซสชันนี้ด้วย AI — ตามสเปก med-keyword.md
+window.generateMedKeywordsForWrongAnswers = function () {
+    const wrong = (window.APP.currentQuestions || []).filter(q => q.state && q.select !== q.answer);
+
+    if (wrong.length === 0) {
+        window.bgToast.fire({ icon: 'success', title: 'ไม่มีข้อที่ตอบผิดในชุดนี้ 🎉' });
+        return;
+    }
+
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn) {
+        window.showGoogleSignInModal('เข้าสู่ระบบเพื่อใช้ AI สรุป Med-Keywords');
+        return;
+    }
+
+    const items = wrong.map((q, i) => {
+        const choicesText = String(q.choices || '').split('///').map((c, ci) => `${String.fromCharCode(65 + ci)}) ${c}`).join(' ');
+        return `${i + 1}. โจทย์: ${q.problem}\nตัวเลือก: ${choicesText}\nเฉลยที่ถูกต้อง: ${q.answer}\nนิสิตตอบ: ${q.select}\nคำอธิบาย: ${(q.explain || '-').slice(0, 250)}`;
+    }).join('\n\n');
+
+    const prompt =
+        (window.MED_KEYWORD_SKILL || '') +
+        `\n\n---\n\nข้อที่ตอบผิด (${wrong.length} ข้อ):\n\n${items}`;
+
+    Swal.fire({
+        title: 'กำลังสรุป Med-Keywords...',
+        html: '<i class="fas fa-spinner fa-spin"></i> AI กำลังวิเคราะห์ข้อที่ตอบผิด',
+        allowOutsideClick: false,
+        showConfirmButton: false
+    });
+
+    const token = localStorage.getItem('mdkku_session_token') || 'guest_user';
+    window.sendWithRetry({
+        action: 'askAIExpert', prompt: prompt, provider: 'IntelSphere',
+        sessionToken: token, model: window.pickAutoModel('reasoning_deep')
+    }, 3).then(res => {
+        if (res.result !== 'success') {
+            Swal.fire('เกิดข้อผิดพลาด', res.message || 'ไม่สามารถสร้างสรุปได้ กรุณาลองใหม่', 'error');
+            return;
+        }
+
+        const md = String(res.answer || '');
+        Swal.fire({
+            title: 'สรุป Med-Keywords ข้อที่ผิด',
+            html: `<div style="text-align:left; max-height:50vh; overflow-y:auto; white-space:pre-wrap; font-size:0.92rem; line-height:1.5;">${window.renderMarkdownSafe(md)}</div>`,
+            confirmButtonText: '📋 คัดลอก Markdown ทั้งหมด',
+            showCancelButton: true,
+            cancelButtonText: 'ปิด',
+            width: 640
+        }).then(result => {
+            if (!result.isConfirmed) return;
+            const done = () => window.bgToast.fire({ icon: 'success', title: 'คัดลอก Markdown สำเร็จ!' });
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(md).then(done).catch(() => window.similarCopyFallback(md, done));
+            } else {
+                window.similarCopyFallback(md, done);
+            }
+        });
+    }).catch(err => {
+        console.error('generateMedKeywordsForWrongAnswers failed:', err);
+        Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อ AI ได้ กรุณาลองใหม่', 'error');
+    });
+};
+
 window.renderAnnouncementsUI = function (announcements) {
     const $container = $('#dynamic-announcements-container');
     if (!$container.length) return;

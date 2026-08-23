@@ -420,7 +420,11 @@
         
             <!-- Modal Footer -->
             <div class="edit-modal-footer"
-                style="padding: 10px 20px; border-top: 1px solid var(--color-border); background: var(--color-surface-2); display: flex; justify-content: flex-end;">
+                style="padding: 10px 20px; border-top: 1px solid var(--color-border); background: var(--color-surface-2); display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" id="btn-copy-med-keywords" class="edit-btn-save"
+                    onclick="window.generateMedKeywordsForWrongAnswers()" style="margin: 0; min-height: auto;">
+                    <i class="fas fa-magic" aria-hidden="true"></i> สรุป Med-Keywords ข้อที่ผิดด้วย AI
+                </button>
                 <button type="button" class="edit-btn-cancel" onclick="$('#stats-modal-card').fadeOut(250)"
                     style="margin: 0; min-height: auto;">
                     <i class="fas fa-times" aria-hidden="true"></i> ปิดหน้าต่าง
@@ -1136,6 +1140,12 @@
             <i class="fas fa-bullseye"></i> ไปที่ข้อปัจจุบัน (ข้อที่ <span id="btn-current-idx">1</span>)
         </button>
 
+        <button id="btn-copy-med-keywords-results" class="quiz-button"
+            onclick="window.generateMedKeywordsForWrongAnswers()"
+            style="background-color: var(--color-primary); width: 100%; max-width: 280px; margin-top: 0; margin-bottom: 0.75rem;">
+            <i class="fas fa-magic" aria-hidden="true"></i> สรุป Med-Keywords ข้อที่ผิดด้วย AI
+        </button>
+
         <div id="submission-cards-container" class="result-cards-grid"></div>
 
         <!-- =========================================
@@ -1331,6 +1341,7 @@
          VII. Modular Scripts Import
          ========================================= -->
     <script src="js/config.js"></script>
+    <script src="js/med-keyword-skill.js"></script>
     <script src="js/changelog.js"></script>
     <script src="js/version.js"></script>
     <script src="js/db.js"></script>
