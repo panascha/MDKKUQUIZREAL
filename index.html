@@ -413,18 +413,19 @@
                     ระบบประเมินสถิติความแม่นยำรายวิชาจากการตอบข้อสอบในเซสชันนี้
                     เพื่อแสดงจุดเด่นและบทเรียนที่ควรทบทวนเพิ่มก่อนทำข้อสอบจริง
                 </p>
+                <button type="button" id="btn-copy-med-keywords" class="edit-btn-save"
+                    onclick="window.generateMedKeywordsForWrongAnswers()"
+                    style="width: 100%; margin: 0 0 18px 0; min-height: auto;">
+                    <i class="fas fa-magic" aria-hidden="true"></i> สรุป Med-Keywords ข้อที่ผิดด้วย AI
+                </button>
                 <div id="stats-container" style="width: 100%; box-sizing: border-box;">
                     <!-- Injected by JS -->
                 </div>
             </div>
-        
+
             <!-- Modal Footer -->
             <div class="edit-modal-footer"
                 style="padding: 10px 20px; border-top: 1px solid var(--color-border); background: var(--color-surface-2); display: flex; justify-content: flex-end; gap: 8px;">
-                <button type="button" id="btn-copy-med-keywords" class="edit-btn-save"
-                    onclick="window.generateMedKeywordsForWrongAnswers()" style="margin: 0; min-height: auto;">
-                    <i class="fas fa-magic" aria-hidden="true"></i> สรุป Med-Keywords ข้อที่ผิดด้วย AI
-                </button>
                 <button type="button" class="edit-btn-cancel" onclick="$('#stats-modal-card').fadeOut(250)"
                     style="margin: 0; min-height: auto;">
                     <i class="fas fa-times" aria-hidden="true"></i> ปิดหน้าต่าง
