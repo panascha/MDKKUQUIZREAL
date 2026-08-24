@@ -104,6 +104,14 @@ window._syncCardHtml = function (label, color, state, ts) {
         const shown = cats.slice(0, 3).map(nameOf);
         const more = cats.length - shown.length;
         catLine = `หมวด: <strong>${shown.join(', ')}${more > 0 ? ` +${more}` : ''}</strong><br>`;
+    } else if (state.filterMode === 'attribute') {
+        // โหมดกรองตามคุณสมบัติ (ปี/กลุ่มสอบ/ท้ายชื่อ) — ไม่ได้เลือกหมวด แสดงตัวกรองที่ใช้แทน
+        const attrs = [
+            ...(state.selectedYears || []).map(y => 'ปี ' + y),
+            ...(state.selectedGroups || []),
+            ...(state.selectedSuffixes || [])
+        ].filter(Boolean);
+        if (attrs.length) catLine = `ตัวกรอง: <strong>${attrs.join(', ')}</strong><br>`;
     }
 
     // ป้ายสถานะโหมด — index/สุ่ม แสดงเสมอ, ทวนข้อผิด/Fast โชว์เฉพาะตอนเปิด (undefined ก็ไม่พัง)
