@@ -536,14 +536,18 @@
     /* =========================================
        13. Floating Action Buttons
        ========================================= */
+    /* Unified FAB stack — #chatbot-fab flows as the bottom-most flex item,
+       so it can never collide with the button stack (no manual offsets). */
     .fab-container {
         position: fixed;
-        right: 2%;
-        top: 30%;
+        right: 20px;
+        bottom: 20px;
+        top: auto !important;
         z-index: var(--zi-fab);
         display: flex;
         flex-direction: column;
-        gap: 9px;
+        align-items: flex-end;
+        gap: 8px;
     }
 
     .fab {

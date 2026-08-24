@@ -1272,6 +1272,10 @@
         <button id="scroll-to-quiz-btn" class="fab" title="ไปส่วนคำถาม"><i class="fas fa-arrow-up"></i></button>
         <button id="btn-quick-refresh" class="fab login-gated" title="ซิงค์กับคลาวด์ (ดึงข้อสอบล่าสุด + เทียบความคืบหน้า)"
             onclick="window.manualCloudSync()"><i class="fas fa-sync-alt"></i></button>
+        <!-- AI Study Assistant FAB — flows as bottom-most item in the stack (unified into .fab-container) -->
+        <button id="chatbot-fab" type="button" class="login-gated" onclick="window.toggleChatbotPanel()" title="เข้าสู่ระบบด้วยบัญชี KKU เพื่อใช้ AI Study Assistant">
+            <i class="fas fa-robot"></i>
+        </button>
     </div>
     
     <div id="pdf-progress-widget">
@@ -1287,9 +1291,6 @@
 
     <!-- AI Clinical Study Assistant — IntelSphere Shared Pool (side drawer) -->
     <div id="chatbot-scrim" onclick="window.toggleChatbotPanel(false)"></div>
-    <button id="chatbot-fab" type="button" class="login-gated" onclick="window.toggleChatbotPanel()" title="เข้าสู่ระบบด้วยบัญชี KKU เพื่อใช้ AI Study Assistant">
-        <i class="fas fa-robot"></i>
-    </button>
     <div id="quiz-chatbot-panel" class="chatbot-drawer" style="text-align: left; font-family: var(--font-primary);">
         <div id="chatbot-resize-handle"></div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">

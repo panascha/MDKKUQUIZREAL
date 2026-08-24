@@ -75,18 +75,10 @@
             margin: 8px 14px;
         }
 
-        /* FAB stack anchored above chatbot FAB so they don't collide on mobile */
-        #chatbot-fab {
-            bottom: 20px;
-            right: 20px;
-            z-index: 1050;
-        }
-
+        /* Unified FAB stack — chatbot FAB flows as bottom item, no offsets */
         .fab-container {
-            top: auto;
-            bottom: 85px;
-            right: 20px;
-            z-index: 1040;
+            right: 16px;
+            bottom: 20px;
             gap: 8px;
         }
 
@@ -148,10 +140,10 @@
 
         /* 2. จัดการ Floating Action Buttons ด้านขวาให้มีขนาดสมดุลและไม่บังสายตา */
         .fab-container {
-            right: 20px !important;
-            bottom: 85px !important;
+            right: 16px !important;
+            bottom: 20px !important;
             top: auto !important;
-            /* ลอยเหนือปุ่มแชท (#chatbot-fab bottom:20px) เพื่อไม่ให้ทับกัน */
+            /* ทั้งสแตกย่อลงเข้ามุมล่างขวา — chatbot FAB ไหลอยู่ล่างสุดของคอลัมน์ ไม่ทับกัน */
             transform: scale(0.8) !important;
             transform-origin: bottom right !important;
             /* ย่อขนาดลง 20% */

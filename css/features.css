@@ -40,10 +40,9 @@ body.chatbot-open #chatbot-scrim {
     pointer-events: auto;
 }
 
+/* #chatbot-fab flows inside .fab-container (last child) — no standalone
+   fixed positioning; only its circular look + size differ from .fab. */
 #chatbot-fab {
-    position: fixed;
-    bottom: 22px;
-    right: 22px;
     width: 52px;
     height: 52px;
     border-radius: 50%;
@@ -53,7 +52,6 @@ body.chatbot-open #chatbot-scrim {
     font-size: 1.3rem;
     box-shadow: var(--shadow-md);
     cursor: pointer;
-    z-index: 930;
     display: none; /* shown by JS once a question is visible */
     align-items: center;
     justify-content: center;
