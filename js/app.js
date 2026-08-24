@@ -878,7 +878,52 @@ window._syncInBackground = function (subjectParam, localVer, verKey, cacheKey, s
     })();
 };
 
-window.checkAndPromptRestoreProgress = async function (sessionKey) {
+// ซิงค์กับคลาวด์แบบสั่งเอง (ปุ่ม FAB / ปุ่มในโมดัลบันทึก) — ดึงข้อสอบล่าสุด + เทียบความคืบหน้า cloud↔local
+window.manualCloudSync = async function () {
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn) {
+        window.showGoogleSignInModal('เข้าสู่ระบบด้วยบัญชี KKU เพื่อซิงค์ข้ามอุปกรณ์');
+        return;
+    }
+    // ปิดหน้าต่างบันทึก/โหลด ถ้าเปิดอยู่ — กันโมดัลซ้อน + ข้อมูล export ค้างเก่าหลัง restore
+    if ($('#progress-modal-card').is(':visible')) $('#progress-modal-card').fadeOut(150);
+    var $btns = $('#btn-quick-refresh, #btn-sync-cloud');
+    $btns.prop('disabled', true);
+    $btns.find('i').addClass('fa-spin');
+    try {
+        await window.runIncrementalSync();
+        var subjectParam = new URLSearchParams(window.location.search).get('subject') || 'default';
+        var sessionKey = 'session_state_' + subjectParam;
+        var status = await window.checkCloudProgress(subjectParam, sessionKey, { forcePrompt: true });
+        if (status === 'restored') {
+            var restored = await window.loadProgressFromCache();
+            if (restored) {
+                window.showQuestion(false);
+                window.updateProgressHeader();
+                window.showSubmission($('#submission-filter').val());
+                window.bgToast.fire({ icon: 'success', title: 'โหลดความคืบหน้าจากคลาวด์แล้ว' });
+            } else {
+                // ดึง state จากคลาวด์มาแล้ว แต่โหลดเข้าหน้าจอไม่ขึ้น → อย่าโชว์ "สำเร็จ" ให้เข้าใจผิด
+                window.bgToast.fire({ icon: 'warning', title: 'ดึงข้อมูลจากคลาวด์ได้ แต่โหลดเข้าหน้าจอไม่สำเร็จ กรุณารีเฟรชหน้า' });
+            }
+        } else if (status === 'kept-local') {
+            window.bgToast.fire({ icon: 'success', title: 'อัปเดตข้อมูลเครื่องนี้ขึ้นคลาวด์แล้ว' });
+        } else if (status === 'no-cloud') {
+            window.bgToast.fire({ icon: 'info', title: 'ไม่พบข้อมูลบนคลาวด์' });
+        } else if (status === 'no-session') {
+            window.showGoogleSignInModal('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+        } else if (status === 'network-error') {
+            window.bgToast.fire({ icon: 'error', title: 'เชื่อมต่อคลาวด์ไม่สำเร็จ กรุณาลองใหม่' });
+        }
+    } catch (err) {
+        console.warn('[sync] manual sync failed:', err);
+        window.bgToast.fire({ icon: 'error', title: 'ซิงค์ไม่สำเร็จ ลองใหม่อีกครั้ง' });
+    } finally {
+        $btns.prop('disabled', false);
+        $btns.find('i').removeClass('fa-spin');
+    }
+};
+
+window.checkAndPromptRestoreProgress = async function (sessionKey, forceCloudPrompt) {
     // reload จากการอัปเดตเวอร์ชันแอป (version.js doReload) → กู้คืนเงียบๆ ไม่ต้องถาม
     // กันชุดข้อสอบรีเซ็ตเพราะผู้ใช้เผลอกด "เริ่มใหม่ทั้งหมด" หลังอัปเดต
     let resumeAfterUpdate = false;
@@ -901,7 +946,8 @@ window.checkAndPromptRestoreProgress = async function (sessionKey) {
     // sync.js จะเขียน state ลง IndexedDB แล้วเราโหลดต่อเลยโดยไม่ถามซ้ำ
     if (typeof window.checkCloudProgress === 'function') {
         const subjectParam = new URLSearchParams(window.location.search).get('subject') || 'default';
-        const cloudRestored = await window.checkCloudProgress(subjectParam, sessionKey);
+        // สลับบัญชี → บังคับเทียบกับคลาวด์เสมอ (ไม่งั้น local ของคนก่อนที่ใหม่กว่าจะชนะเงียบๆ ผู้ใช้ใหม่ไม่เห็นความคืบหน้าตัวเอง)
+        const cloudRestored = await window.checkCloudProgress(subjectParam, sessionKey, forceCloudPrompt ? { forcePrompt: true } : undefined);
         if (cloudRestored === 'restored') {
             const restored = await window.loadProgressFromCache();
             if (restored) {

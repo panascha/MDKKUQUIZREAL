@@ -4,6 +4,7 @@
 
 window._progressPending = null;   // { subject, state } ล่าสุดที่ยังไม่ได้อัปโหลด
 window._lastProgressSync = 0;
+window._isSyncInFlight = false;   // กันยิง saveProgress ซ้อนกันจากหลาย trigger (interval + visibilitychange + beforeunload)
 window.PROGRESS_SYNC_INTERVAL_MS = 120000; // อัปโหลดไม่ถี่กว่า 2 นาที (ยกเว้น force)
 
 window.markProgressDirty = function (subjectParam, state) {
@@ -14,7 +15,10 @@ window.flushProgressSync = async function (force) {
     if (!window._progressPending) return;
     if (!window.EDIT_SESSION || !window.EDIT_SESSION.sessionToken) return;
     if (!force && Date.now() - window._lastProgressSync < window.PROGRESS_SYNC_INTERVAL_MS) return;
+    // กันยิงซ้อน: ถ้ามี flush ค้างอยู่ ปล่อย _progressPending ไว้ให้รอบถัดไปเก็บ (interval/visibilitychange/beforeunload อาจยิงพร้อมกัน)
+    if (window._isSyncInFlight) return;
 
+    window._isSyncInFlight = true;
     const pending = window._progressPending;
     window._progressPending = null;
     window._lastProgressSync = Date.now();
@@ -30,9 +34,14 @@ window.flushProgressSync = async function (force) {
             console.log('[sync] Cloud state newer — upload skipped');
         }
     } catch (err) {
-        // ส่งไม่สำเร็จ → คืน pending ไว้รอรอบหน้า (ถ้ายังไม่มีอันใหม่กว่ามาแทน)
-        window._progressPending = window._progressPending || pending;
+        // ส่งไม่สำเร็จ → คืน pending ไว้รอรอบหน้า แต่ถ้ามี state ใหม่กว่าถูกคิวไว้ระหว่างรอ (timestamp ใหม่กว่า) อย่าทับ
+        const queued = window._progressPending;
+        const pendingTs = (pending.state && pending.state.timestamp) || 0;
+        const queuedTs = (queued && queued.state && queued.state.timestamp) || 0;
+        if (!queued || pendingTs > queuedTs) window._progressPending = pending;
         console.warn('[sync] saveProgress failed:', err);
+    } finally {
+        window._isSyncInFlight = false;
     }
 };
 
@@ -55,10 +64,52 @@ window.waitForSyncSession = function (maxMs) {
     });
 };
 
-// เช็ค state บน cloud เทียบกับ local — คืน 'restored' เมื่อผู้ใช้เลือกใช้ของ cloud (เขียนลง IndexedDB ให้แล้ว)
-window.checkCloudProgress = async function (subjectParam, sessionKey) {
-    const hasSession = await window.waitForSyncSession(5000);
-    if (!hasSession) return null;
+// แปลง timestamp เป็นข้อความอ่านง่าย (สำหรับการ์ดเทียบข้อมูล)
+window._fmtSyncTs = function (ts) {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return '—'; // ts เพี้ยน (null/สตริงพัง) → กันโชว์ "Invalid Date"
+    try {
+        return d.toLocaleString('th-TH', {
+            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+    } catch (e) {
+        return d.toLocaleString();
+    }
+};
+
+// การ์ดข้อมูลด้านเดียว (ใช้ทั้งฝั่ง local และ cloud ในโมดัลเทียบ)
+window._syncCardHtml = function (label, color, state, ts) {
+    const qStates = (state && state.currentQuestionsState) || [];
+    const total = qStates.length;
+    const cardOpen = `<div style="flex:1 1 180px; min-width:160px; border:2px solid ${color}; border-radius:10px; padding:12px; text-align:left;">
+            <div style="font-weight:800; color:${color}; margin-bottom:8px;">${label}</div>`;
+    if (!state || total === 0) {
+        // ยังไม่มีข้อมูลฝั่งนี้ (เช่นเครื่องใหม่ หรือคลาวด์ว่าง) → อย่าโชว์ 0/0 ข้อ ให้บอกตรงๆ
+        return `${cardOpen}
+            <div style="font-size:0.95rem; line-height:1.9; color:var(--color-text-muted);">ยังไม่มีข้อมูล</div>
+        </div>`;
+    }
+    const doneCount = qStates.filter(s => s.state).length;
+    const score = (state && typeof state.score === 'number') ? state.score : 0;
+    return `${cardOpen}
+            <div style="font-size:0.95rem; line-height:1.9;">
+                ทำแล้ว: <strong>${doneCount}/${total}</strong> ข้อ<br>
+                คะแนน: <strong>${score}</strong><br>
+                <span style="color:var(--color-text-muted); font-size:0.85rem;">${window._fmtSyncTs(ts)}</span>
+            </div>
+        </div>`;
+};
+
+// เช็ค state บน cloud เทียบกับ local + แสดงโมดัลเทียบแบบ side-by-side
+// คืน: 'restored' (เลือก cloud, เขียน IndexedDB แล้ว) · 'kept-local' (เลือกเครื่องนี้, ดันขึ้น cloud แล้ว)
+//      · 'cancelled' (ปิดเฉยๆ ไม่แตะข้อมูล) · 'no-cloud' (ยังไม่มีข้อมูลบนคลาวด์) · 'no-session' (ยังไม่ล็อกอิน) · null
+// options.forcePrompt = true → ข้ามการเงียบเมื่อ cloud ไม่ใหม่กว่า local (สำหรับปุ่มซิงค์เอง)
+window.checkCloudProgress = async function (subjectParam, sessionKey, options) {
+    options = options || {};
+    // ปุ่มสั่งเอง: ผู้ใช้กำลังรออยู่ → รอ session สั้นลง; auto-startup รอนานกว่าได้
+    const hasSession = await window.waitForSyncSession(options.forcePrompt ? 2000 : 5000);
+    if (!hasSession) return 'no-session';
 
     let res;
     try {
@@ -69,43 +120,60 @@ window.checkCloudProgress = async function (subjectParam, sessionKey) {
         });
     } catch (err) {
         console.warn('[sync] getProgress failed:', err);
-        return null;
+        return options.forcePrompt ? 'network-error' : null; // auto-startup เงียบ ไม่รบกวนผู้ใช้ offline
     }
-    if (!res || res.result !== 'success' || !res.state) return null;
+    // token หมดอายุ/ถูกลบบน GAS → sendWithRetry ล้าง session เงียบไปแล้ว แจ้งให้ผู้ใช้ล็อกอินใหม่
+    if (res && res.result === 'error' && (res.message === 'session_expired' || res.message === 'token_expired')) return 'no-session';
+    if (!res || res.result !== 'success' || !res.state) return 'no-cloud';
 
-    const local = await window.getCacheDB(sessionKey);
+    let local = await window.getCacheDB(sessionKey);
     const localTs = (local && local.timestamp) || 0;
-    if ((res.timestamp || 0) <= localTs) return null; // local ใหม่กว่าหรือเท่ากัน → เงียบ
-
-    const qStates = res.state.currentQuestionsState || [];
-    const doneCount = qStates.filter(s => s.state).length;
-    const agoMin = Math.max(1, Math.round((Date.now() - res.timestamp) / 60000));
+    if (!options.forcePrompt && (res.timestamp || 0) <= localTs) return null; // local ใหม่กว่า/เท่ากัน → เงียบ (เฉพาะ auto)
 
     $('#loading-overlay').hide();
     const result = await Swal.fire({
-        title: 'พบความคืบหน้าจากอุปกรณ์อื่น',
-        html: `บันทึกล่าสุดเมื่อประมาณ ${agoMin} นาทีที่แล้ว (ทำไปแล้ว ${doneCount}/${qStates.length} ข้อ)<br>ต้องการทำต่อจากจุดนั้นหรือไม่?`,
+        title: 'เทียบความคืบหน้ากับคลาวด์',
+        html: `
+            <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:8px;">
+                ${window._syncCardHtml('เครื่องนี้', '#64748b', local, localTs)}
+                ${window._syncCardHtml('คลาวด์', '#1a73e8', res.state, res.timestamp)}
+            </div>`,
         icon: 'question',
+        showDenyButton: true,
         showCancelButton: true,
-        confirmButtonText: 'ทำต่อจากอุปกรณ์อื่น',
-        cancelButtonText: 'ใช้ของเครื่องนี้',
+        confirmButtonText: 'ใช้ข้อมูลบนคลาวด์',
+        denyButtonText: 'ใช้ข้อมูลเครื่องนี้',
+        cancelButtonText: 'ยกเลิก',
         confirmButtonColor: '#1a73e8',
+        denyButtonColor: '#64748b',
         allowOutsideClick: false
     });
 
     if (result.isConfirmed) {
         await window.setCacheDB(sessionKey, res.state);
+        // กันโยน state ที่เพิ่งดึงมากลับขึ้น cloud ทันที (echo) — เคลียร์คิว + รีเซ็ตตัวจับเวลา
+        window._progressPending = null;
+        window._lastProgressSync = Date.now();
         return 'restored';
     }
 
-    // ผู้ใช้เลือกเครื่องนี้ → ดัน local ขึ้น cloud ทันทีด้วย timestamp ใหม่ (จะได้ไม่ถามซ้ำทุกครั้ง)
-    if (local) {
-        local.timestamp = Date.now();
-        await window.setCacheDB(sessionKey, local);
-        window.markProgressDirty(subjectParam || 'default', local);
-        window.flushProgressSync(true);
+    if (result.isDenied) {
+        // เครื่องใหม่ที่ยังไม่เคย save ลง IndexedDB → snapshot state ในหน่วยความจำก่อน ไม่งั้นจะดันของว่างขึ้น cloud
+        if (!local && typeof window.saveProgressToCache === 'function') {
+            await window.saveProgressToCache();
+            local = await window.getCacheDB(sessionKey);
+        }
+        // เลือกเครื่องนี้ → ดัน local ขึ้น cloud ด้วย timestamp ใหม่ (ทับ cloud, จะได้ไม่ถามซ้ำ)
+        if (local) {
+            local.timestamp = Date.now();
+            await window.setCacheDB(sessionKey, local);
+            window.markProgressDirty(subjectParam || 'default', local);
+            window.flushProgressSync(true);
+        }
+        return 'kept-local';
     }
-    return null;
+
+    return 'cancelled'; // ยกเลิก → ไม่แตะข้อมูลทั้งสองฝั่ง
 };
 
 // คู่มือการใช้งานซิงค์ข้ามอุปกรณ์ (เปิดจากลิงก์ในหน้าล็อกอิน และปุ่ม ? บนป้ายสถานะ)

@@ -119,17 +119,20 @@ window.submitVoteData = async function (categoryArray, q, shouldRefreshUI = fals
     try {
         await window.sendWithRetry(payload);
 
+        // เพิ่มหมวดลง q ในเครื่องเฉพาะโหวตเห็นด้วย (delta > 0) — downvote ไม่ควรเพิ่มหมวดที่ผู้ใช้บอกว่าผิด
         // แก้ผ่าน applyQuestionPatchLocally — q ที่ส่งเข้ามาอาจเป็นสำเนาจาก allQuestions หรือ currentQuestions
         // การ push ตรงๆ จะอัปเดตแค่สำเนาเดียว อีกฝั่ง (และข้อซ้ำในโหมดทวนข้อผิด) ยังเป็นหมวดเก่า
-        const updatedCategories = (Array.isArray(q.category) ? q.category : [q.category]).filter(Boolean).slice();
-        categoryArray.forEach(newCatId => {
-            if (!updatedCategories.includes(newCatId)) {
-                updatedCategories.push(newCatId);
-            }
-        });
-        window.applyQuestionPatchLocally(q.questionId, { category: updatedCategories });
+        if (delta > 0) {
+            const updatedCategories = (Array.isArray(q.category) ? q.category : [q.category]).filter(Boolean).slice();
+            categoryArray.forEach(newCatId => {
+                if (!updatedCategories.includes(newCatId)) {
+                    updatedCategories.push(newCatId);
+                }
+            });
+            window.applyQuestionPatchLocally(q.questionId, { category: updatedCategories });
 
-        await window.syncQuestionsToCache();
+            await window.syncQuestionsToCache();
+        }
 
         if (window.APP.current_question && q.questionId === window.APP.current_question.questionId) {
             window.showQuestion(false);

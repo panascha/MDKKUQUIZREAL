@@ -50,7 +50,8 @@ window.getCacheDB = async function (key) {
     });
 };
 
-window.saveProgressToCache = async function () {
+window.saveProgressToCache = async function (options) {
+    options = options || {};
     const urlParams = new URLSearchParams(window.location.search);
     const subjectParam = urlParams.get('subject') || 'default';
     const sessionKey = `session_state_${subjectParam}`;
@@ -91,7 +92,8 @@ window.saveProgressToCache = async function () {
 
     await window.setCacheDB(sessionKey, state);
     // Cross-device sync: ตั้งธงให้ sync.js อัปโหลดแบบ debounced (no-op ถ้าไม่ได้ล็อกอิน)
-    if (typeof window.markProgressDirty === 'function') {
+    // skipCloudSync: true → บันทึกลง IndexedDB เฉยๆ ไม่ mark dirty (กัน echo หลัง restore จาก cloud)
+    if (!options.skipCloudSync && typeof window.markProgressDirty === 'function') {
         window.markProgressDirty(subjectParam, state);
     }
     console.log("Progress Auto-Saved");
@@ -189,8 +191,10 @@ window.loadProgressFromCache = async function () {
         Object.keys(restoredByCat).forEach(c => { window._catSampleOrder[c] = restoredByCat[c]; });
 
         if (window.APP.currentQuestions.length > 0) window.preloadQuizImages(window.APP.currentQuestions);
-        window.APP.questionIndex = savedState.questionIndex;
-        window.APP.score = savedState.score;
+        // clamp: ถ้าแอดมินลบ/แก้ข้อ ทำให้ reorderedQuestions สั้นลง questionIndex เดิมอาจเกินขอบเขต
+        window.APP.questionIndex = Math.min(savedState.questionIndex || 0, reorderedQuestions.length - 1);
+        // คำนวณคะแนนใหม่จากข้อที่เหลือจริง — ไม่เชื่อ savedState.score ตรงๆ (กัน score เกิน เช่น 45/40 หลังข้อถูกลบ)
+        window.APP.score = reorderedQuestions.filter(q => q.state && q.select === q.answer).length;
         window.APP.isRandomized = savedState.isRandomized;
         window.APP.isReviewMode = savedState.isReviewMode || false;
         window.APP.isFastMode = savedState.isFastMode || false;
@@ -221,7 +225,8 @@ window.loadProgressFromCache = async function () {
         }
 
         // บันทึก state ที่กู้คืนสำเร็จกลับลง cache ทันที — กันกรณีมี save อื่นเขียนทับระหว่าง init
-        window.saveProgressToCache();
+        // skipCloudSync: กัน echo — ถ้ากู้มาจาก cloud อยู่แล้ว ไม่ต้อง mark dirty แล้วดันกลับขึ้นไปทันที
+        window.saveProgressToCache({ skipCloudSync: true });
 
         return true;
     } catch (e) {

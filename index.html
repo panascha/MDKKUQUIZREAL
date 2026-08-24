@@ -441,6 +441,15 @@
                 </div>
                 <h5 class="modal-title">บันทึก / ทำต่อจากครั้งก่อน</h5>
                 <div class="modal-section">
+                    <h6>ซิงค์ข้ามอุปกรณ์</h6>
+                    <p class="small-text" style="margin-bottom: 0.75rem;">ดึงข้อสอบล่าสุดและเทียบความคืบหน้ากับคลาวด์ (ต้องล็อกอินบัญชี KKU)</p>
+                    <div class="controls-container">
+                        <button id="btn-sync-cloud" class="quiz-button btn-import" onclick="window.manualCloudSync()">
+                            <i class="fas fa-sync-alt"></i> ซิงค์กับคลาวด์
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-section">
                     <h6>ส่งออกความคืบหน้าปัจจุบัน</h6>
                     <p class="small-text" style="margin-bottom: 0.75rem;">บันทึกคำตอบและลำดับคำถามปัจจุบัน</p>
                     <div id="feedback-save" class="small-text" style="margin-top: 8px;"></div>
@@ -1261,6 +1270,8 @@
         <button id="scroll-to-search-btn" class="fab" title="ไปส่วนค้นหา" style="background: var(--color-primary);"><i
                 class="fas fa-search"></i></button>
         <button id="scroll-to-quiz-btn" class="fab" title="ไปส่วนคำถาม"><i class="fas fa-arrow-up"></i></button>
+        <button id="btn-quick-refresh" class="fab login-gated" title="ซิงค์กับคลาวด์ (ดึงข้อสอบล่าสุด + เทียบความคืบหน้า)"
+            onclick="window.manualCloudSync()"><i class="fas fa-sync-alt"></i></button>
     </div>
     
     <div id="pdf-progress-widget">

@@ -50,7 +50,7 @@ window.showGoogleSignInModal = function (titleText = 'เข้าสู่ร�
 // เปิด/ปิดสถานะสีเทาของฟีเจอร์ที่ต้องล็อกอิน (AI Passport, ข้อออกบ่อย) ตามสถานะ EDIT_SESSION
 window.updateLoginGatedFeaturesUI = function () {
     var loggedIn = !!(window.EDIT_SESSION && window.EDIT_SESSION.isLoggedIn);
-    $('#open-similar-report-btn, #chatbot-fab').toggleClass('login-gated', !loggedIn);
+    $('#open-similar-report-btn, #chatbot-fab, #btn-quick-refresh').toggleClass('login-gated', !loggedIn);
 };
 
 window.ensureActiveSession = function () {
@@ -67,6 +67,9 @@ window.ensureActiveSession = function () {
 };
 
 window.logoutEditModeSilent = function () {
+    // จำอีเมลคนล่าสุด + เคลียร์คิวอัปโหลดที่ค้าง กันไปโผล่อัปใต้ token ของคนที่ล็อกอินต่อ
+    try { if (window.EDIT_SESSION && window.EDIT_SESSION.email) localStorage.setItem('mdkku_last_user_email', window.EDIT_SESSION.email); } catch (e) { }
+    window._progressPending = null;
     localStorage.removeItem("mdkku_session_token");
     sessionStorage.removeItem("mdkku_edit_session");
     window.EDIT_SESSION = {
@@ -203,19 +206,24 @@ window.promptStudentIdIfNeeded = function () {
 };
 
 window.setupGoogleSSO = function () {
+    // แยก try/catch: ถ้า GIS init พัง(สคริปต์ Google โหลดไม่ทัน) ต้องไม่บล็อกการกู้ session จาก token ที่ยังใช้ได้
     try {
         google.accounts.id.initialize({
             client_id: window.GOOGLE_CLIENT_ID,
             callback: window.handleCredentialResponse,
             use_fedcm_for_prompt: false
         });
+    } catch (err) {
+        console.warn("Failed to initialize Google SSO:", err);
+    }
 
+    try {
         const savedToken = localStorage.getItem("mdkku_session_token");
         if (savedToken) {
             window.resumeSessionFromToken(savedToken);
         }
     } catch (err) {
-        console.warn("Failed to initialize Google SSO:", err);
+        console.warn("Failed to resume session from token:", err);
     }
 };
 
@@ -239,6 +247,16 @@ window.handleCredentialResponse = async function (response) {
                 Swal.fire("ข้อผิดพลาด", "ไม่ได้รับ session token จากระบบ กรุณาลองใหม่", "error");
                 return;
             }
+            // ตรวจการสลับบัญชีบนเครื่องเดียวกัน — IndexedDB ความคืบหน้าใช้คีย์ร่วม ไม่แยกตามผู้ใช้
+            // ถ้าเปลี่ยนคน ต้องทิ้งคิวอัปโหลดของคนเก่า + บังคับเทียบกับคลาวด์ของบัญชีใหม่ (ไม่ให้ local ของคนเก่าชนะเงียบๆ)
+            var prevUserEmail = '';
+            try { prevUserEmail = localStorage.getItem('mdkku_last_user_email') || ''; } catch (e) { }
+            var accountSwitched = !!prevUserEmail && prevUserEmail !== res.user.email;
+            if (accountSwitched) {
+                window._progressPending = null;
+                console.log('[sync] Account switched', prevUserEmail, '→', res.user.email, '— clearing local pending, prioritizing cloud');
+            }
+            try { localStorage.setItem('mdkku_last_user_email', res.user.email); } catch (e) { }
             window.EDIT_SESSION = {
                 isLoggedIn: true,
                 email: res.user.email,
@@ -270,7 +288,7 @@ window.handleCredentialResponse = async function (response) {
             // Pull cloud progress after login — user may have progress from another device
             if (isStudent && typeof window.checkAndPromptRestoreProgress === 'function') {
                 var sp = new URLSearchParams(window.location.search).get('subject') || '';
-                window.checkAndPromptRestoreProgress('session_state_' + (sp || 'default'));
+                window.checkAndPromptRestoreProgress('session_state_' + (sp || 'default'), accountSwitched);
             }
             // ขอรหัสนักศึกษาหลังป้ายต้อนรับปิด (กันซ้อน Swal) ถ้ายังไม่เคยยืนยัน
             setTimeout(window.promptStudentIdIfNeeded, 2200);
@@ -285,6 +303,9 @@ window.handleCredentialResponse = async function (response) {
 
 window.logoutEditMode = function () {
     const tokenToDelete = window.EDIT_SESSION.sessionToken;
+    // จำอีเมลคนล่าสุด + เคลียร์คิวอัปโหลดที่ค้าง กันไปโผล่อัปใต้ token ของคนที่ล็อกอินต่อ
+    try { if (window.EDIT_SESSION.email) localStorage.setItem('mdkku_last_user_email', window.EDIT_SESSION.email); } catch (e) { }
+    window._progressPending = null;
     localStorage.removeItem("mdkku_session_token");
     sessionStorage.removeItem("mdkku_edit_session");
     window.EDIT_SESSION = {

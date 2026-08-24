@@ -65,7 +65,8 @@ body.chatbot-open #chatbot-fab {
 
 /* Login-gated features (AI Passport, ข้อออกบ่อย) — grayed until user logs in with KKU account */
 #chatbot-fab.login-gated,
-#open-similar-report-btn.login-gated {
+#open-similar-report-btn.login-gated,
+#btn-quick-refresh.login-gated {
     opacity: 0.55;
     filter: grayscale(0.6);
 }
