@@ -92,12 +92,37 @@ window._syncCardHtml = function (label, color, state, ts) {
     }
     const doneCount = qStates.filter(s => s.state).length;
     const score = (state && typeof state.score === 'number') ? state.score : 0;
+
+    // หมวดที่เลือก (สูงสุด 3 ชื่อ แล้วต่อ +N) — ชื่ออาจหาไม่เจอถ้า structure ยังไม่โหลด/id จากเครื่องอื่น → fallback เป็น id
+    const cats = (state.selectedCategories || []).filter(Boolean);
+    let catLine = '';
+    if (cats.length) {
+        const nameOf = function (id) {
+            const n = (typeof window.getCategoryNameById === 'function') ? window.getCategoryNameById(id) : '';
+            return n || id;
+        };
+        const shown = cats.slice(0, 3).map(nameOf);
+        const more = cats.length - shown.length;
+        catLine = `หมวด: <strong>${shown.join(', ')}${more > 0 ? ` +${more}` : ''}</strong><br>`;
+    }
+
+    // ป้ายสถานะโหมด — index/สุ่ม แสดงเสมอ, ทวนข้อผิด/Fast โชว์เฉพาะตอนเปิด (undefined ก็ไม่พัง)
+    const badge = function (txt, bg) {
+        return `<span style="display:inline-block; background:${bg}; color:#fff; font-size:0.72rem; font-weight:700; padding:2px 7px; border-radius:999px; margin:2px 4px 2px 0; white-space:nowrap;">${txt}</span>`;
+    };
+    let badges = badge(`ข้อที่ ${(state.questionIndex || 0) + 1}`, '#475569');
+    badges += badge(state.isRandomized ? 'สุ่มข้อ' : 'เรียงข้อ', '#0369a1');
+    if (state.isReviewMode) badges += badge('ทวนข้อผิด', '#b45309');
+    if (state.isFastMode) badges += badge('Fast Mode', '#7c3aed');
+
     return `${cardOpen}
             <div style="font-size:0.95rem; line-height:1.9;">
                 ทำแล้ว: <strong>${doneCount}/${total}</strong> ข้อ<br>
                 คะแนน: <strong>${score}</strong><br>
+                ${catLine}
                 <span style="color:var(--color-text-muted); font-size:0.85rem;">${window._fmtSyncTs(ts)}</span>
             </div>
+            <div style="display:flex; flex-wrap:wrap; margin-top:6px;">${badges}</div>
         </div>`;
 };
 
