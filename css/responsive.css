@@ -75,8 +75,19 @@
             margin: 8px 14px;
         }
 
+        /* FAB stack anchored above chatbot FAB so they don't collide on mobile */
+        #chatbot-fab {
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+
         .fab-container {
-            top: 30%;
+            top: auto;
+            bottom: 85px;
+            right: 20px;
+            z-index: 1040;
+            gap: 8px;
         }
 
         .fab {
@@ -137,11 +148,12 @@
 
         /* 2. จัดการ Floating Action Buttons ด้านขวาให้มีขนาดสมดุลและไม่บังสายตา */
         .fab-container {
-            right: 12px !important;
-            bottom: 20px !important;
+            right: 20px !important;
+            bottom: 85px !important;
             top: auto !important;
-            /* ย้ายตำแหน่งมาไว้ด้านล่างขวาเพื่อความสะดวกในการเอื้อมกด */
+            /* ลอยเหนือปุ่มแชท (#chatbot-fab bottom:20px) เพื่อไม่ให้ทับกัน */
             transform: scale(0.8) !important;
+            transform-origin: bottom right !important;
             /* ย่อขนาดลง 20% */
             opacity: 0.7;
             transition: opacity 0.2s;
