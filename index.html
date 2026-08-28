@@ -587,8 +587,39 @@
                         alt="QR Code Donation"
                         style="max-width: 240px; height: auto; margin: 9px auto; display: block; border-radius: 8px; box-shadow: var(--shadow-sm);">
                 </div>
+                <!-- แนบสลิปยืนยันการโอน (ไม่บังคับ) — js/reviews-donations.js → GAS submitDonation -->
+                <div class="modal-section" style="background-color: var(--color-surface-2); border: 1px solid var(--color-border); text-align: left;">
+                    <h6 style="font-size: 1.1rem; color: var(--color-text); margin-bottom: 6px;">แนบสลิปยืนยันการโอน (ไม่บังคับ)</h6>
+                    <p class="small-text" style="color: var(--color-text-muted); margin: 0 0 10px;">
+                        ถ้าอยากให้เราบันทึกยอดบริจาคของคุณไว้ แนบรูปสลิปได้ที่นี่ ระบบจะอ่านเลขอ้างอิงและยอดเงินอัตโนมัติเพื่อยืนยัน สลิปจะถูกเก็บเป็นความลับ เห็นเฉพาะผู้ดูแลระบบเท่านั้น</p>
+                    <div id="donate-slip-dropzone"
+                        style="border: 2px dashed var(--color-border); border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; color: var(--color-text-muted); background: var(--color-surface);">
+                        <i class="fas fa-file-image" style="font-size: 1.5rem; display: block; margin-bottom: 6px;"></i>
+                        แตะเพื่อเลือกสลิป · ลาก-วาง · หรือวางจาก clipboard (Ctrl+V)
+                    </div>
+                    <input type="file" id="donate-slip-input" accept="image/*" style="display: none;">
+                    <div id="donate-slip-preview" style="text-align: center;"></div>
+
+                    <div id="donate-name-wrap" style="margin-top: 10px;">
+                        <label for="donate-donor-name" class="small-text" style="font-weight: 600;">ชื่อผู้บริจาค (ไม่บังคับ)</label>
+                        <input type="text" id="donate-donor-name" class="edit-choice-input" placeholder="เช่น SalmonZ ปี 3"
+                            style="width: 100%; margin: 4px 0 8px; box-sizing: border-box;">
+                    </div>
+                    <label class="small-text" style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
+                        <input type="checkbox" id="donate-anon-toggle"> ไม่ประสงค์ออกนาม
+                    </label>
+                    <label for="donate-message" class="small-text" style="font-weight: 600;">ข้อความถึงผู้พัฒนา (ไม่บังคับ)</label>
+                    <textarea id="donate-message" rows="2" class="edit-choice-input"
+                        placeholder="ฝากข้อความให้กำลังใจได้เลย..."
+                        style="width: 100%; margin: 4px 0 6px; resize: vertical; box-sizing: border-box;"></textarea>
+                    <p class="small-text" style="color: var(--color-text-muted); margin: 4px 0 0;">
+                        การแนบสลิปเป็นการยืนยันว่าคุณเป็นผู้โอนจริง ยอดและเลขอ้างอิงจากสลิปจะถูกบันทึกเพื่อตรวจสอบเท่านั้น</p>
+                </div>
+
                 <div class="controls-container" style="padding-top: 0; border-top: none;">
                     <button id="close-donate-modal" class="quiz-button btn-light">ปิด</button>
+                    <button id="submit-donation-btn" class="quiz-button btn-dark" style="min-width: 150px;">
+                        <i class="fas fa-check-circle"></i> ส่งสลิปยืนยันการโอน</button>
                 </div>
             </div>
         </div>
@@ -698,6 +729,64 @@
             </div>
         </div>
 
+        <!-- 5.3 Reviews Drawer (รายรีวิววิชา — js/reviews-donations.js) -->
+        <div id="reviews-drawer" class="modal-card">
+            <div class="modal-body">
+                <h5 class="modal-title" style="color: #B45309;"><i class="fas fa-star"></i> รีวิววิชานี้</h5>
+                <div id="reviews-drawer-summary" class="modal-section"
+                    style="background-color: var(--color-surface-2); border: 1px solid var(--color-border); text-align: left;"></div>
+                <div style="display: flex; align-items: center; gap: 8px; margin: 4px 0 6px; flex-wrap: wrap;">
+                    <span class="small-text" style="color: var(--color-text-muted);">เรียง:</span>
+                    <button id="reviews-sort-latest" class="quiz-button btn-dark" style="margin: 0; font-size: 0.8rem; padding: 4px 12px;">ล่าสุด</button>
+                    <button id="reviews-sort-rating" class="quiz-button btn-light" style="margin: 0; font-size: 0.8rem; padding: 4px 12px;">คะแนนสูงสุด</button>
+                    <button id="reviews-drawer-write-btn" class="quiz-button btn-light" style="margin-left: auto; font-size: 0.8rem; padding: 4px 12px;"><i class="fas fa-pen"></i> เขียนรีวิว</button>
+                </div>
+                <div id="reviews-drawer-list" style="max-height: 55vh; overflow-y: auto;"></div>
+                <div class="controls-container" style="padding-top: 0; border-top: none;">
+                    <button id="close-reviews-drawer" class="quiz-button btn-light">ปิด</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5.4 Write Review Modal (js/reviews-donations.js → GAS submitReview, login-gated) -->
+        <div id="submit-review-modal" class="modal-card">
+            <div class="modal-body">
+                <h5 class="modal-title" style="color: #B45309;"><i class="fas fa-pen"></i> เขียนรีวิววิชา</h5>
+                <div class="modal-section"
+                    style="background-color: var(--color-surface-2); border: 1px solid var(--color-border); text-align: left;">
+                    <label for="review-subject-select" class="small-text" style="font-weight: 600;">วิชา</label>
+                    <select id="review-subject-select" class="field-input" style="width: 100%; margin: 4px 0 10px;">
+                        <option value="">-- เลือกวิชา --</option>
+                    </select>
+
+                    <label class="small-text" style="font-weight: 600; display: block; margin-bottom: 2px;">ให้คะแนน</label>
+                    <div id="review-star-picker" style="font-size: 2rem; letter-spacing: 4px; margin-bottom: 10px; user-select: none;">
+                        <span id="review-star-1" style="cursor: pointer; color: var(--color-text-muted);">☆</span><span id="review-star-2" style="cursor: pointer; color: var(--color-text-muted);">☆</span><span id="review-star-3" style="cursor: pointer; color: var(--color-text-muted);">☆</span><span id="review-star-4" style="cursor: pointer; color: var(--color-text-muted);">☆</span><span id="review-star-5" style="cursor: pointer; color: var(--color-text-muted);">☆</span>
+                    </div>
+
+                    <label for="review-text-input" class="small-text" style="font-weight: 600;">รีวิว (ไม่บังคับ)</label>
+                    <textarea id="review-text-input" rows="4" class="edit-choice-input"
+                        placeholder="เนื้อหาเป็นยังไง อาจารย์สอนดีไหม ข้อสอบแนวไหน..."
+                        style="width: 100%; margin: 4px 0 8px; resize: vertical; box-sizing: border-box;"></textarea>
+
+                    <div id="review-name-wrap">
+                        <label for="review-name-input" class="small-text" style="font-weight: 600;">ชื่อที่จะแสดง (ไม่บังคับ)</label>
+                        <input type="text" id="review-name-input" class="edit-choice-input" placeholder="เช่น พี่ปีสาม"
+                            style="width: 100%; margin: 4px 0 8px; box-sizing: border-box;">
+                    </div>
+                    <label class="small-text" style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                        <input type="checkbox" id="review-anon-toggle"> ไม่ประสงค์ออกนาม (ยังแสดงชั้นปีอยู่)
+                    </label>
+                    <p id="review-year-preview" class="small-text" style="color: var(--color-text-muted); margin: 0;"></p>
+                </div>
+                <div class="controls-container" style="padding-top: 0; border-top: none;">
+                    <button id="close-review-modal" class="quiz-button btn-light">ปิด</button>
+                    <button id="review-submit-btn" class="quiz-button btn-dark" style="min-width: 120px;">
+                        <i class="fas fa-paper-plane"></i> ส่งรีวิว</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 1.3 Release History Modal -->
         <div id="release-history-modal" class="modal-card">
             <div class="modal-body">
@@ -802,7 +891,17 @@
                     </select>
                 </div>
             </div>
-            
+
+            <!-- แถบรีวิววิชา (js/reviews-donations.js) — โผล่เมื่อเลือกวิชา -->
+            <div id="subject-review-bar" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap; margin: -6px 0 14px;">
+                <span id="subject-review-badge" class="small-text"
+                    style="font-weight: 700; color: #B45309; background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 14px; padding: 3px 12px;">—</span>
+                <button id="open-reviews-drawer-btn" class="quiz-button btn-light"
+                    style="margin: 0; font-size: 0.85rem; padding: 5px 12px;"><i class="fas fa-star"></i> ดูรีวิว</button>
+                <button id="open-write-review-btn" class="quiz-button btn-light"
+                    style="margin: 0; font-size: 0.85rem; padding: 5px 12px;"><i class="fas fa-pen"></i> เขียนรีวิว</button>
+            </div>
+
             <!-- แถบสลับหมวดหมู่ตัวกรองอัจฉริยะ (Year, Group, Suffix Selection Tabs) -->
             <div
                 style="display: flex; gap: 10px; margin-bottom: 12px; width: 100%; justify-content: center; box-sizing: border-box;">
@@ -1373,6 +1472,7 @@
     <script src="js/vote.js"></script>
     <script src="js/report.js"></script>
     <script src="js/app-feedback.js"></script>
+    <script src="js/reviews-donations.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/auth-edit.js"></script>
     <script src="js/sync.js"></script>

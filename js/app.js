@@ -167,6 +167,8 @@ window.filterSubjectOptions = function (selectedYear, activeSubjectId) {
             const yearLabel = s.year ? `[ปี ${s.year}] ` : '';
             $select.append(`<option value="${s.id}" ${selected}>${yearLabel}${s.id} - ${s.name}</option>`);
         });
+        // อัปเดต badge รีวิวตามวิชาที่เลือก (ครอบทั้ง initial load + เปลี่ยนชั้นปี — change event ไม่ยิงตอน set ด้วยโค้ด)
+        if (typeof window.renderSubjectReviewBadge === 'function') window.renderSubjectReviewBadge($select.val());
     }
 };
 
@@ -296,6 +298,8 @@ window.isUserBusy = function () {
     if ($('#donate-key-modal-card').is(':visible')) return true;
     if ($('#auto-grader-modal').is(':visible')) return true;
     if ($('#quiz-edit-modal').is(':visible')) return true;
+    if ($('#reviews-drawer').is(':visible')) return true;
+    if ($('#submit-review-modal').is(':visible')) return true;
 
     var currentQ = window.APP.currentQuestions[window.APP.questionIndex];
     if (currentQ && !currentQ.state) return true;
