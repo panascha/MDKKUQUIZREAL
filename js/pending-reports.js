@@ -10,6 +10,10 @@
 // ไม่ persist — เป็นแค่สถานะภายใน overlay รอบเปิดปัจจุบัน; refetch ครั้งถัดไปเซิร์ฟเวอร์คือความจริง
 window._pendingReportVoted = window._pendingReportVoted || new Set();
 
+// สถานะตัวกรอง/มุมมอง overlay (client-only) — คงข้ามการรีเฟรชลิสต์ภายในรอบเปิดเดียว
+// expanded = qid ที่ถูกกางอยู่ (คงไว้เพื่อรีเฟรชแล้วไม่ยุบเอง)
+window._pendingReportsUI = window._pendingReportsUI || { search: '', lecture: '', hideVoted: false, expanded: new Set() };
+
 // ── รวบรวมรายการที่รอตรวจ: [{ q, data }] เฉพาะ qid ที่ยังมีข้อในวิชานี้ + มี report voteCount>0 ─────
 // (mirror surfaces เดิมที่กรอง voteCount>0 — report ที่โดนโหวตค้านจนเหลือ 0 ถือว่าไม่มีใครหนุน)
 window.getPendingReportEntries = function () {
@@ -98,6 +102,8 @@ window._ensurePendingReportsOverlay = function () {
 
 window.closePendingReportsOverlay = function () {
     $('#pending-reports-overlay').fadeOut(150);
+    // ให้ badge ปุ่ม/แบนเนอร์หน้าแรก sync กับผลโหวตล่าสุดหลังปิด (Phase 1 #5)
+    window.renderPendingReportsEntryPoints();
 };
 
 // ── เปิด overlay: refetch สด → เรนเดอร์การ์ด ──────────────────────────────────────────
@@ -127,69 +133,270 @@ window.openPendingReportsOverlay = async function () {
     window.renderPendingReportsList();
 };
 
+// เรนเดอร์โครงหลัก: แถบตัวกรอง (คงที่ กันพิมพ์แล้ว input เสียโฟกัส) + กล่องรายการที่รีเฟรชได้เดี่ยว
 window.renderPendingReportsList = function () {
     var $body = $('#pending-reports-body');
-    var entries = window.getPendingReportEntries();
-
-    if (!entries.length) {
+    // ถ้าไม่มีของรอตรวจเลย (ก่อนกรอง) — โชว์หน้าว่างแบบยินดี, ไม่ต้องมีแถบกรอง
+    if (!window.getPendingReportEntries().length) {
         $body.html('<div style="text-align:center; padding:50px 16px; color:var(--color-text-muted,#6b7280);"><i class="fas fa-check-circle" style="font-size:2.5rem; color:#22c55e;"></i><p style="font-size:1.2rem; margin-top:10px;">ไม่มีข้อสอบที่รอการตรวจสอบในวิชานี้ 🎉</p></div>');
         return;
     }
 
-    $body.empty();
-    entries.forEach(function (entry) {
-        var q = entry.q;
-        var $card = $(
-            '<div class="pending-report-card" data-qid="' + q.questionId + '" style="margin-bottom:20px; border:1px solid var(--color-border-soft,#e5e7eb); border-radius:12px; overflow:hidden; background:var(--color-surface,#fff);"></div>'
+    // สร้างแถบควบคุม + กล่องรายการครั้งเดียว (คงอยู่ข้ามการรีเฟรช/พิมพ์ค้นหา)
+    if (!$body.find('#pending-reports-controls').length) {
+        $body.html(
+            '<div id="pending-reports-controls" style="position:sticky; top:-14px; z-index:2; background:var(--color-surface,#fff); padding:8px 0 10px; margin:-2px 0 8px; border-bottom:1px solid var(--color-border-soft,#e5e7eb); display:flex; flex-wrap:wrap; gap:8px; align-items:center;">' +
+              '<input id="pending-reports-search" type="text" placeholder="ค้นหาโจทย์ / เฉลยที่เสนอ..." style="flex:1 1 180px; min-width:140px; padding:7px 12px; border:1px solid var(--color-border-soft,#d1d5db); border-radius:20px; font-size:1rem;">' +
+              '<select id="pending-reports-lecture" style="flex:0 1 auto; max-width:55%; padding:7px 10px; border:1px solid var(--color-border-soft,#d1d5db); border-radius:20px; font-size:1rem; background:#fff;"></select>' +
+              '<label style="display:flex; align-items:center; gap:5px; font-size:0.95rem; cursor:pointer; white-space:nowrap;"><input type="checkbox" id="pending-reports-hidevoted"> ซ่อนข้อที่โหวตแล้ว</label>' +
+            '</div>' +
+            '<div id="pending-reports-list"></div>'
         );
-        // ตัวข้อสอบเต็ม (โจทย์/รูป/ตัวเลือก/เฉลย/คำอธิบาย) จาก renderer ของ similar.js
-        $card.html(window.buildSimilarPreviewHtml(q));
-        // บล็อกโต้แย้งเฉลย + ปุ่มโหวต
-        $card.append(window.buildPendingDisputeBlock(q.questionId, entry.data));
-        $body.append($card);
-        // wiring แกลเลอรี/ปุ่มในการ์ด similar (report/vote ปกติ) — scope ต่อการ์ด
-        window.wireSimilarCard($card.find('.search-card'), q);
+
+        // เดินสายควบคุมครั้งเดียว
+        $body.find('#pending-reports-search').on('input', function () {
+            window._pendingReportsUI.search = $(this).val();
+            window._renderPendingReportItems();
+        });
+        $body.find('#pending-reports-lecture').on('change', function () {
+            window._pendingReportsUI.lecture = $(this).val();
+            window._renderPendingReportItems();
+        });
+        $body.find('#pending-reports-hidevoted').on('change', function () {
+            window._pendingReportsUI.hideVoted = $(this).prop('checked');
+            window._renderPendingReportItems();
+        });
+        // โหวต (delegate ครั้งเดียว) — ครอบทั้งปุ่มในบล็อกเต็มและปุ่มโหวตเร็วในแถวย่อ
+        $body.off('click.reportvote').on('click.reportvote', '.btn-pending-report-vote', function (e) {
+            e.stopPropagation(); // กันไม่ให้ทริกเกอร์ toggle กางการ์ด
+            var $b = $(this);
+            if ($b.prop('disabled')) return;
+            window.submitPendingReportVote($b.data('timestamp'), parseInt($b.data('delta')), $b.data('qid'), $b.closest('.pending-report-card'));
+        });
+        // กาง/ยุบการ์ดเมื่อคลิกแถวย่อ (เว้นการคลิกปุ่มโหวต)
+        $body.off('click.reportexpand').on('click.reportexpand', '.pr-compact', function (e) {
+            if ($(e.target).closest('.btn-pending-report-vote').length) return;
+            window._togglePendingCard($(this).closest('.pending-report-card'));
+        });
+    }
+
+    window._populatePendingLectureFilter();
+    // คืนค่า control ให้ตรง state (กรณีเปิดใหม่หลังโหลด spinner ทับ)
+    $body.find('#pending-reports-search').val(window._pendingReportsUI.search);
+    $body.find('#pending-reports-hidevoted').prop('checked', window._pendingReportsUI.hideVoted);
+    window._renderPendingReportItems();
+};
+
+// ── ข้อมูลหัวข้อ (lecture) ของ 1 ข้อ: id (category[1] fallback [0]) + ชื่ออ่านออก ──
+window._pendingLectureInfo = function (q) {
+    var cats = Array.isArray(q.category) ? q.category : [q.category];
+    var id = cats[1] || cats[0] || '';
+    var name = id;
+    var list = (window.APP.globalStructure && window.APP.globalStructure.category) || [];
+    var found = list.find(function (c) { return c.categoryId === id; });
+    if (found) name = found.categoryName;
+    return { id: id, name: name };
+};
+
+// เติม dropdown หัวข้อจากรายการที่รอตรวจปัจจุบัน + คืนค่าที่เคยเลือก (ถ้าหลุดไปแล้วรีเซ็ต)
+window._populatePendingLectureFilter = function () {
+    var seen = {};
+    window.getPendingReportEntries().forEach(function (e) {
+        var info = window._pendingLectureInfo(e.q);
+        if (info.id && !seen[info.id]) seen[info.id] = info.name;
+    });
+    var prev = window._pendingReportsUI.lecture || '';
+    var opts = Object.keys(seen).sort(function (a, b) { return String(seen[a]).localeCompare(String(seen[b])); })
+        .map(function (id) { return '<option value="' + id + '">' + seen[id] + '</option>'; }).join('');
+    var $sel = $('#pending-reports-lecture');
+    $sel.html('<option value="">ทุกหัวข้อ</option>' + opts).val(prev);
+    if (!$sel.val()) window._pendingReportsUI.lecture = ''; // ค่าเดิมไม่มีแล้ว → ทั้งหมด
+};
+
+// ── รวบรวมข้อโต้แย้งของ 1 ข้อ: จัดกลุ่มตาม suggestedChoice ที่เหมือนกันเป๊ะ กันโหวตแตก ──
+// ตัวแทน (rep) = ตั๋วคะแนนมากสุด → โหวตทุกครั้งวิ่งเข้าตัวแทน; เลขที่ผูกเกณฑ์ = ของตัวแทน,
+// total เป็นบริบทเสริมเท่านั้น (backend ตัดสิน auto-resolve ราย ticket ไม่ใช่ผลรวม)
+window._buildPendingDisputes = function (data) {
+    var threshold = data.threshold || 5;
+    var live = (data.reports || []).filter(function (r) { return r.voteCount > 0; });
+    var groups = {};
+    live.forEach(function (r) {
+        var key = String(r.suggestedChoice == null ? '' : r.suggestedChoice).trim();
+        (groups[key] = groups[key] || []).push(r);
+    });
+    var disputes = Object.keys(groups).map(function (key) {
+        var arr = groups[key];
+        arr.sort(function (a, b) { return (b.voteCount - a.voteCount) || (a.timestamp - b.timestamp); });
+        var rep = arr[0];
+        var total = arr.reduce(function (s, r) { return s + (r.voteCount || 0); }, 0);
+        var isUrl = key && (key.indexOf('http') === 0 || key.indexOf('<svg') === 0);
+        return {
+            key: key,
+            display: isUrl ? '[รูปภาพ]' : (key || '-'),
+            rep: rep,
+            count: rep.voteCount,
+            total: total,
+            tickets: arr.length,
+            remaining: Math.max(0, threshold - rep.voteCount),
+            reportDetail: rep.reportDetail || '',
+            voted: window._pendingReportVoted.has(String(rep.timestamp))
+        };
+    });
+    disputes.sort(function (a, b) { return a.remaining - b.remaining; }); // ใกล้ครบเกณฑ์ก่อน
+    return { threshold: threshold, disputes: disputes };
+};
+
+// ย่อค่าเฉลย/ตัวเลือกให้สั้น (รูป/svg → [รูปภาพ]) สำหรับแถวย่อ
+window._pendingChoiceDisplay = function (val, maxLen) {
+    var s = String(val == null ? '' : val).trim();
+    if (!s) return '—';
+    if (s.indexOf('http') === 0 || s.indexOf('<svg') === 0) return '[รูปภาพ]';
+    return window.similarSnippet ? window.similarSnippet(s, maxLen || 40) : s.slice(0, maxLen || 40);
+};
+
+// สร้าง row ข้อมูล 1 ข้อจาก qid (ใช้ตอน toggle กาง) — คืน null ถ้าข้อ/ข้อมูลหลุดไปแล้ว
+window._pendingCardRow = function (qid) {
+    var data = window.APP.pendingReportsCache[qid];
+    var q = (window.APP.allQuestions || []).find(function (x) { return String(x.questionId) === String(qid); });
+    if (!q || !data) return null;
+    var agg = window._buildPendingDisputes(data);
+    return { q: q, data: data, disputes: agg.disputes, threshold: agg.threshold };
+};
+
+// ── เรนเดอร์เฉพาะกล่องรายการ (กรอง+เรียงด่วน) — เรียกซ้ำได้ ไม่แตะแถบควบคุม ──
+window._renderPendingReportItems = function () {
+    var $list = $('#pending-reports-list');
+    if (!$list.length) return;
+    var ui = window._pendingReportsUI;
+    var kw = (ui.search || '').trim().toLowerCase();
+
+    var rows = window.getPendingReportEntries().map(function (e) {
+        var agg = window._buildPendingDisputes(e.data);
+        return {
+            q: e.q, data: e.data, disputes: agg.disputes, threshold: agg.threshold,
+            urgency: agg.disputes.length ? agg.disputes[0].remaining : Infinity,
+            lectureId: window._pendingLectureInfo(e.q).id
+        };
+    }).filter(function (r) { return r.disputes.length; });
+
+    if (ui.lecture) rows = rows.filter(function (r) { return r.lectureId === ui.lecture; });
+    if (ui.hideVoted) rows = rows.filter(function (r) { return !r.disputes.every(function (d) { return d.voted; }); });
+    if (kw) rows = rows.filter(function (r) {
+        if (String(r.q.problem || '').toLowerCase().indexOf(kw) >= 0) return true;
+        return r.disputes.some(function (d) {
+            return d.display.toLowerCase().indexOf(kw) >= 0 || String(d.reportDetail).toLowerCase().indexOf(kw) >= 0;
+        });
     });
 
-    // เดินสายปุ่มโหวตโต้แย้ง (delegate ระดับ body ครั้งเดียว)
-    $body.off('click.reportvote').on('click.reportvote', '.btn-pending-report-vote', function () {
-        var $b = $(this);
-        if ($b.prop('disabled')) return;
-        window.submitPendingReportVote($b.data('timestamp'), parseInt($b.data('delta')), $b.data('qid'), $b.closest('.pending-report-card'));
-    });
+    rows.sort(function (a, b) { return a.urgency - b.urgency; }); // ใกล้ครบเกณฑ์อยู่บนสุด
 
+    if (!rows.length) {
+        $list.html('<div style="text-align:center; padding:40px 16px; color:var(--color-text-muted,#6b7280);"><i class="fas fa-filter" style="font-size:1.8rem;"></i><p style="font-size:1.1rem; margin-top:8px;">ไม่มีข้อที่ตรงกับตัวกรอง</p></div>');
+        return;
+    }
+
+    $list.empty();
+    rows.forEach(function (r, idx) {
+        var $card = window._buildPendingCompactCard(r, idx + 1);
+        $list.append($card);
+        if (window._pendingReportsUI.expanded.has(String(r.q.questionId))) {
+            window._expandPendingCard($card, r); // คงสถานะกางไว้หลังรีเฟรช
+        }
+    });
+};
+
+// แถวย่อ (compact): #ลำดับ | เฉลยเดิม ➔ เฉลยที่เสนอ | เหตุผลย่อ | แต้มโหวต | โหวตเร็ว/กาง
+window._buildPendingCompactCard = function (r, n) {
+    var q = r.q;
+    var lead = r.disputes[0];
+    var moreCount = r.disputes.length - 1;
+    var curDisplay = window._pendingChoiceDisplay(q.answer, 40);
+    var reason = lead.reportDetail ? window.similarSnippet(lead.reportDetail, 80) : '—';
+    var badge = lead.tickets > 1
+        ? '<i class="fas fa-users"></i> ' + lead.count + ' <span style="opacity:.85;">(รวม ' + lead.total + ' · ' + lead.tickets + ' ตั๋ว)</span>'
+        : '<i class="fas fa-users"></i> ' + lead.count + ' โหวต';
+    var votedTag = lead.voted ? '<span style="color:#16a34a;"><i class="fas fa-check"></i></span>' : '';
+    var quickBtn = lead.voted
+        ? '<span style="font-size:0.85rem; color:#16a34a; font-weight:700; padding:6px 8px; white-space:nowrap;"><i class="fas fa-check"></i> โหวตแล้ว</span>'
+        : '<button class="btn-pending-report-vote" data-timestamp="' + lead.rep.timestamp + '" data-delta="1" data-qid="' + q.questionId + '" title="เห็นด้วยกับเฉลยที่เสนอ" style="padding:6px 12px; border-radius:16px; border:none; background:#22c55e; color:#fff; font-weight:700; cursor:pointer;">+1</button>';
+
+    var $card = $('<div class="pending-report-card" data-qid="' + q.questionId + '" style="margin-bottom:10px; border:1px solid var(--color-border-soft,#e5e7eb); border-radius:10px; overflow:hidden; background:var(--color-surface,#fff);"></div>');
+    $card.html(
+        '<div class="pr-compact" style="display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer;">' +
+          '<div style="flex:0 0 auto; font-weight:800; color:#9b1c1c; min-width:26px;">#' + n + '</div>' +
+          '<div style="flex:1 1 auto; min-width:0;">' +
+            '<div style="font-size:1rem; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
+              '<span style="color:#6b7280;">' + curDisplay + '</span> <i class="fas fa-arrow-right" style="color:#9b1c1c; font-size:0.8rem;"></i> <b style="color:#111827;">' + lead.display + '</b>' +
+              (moreCount > 0 ? ' <span style="font-size:0.8rem; color:#9b1c1c;">+' + moreCount + ' โต้แย้ง</span>' : '') +
+            '</div>' +
+            '<div style="font-size:0.85rem; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + reason + '</div>' +
+          '</div>' +
+          '<div style="flex:0 0 auto; display:flex; align-items:center; gap:8px;">' +
+            '<span class="pending-vote-count" style="padding:3px 8px; background:#6b7280; color:#fff; border-radius:10px; font-size:0.8rem; white-space:nowrap;">' + badge + '</span>' + votedTag +
+            quickBtn +
+            '<i class="fas fa-chevron-down pr-expand-caret" style="color:#9ca3af; transition:transform .15s;"></i>' +
+          '</div>' +
+        '</div>' +
+        '<div class="pr-expand" hidden style="border-top:1px dashed #fca5a5;"></div>'
+    );
+    return $card;
+};
+
+// กาง/ยุบการ์ด (lazy: สร้าง vignette เต็มตอนกางครั้งแรกเท่านั้น)
+window._togglePendingCard = function ($card) {
+    var qid = String($card.data('qid'));
+    var $exp = $card.find('.pr-expand');
+    if (!$exp.prop('hidden')) {
+        $exp.prop('hidden', true);
+        $card.find('.pr-expand-caret').css('transform', '');
+        window._pendingReportsUI.expanded.delete(qid);
+        return;
+    }
+    var row = window._pendingCardRow(qid);
+    if (!row) return;
+    window._pendingReportsUI.expanded.add(qid);
+    window._expandPendingCard($card, row);
+};
+
+window._expandPendingCard = function ($card, r) {
+    var $exp = $card.find('.pr-expand');
+    $card.find('.pr-expand-caret').css('transform', 'rotate(180deg)');
+    if ($exp.data('rendered')) { $exp.prop('hidden', false); return; }
+    // สร้างตัวข้อสอบเต็ม (โจทย์/รูป/ตัวเลือก/เฉลย) + บล็อกโต้แย้งเต็ม — เฉพาะตอนกางครั้งแรก
+    var $vig = $('<div style="padding:8px 12px 0;"></div>').html(window.buildSimilarPreviewHtml(r.q));
+    $exp.append($vig);
+    $exp.append(window.buildPendingDisputeBlock(r.q.questionId, r.data));
+    window.wireSimilarCard($vig.find('.search-card'), r.q);
+    $exp.data('rendered', true).prop('hidden', false);
     if (typeof window.renderAllMath === 'function') setTimeout(window.renderAllMath, 50);
 };
 
 // ── บล็อกโต้แย้งเฉลยต่อ 1 ข้อ (adapt จาก vote.js openReportVoteModal + renderReportNotificationUI) ──
 window.buildPendingDisputeBlock = function (questionId, data) {
-    var threshold = data.threshold || 5;
-    var reports = (data.reports || []).filter(function (r) { return r.voteCount > 0; });
-    var rowsHtml = reports.map(function (r) {
-        var isUrl = r.suggestedChoice && (String(r.suggestedChoice).startsWith('http') || String(r.suggestedChoice).startsWith('<svg'));
-        var display = isUrl ? '[รูปภาพ]' : (r.suggestedChoice || '-');
-        var remaining = threshold - r.voteCount;
-        var statusText = remaining > 0
-            ? 'ขาดอีก <b style="color:#9b1c1c;">' + remaining + '</b> โหวตจะส่งให้ระบบแก้อัตโนมัติ'
+    var agg = window._buildPendingDisputes(data);
+    var rowsHtml = agg.disputes.map(function (d) {
+        var ts = d.rep.timestamp; // โหวตวิ่งเข้าตัวแทนเสมอ (รวมแรง กันโหวตแตก)
+        var statusText = d.remaining > 0
+            ? 'ขาดอีก <b style="color:#9b1c1c;">' + d.remaining + '</b> โหวตจะส่งให้ระบบแก้อัตโนมัติ'
             : '<b style="color:#9b1c1c;">ครบเกณฑ์แล้ว — รอระบบ/Admin ตรวจสอบ</b>';
-        var voted = window._pendingReportVoted.has(String(r.timestamp));
-        var votedTag = voted ? '<span style="margin-left:8px; color:#16a34a; font-weight:700;"><i class="fas fa-check"></i> โหวตแล้ว</span>' : '';
+        var votedTag = d.voted ? '<span style="margin-left:8px; color:#16a34a; font-weight:700;"><i class="fas fa-check"></i> โหวตแล้ว</span>' : '';
+        var dupNote = d.tickets > 1 ? '<span style="margin-left:8px; font-size:0.8rem; color:#6b7280;">(รวม ' + d.total + ' โหวตจาก ' + d.tickets + ' ตั๋วซ้ำ)</span>' : '';
         return '' +
-            '<div class="pending-dispute-row" data-timestamp="' + r.timestamp + '" style="margin:10px 0 0; padding:12px; background:#fff8f8; border-radius:8px; border-left:4px solid #e74a3b;">' +
-              '<div style="font-size:1.1rem; margin-bottom:6px;">เสนอเฉลย: <b>' + display + '</b>' +
-                '<span class="pending-vote-count" style="margin-left:8px; padding:2px 8px; background:#6b7280; color:white; border-radius:10px; font-size:0.85rem;"><i class="fas fa-users"></i> ' + r.voteCount + ' โหวต</span>' +
-                votedTag +
+            '<div class="pending-dispute-row" data-timestamp="' + ts + '" style="margin:10px 0 0; padding:12px; background:#fff8f8; border-radius:8px; border-left:4px solid #e74a3b;">' +
+              '<div style="font-size:1.1rem; margin-bottom:6px;">เสนอเฉลย: <b>' + d.display + '</b>' +
+                '<span class="pending-vote-count" style="margin-left:8px; padding:2px 8px; background:#6b7280; color:white; border-radius:10px; font-size:0.85rem;"><i class="fas fa-users"></i> ' + d.count + ' โหวต</span>' +
+                dupNote + votedTag +
               '</div>' +
-              (r.reportDetail ? '<div style="font-size:0.9rem; color:#555; margin-bottom:8px;">เหตุผล: ' + r.reportDetail + '</div>' : '') +
+              (d.reportDetail ? '<div style="font-size:0.9rem; color:#555; margin-bottom:8px;">เหตุผล: ' + d.reportDetail + '</div>' : '') +
               '<div class="pending-vote-status" style="font-size:0.95rem; margin-bottom:8px;">' + statusText + '</div>' +
               '<div style="display:flex; gap:8px;">' +
-                '<button class="btn-pending-report-vote" data-timestamp="' + r.timestamp + '" data-delta="1" data-qid="' + questionId + '"' + (voted ? ' disabled' : '') + ' style="padding:6px 16px; border-radius:20px; border:none; background:#22c55e; color:white; cursor:pointer; font-weight:700;' + (voted ? ' opacity:0.5; cursor:default;' : '') + '">เห็นด้วย (+1)</button>' +
-                '<button class="btn-pending-report-vote" data-timestamp="' + r.timestamp + '" data-delta="-1" data-qid="' + questionId + '"' + (voted ? ' disabled' : '') + ' style="padding:6px 16px; border-radius:20px; border:none; background:#dc3545; color:white; cursor:pointer; font-weight:700;' + (voted ? ' opacity:0.5; cursor:default;' : '') + '">ไม่เห็นด้วย (-1)</button>' +
+                '<button class="btn-pending-report-vote" data-timestamp="' + ts + '" data-delta="1" data-qid="' + questionId + '"' + (d.voted ? ' disabled' : '') + ' style="padding:6px 16px; border-radius:20px; border:none; background:#22c55e; color:white; cursor:pointer; font-weight:700;' + (d.voted ? ' opacity:0.5; cursor:default;' : '') + '">เห็นด้วย (+1)</button>' +
+                '<button class="btn-pending-report-vote" data-timestamp="' + ts + '" data-delta="-1" data-qid="' + questionId + '"' + (d.voted ? ' disabled' : '') + ' style="padding:6px 16px; border-radius:20px; border:none; background:#dc3545; color:white; cursor:pointer; font-weight:700;' + (d.voted ? ' opacity:0.5; cursor:default;' : '') + '">ไม่เห็นด้วย (-1)</button>' +
               '</div>' +
             '</div>';
     }).join('');
 
-    return '<div class="pending-dispute-wrap" style="padding:12px 14px 14px; border-top:1px dashed #fca5a5;">' +
+    return '<div class="pending-dispute-wrap" style="padding:12px 14px 14px;">' +
              '<div style="font-weight:700; color:#9b1c1c; font-size:1.05rem;"><i class="fas fa-exclamation-circle"></i> มีการรายงานว่าเฉลยผิด</div>' +
              rowsHtml +
            '</div>';
@@ -205,9 +412,9 @@ window.submitPendingReportVote = async function (reportTimestamp, delta, questio
     var tsKey = String(reportTimestamp);
     var payload = window.buildReportVotePayload(reportTimestamp, delta, questionId);
 
-    // ปิดปุ่มระหว่างรอ กันกดรัว
-    var $row = $card.find('.pending-dispute-row[data-timestamp="' + reportTimestamp + '"]');
-    $row.find('.btn-pending-report-vote').prop('disabled', true);
+    // ปิดปุ่มโหวตที่ผูก ts นี้ทั้งในแถวย่อและบล็อกเต็ม กันกดรัว
+    var $btns = $card.find('.btn-pending-report-vote[data-timestamp="' + reportTimestamp + '"]');
+    $btns.prop('disabled', true);
 
     try {
         var res = await window.sendWithRetry(payload);
@@ -219,12 +426,13 @@ window.submitPendingReportVote = async function (reportTimestamp, delta, questio
             if (data && Array.isArray(data.reports)) {
                 var rep = data.reports.find(function (r) { return String(r.timestamp) === tsKey; });
                 if (rep) rep.voteCount = (newCount !== null) ? newCount : Math.max(0, rep.voteCount + delta);
-                // เรนเดอร์บล็อกโต้แย้งใหม่จากข้อมูลอัปเดต (โชว์ ✓ + นับใหม่ + status ใหม่)
-                $card.find('.pending-dispute-wrap').replaceWith(window.buildPendingDisputeBlock(questionId, data));
             }
+            // รีเฟรชทั้งลิสต์: ลำดับด่วนขยับ + การ์ดที่ตกเกณฑ์ (voteCount=0) ต้องหลุดออก + badge หน้าแรก sync
+            window._renderPendingReportItems();
+            window.renderPendingReportsEntryPoints();
             Swal.fire({ icon: 'success', title: 'บันทึกการโหวตแล้ว', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
         } else {
-            $row.find('.btn-pending-report-vote').prop('disabled', false);
+            $btns.prop('disabled', false);
             throw new Error(res ? (res.message || 'เซิร์ฟเวอร์ปฏิเสธการลงคะแนน') : 'ไม่มีการตอบกลับ');
         }
     } catch (err) {
@@ -235,7 +443,7 @@ window.submitPendingReportVote = async function (reportTimestamp, delta, questio
         } else if (msg === 'rate_limited') {
             Swal.fire('ช้าลงหน่อย', 'คุณโหวตถี่เกินไป ลองใหม่อีกครั้งในภายหลัง', 'warning');
         } else {
-            $row.find('.btn-pending-report-vote').prop('disabled', false);
+            $btns.prop('disabled', false);
             Swal.fire('Error', 'ไม่สามารถบันทึกการโหวตได้: ' + msg, 'error');
         }
     }
