@@ -695,13 +695,25 @@ window.openReportVoteModal = function (questionId, data) {
     });
 };
 
-window.submitReportVote = async function (reportTimestamp, delta, questionId) {
-    const payload = {
+// ตัวสร้าง payload กลาง — ทั้งปุ่มโหวตในควิซ (submitReportVote) และ overlay ข้อรอตรวจสอบ
+// (pending-reports.js) ต้องยิง wire เดียวกันเป๊ะ + แนบ sessionToken (backend บังคับ auth ตั้งแต่ 2026-09-01)
+window.buildReportVotePayload = function (reportTimestamp, delta, questionId) {
+    return {
         action: 'voteOnReport',
         reportTimestamp: reportTimestamp,
         delta: delta,
-        questionId: questionId
+        questionId: questionId,
+        sessionToken: (window.EDIT_SESSION && window.EDIT_SESSION.sessionToken) || ''
     };
+};
+
+window.submitReportVote = async function (reportTimestamp, delta, questionId) {
+    // backend ต้องมี session — anon กดแล้วจะโดน session_expired + interceptor เตะออก จึงเด้ง sign-in แทน
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn) {
+        window.showGoogleSignInModal('เข้าสู่ระบบด้วยบัญชี KKU เพื่อโหวตรายงานข้อสอบ');
+        return;
+    }
+    const payload = window.buildReportVotePayload(reportTimestamp, delta, questionId);
 
     try {
         const res = await window.sendWithRetry(payload);
@@ -734,13 +746,13 @@ window.submitReportVote = async function (reportTimestamp, delta, questionId) {
 // ============================================================
 
 window.fetchAllPendingVotesReports = async function (subjectParam) {
-    if (!subjectParam) return;
+    if (!subjectParam) return false;
     window._bulkPendingInFlight = true;
     try {
         const json = await window.fetchGAS(
             () => `${window.APPSCRIPT_URL}?action=getPendingVotesReports&subject=${encodeURIComponent(subjectParam)}&_=${Date.now()}`
         );
-        if (!json || json.status !== 'success' || !json.data) return;
+        if (!json || json.status !== 'success' || !json.data) return false;
 
         const votesMap = json.data.votes || {};
         const reportsMap = json.data.reports || {};
@@ -756,9 +768,11 @@ window.fetchAllPendingVotesReports = async function (subjectParam) {
         window._bulkPendingLoaded = true;
         console.log('[Bulk VR] loaded votes for', Object.keys(votesMap).length,
             'qids, reports for', Object.keys(reportsMap).length, 'qids');
+        return true;
     } catch (err) {
         console.warn('[Bulk VR] fetchAllPendingVotesReports failed:', err);
         // ไม่ set _bulkPendingLoaded → showQuestion จะ fallback per-qid ตามเดิม
+        return false;
     } finally {
         window._bulkPendingInFlight = false;
     }

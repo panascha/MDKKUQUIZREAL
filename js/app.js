@@ -248,38 +248,9 @@ window.finishLoading = function () {
     $('#loading-overlay').hide();
 };
 
-window.checkPendingReports = function () {
-    const urlParams = new URLSearchParams(window.location.search);
-    const subjectParam = urlParams.get('subject') || '';
-
-    window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getPendingReportCount&subject=${subjectParam}&_=${Date.now()}`)
-        .then(data => {
-            if (data.count > 0) {
-                const $container = $('#report-notification-container');
-                const $content = $('#report-details-content');
-
-                let html = `<p style="font-size: 1.3rem; margin-bottom: 5px;">
-                        มี <strong>${data.count}</strong> รายการแจ้งปัญหาที่ยังรอการตรวจสอบในวิชานี้
-                    </p>`;
-
-                if (data.samples && data.samples.length > 0) {
-                    html += `<ul style="margin: 0; padding-left: 20px; color: #533f03; font-style: italic;">`;
-                    data.samples.forEach(s => {
-                        html += `<li>[${s.category}] ${s.question}</li>`;
-                    });
-                    if (data.count > data.samples.length) {
-                        html += `<li>... และอีก ${data.count - data.samples.length} รายการ</li>`;
-                    }
-                    html += `</ul>`;
-                }
-
-                $content.html(html);
-                $container.fadeIn();
-            }
-        })
-        .catch(err => console.warn("Check Report Error:", err));
-};
-
+// checkPendingReports (getPendingReportCount fetch) ถูกแทนที่ด้วย window.renderPendingReportsEntryPoints
+// ใน js/pending-reports.js — banner + ปุ่มอ่านจาก window.APP.pendingReportsCache ที่ bulk fetch เติมไว้แล้ว
+// (ตัด network call ซ้ำซ้อน + ปิดปัญหา count-drift/timing race กับ setTimeout 4s เดิม)
 
 // =========================================================
 // 2. ระบบ INCREMENTAL SYNC (ต้องประกาศก่อนเรียกใช้งาน)
@@ -870,6 +841,8 @@ window._syncInBackground = function (subjectParam, localVer, verKey, cacheKey, s
                         window.renderReportNotificationUI(curQ.questionId, window.APP.pendingReportsCache[curQ.questionId]);
                     }
                 }
+                // อัปเดต banner + ปุ่ม "ข้อที่รอตรวจสอบ" จาก cache ที่เพิ่งเติม (แทน checkPendingReports/getPendingReportCount เดิม)
+                if (typeof window.renderPendingReportsEntryPoints === 'function') window.renderPendingReportsEntryPoints();
             }).catch(function (err) {
                 console.warn('[Bulk VR] background fetch failed:', err);
             });
@@ -878,7 +851,6 @@ window._syncInBackground = function (subjectParam, localVer, verKey, cacheKey, s
         // Start watchers & polling
         window.startPendingUpdateWatcher();
         window.startIncrementalPolling();
-        setTimeout(window.checkPendingReports, 4000);
     })();
 };
 
@@ -1219,6 +1191,8 @@ window.initApp = async function () {
                         window.renderReportNotificationUI(curQ.questionId, window.APP.pendingReportsCache[curQ.questionId]);
                     }
                 }
+                // อัปเดต banner + ปุ่ม "ข้อที่รอตรวจสอบ" จาก cache ที่เพิ่งเติม (แทน checkPendingReports/getPendingReportCount เดิม)
+                if (typeof window.renderPendingReportsEntryPoints === 'function') window.renderPendingReportsEntryPoints();
             }).catch(function (err) {
                 console.warn('[Bulk VR] startup fetch failed:', err);
             });
@@ -1228,8 +1202,6 @@ window.initApp = async function () {
         window.startPendingUpdateWatcher();   // ตัวคอยตรวจสิทธิ์ว่างทุกๆ 5 วินาที
         window.startIncrementalPolling();      // บูตลูปตรวจสอบเซิร์ฟเวอร์ทุกๆ 5 นาที (active) / 10 นาที (background)
 
-        // ไม่เร่งด่วน (badge แจ้งเตือน) — หน่วง 4s กันชนกับ getStructure/getQuestions/bulk VR ตอนโหลดหน้าแรก
-        setTimeout(window.checkPendingReports, 4000);
         window.finishLoading();
     }
 };

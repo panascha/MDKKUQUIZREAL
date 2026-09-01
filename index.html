@@ -987,6 +987,10 @@
                         style="grid-column: 1 / -1; margin: 0; min-height: 46px; width: 100%; font-size: 1.1rem; font-weight: 700;">
                         <i class="fas fa-redo-alt"></i> ฝึกข้อที่เคยผิด (<span id="wrong-practice-count">0</span>)
                     </button>
+                    <button id="pending-reports-btn" class="quiz-button" disabled
+                        style="grid-column: 1 / -1; margin: 0; min-height: 46px; width: 100%; font-size: 1.1rem; font-weight: 700; background-color: #dc2626; color: white; border: none; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.15);">
+                        <i class="fas fa-clipboard-check"></i> ข้อที่รอตรวจสอบ (<span id="pending-reports-count">0</span>)
+                    </button>
                 </div>
 
                 <!-- ชุดข้อสอบของฉัน (Feature: study-sets.js) -->
@@ -1473,6 +1477,7 @@
     <script src="js/similar.js"></script>
     <script src="js/study-sets.js"></script>
     <script src="js/vote.js"></script>
+    <script src="js/pending-reports.js"></script>
     <script src="js/report.js"></script>
     <script src="js/app-feedback.js"></script>
     <script src="js/reviews-donations.js"></script>
