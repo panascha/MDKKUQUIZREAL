@@ -138,10 +138,6 @@ window.submitVoteData = async function (categoryArray, q, shouldRefreshUI = fals
             window.showQuestion(false);
         }
 
-        if ($('#quick-cat-container').is(':visible')) {
-            window.renderQuickCatPanel();
-        }
-
         Swal.fire({
             icon: 'success',
             title: 'บันทึกการแยกเลคเชอร์สำเร็จ!',
@@ -239,92 +235,6 @@ window.renderVoteNotificationUI = function (questionId, data, isInitialLoad = tr
                 window.submitVoteData([categoryIdToVote], targetQ, true, -1);
             }
         });
-    });
-};
-
-window.renderQuickCatPanel = function () {
-    const $content = $('#quick-cat-content');
-    $content.empty();
-
-    const currentSubject = new URLSearchParams(window.location.search).get('subject') || '';
-
-    // เลือกเฉพาะหมวดเลคเชอร์/สาขาวิชาของวิชานี้ (ข้ามชุดข้อสอบ by AI / Extracted)
-    // ใช้สัญญาณเดียวกับ accordion: ชื่อกลุ่มมี "LEC" หรือ categoryId มี token สาขาวิชา
-    const relevantCats = window.APP.globalStructure.category.filter(c => {
-        if (c.subjectRef !== currentSubject) return false;
-        const agU = (c.accordionGroup || '').toUpperCase();
-        if (agU.includes("BY AI") || agU.includes("(EXTRACTED)")) return false;
-        if (window.extractExamType(agU)) return false; // กันกลุ่มข้อสอบ (MCQ/FMT/LAB/QUIZ/OSCE/MEQ) หลุดเข้ามาเหมือน ui.js
-        return agU.includes("LEC") || window.isLectureCategory(c.categoryId);
-    });
-
-    if (relevantCats.length === 0) {
-        $content.html('<div style="padding:10px; text-align:center; color: var(--color-text-muted); font-size:0.9rem;">ไม่มีหมวดเลคเชอร์ให้แยกสำหรับวิชานี้</div>');
-        return;
-    }
-
-    // จัดกลุ่มตาม accordionGroup — เป็นแกนสาขาวิชาตามธรรมชาติของข้อมูลอยู่แล้ว
-    const groups = {};
-    relevantCats.forEach(c => {
-        const g = c.accordionGroup || 'อื่นๆ';
-        (groups[g] = groups[g] || []).push(c);
-    });
-
-    // เดาสีขอบซ้ายจากชื่อกลุ่ม (สอดคล้องกับ getCategoryColorClass ใน ui.js)
-    const colorForGroup = (name) => {
-        const t = name.toUpperCase();
-        if (t.includes("ANATOMY") || t.includes("ANA")) return "q-ana";
-        if (t.includes("PHYSIO") || t.includes("BIOCHEM")) return "q-physio";
-        if (t.includes("MICRO") || t.includes("PARASITO")) return "q-micro";
-        if (t.includes("PATHO")) return "q-patho";
-        if (t.includes("PHARM")) return "q-pharm";
-        if (t.includes("RADIO") || t.includes("CLINICAL")) return "q-radio";
-        return "";
-    };
-
-    for (const groupName of Object.keys(groups).sort()) {
-        const cats = groups[groupName];
-        const colorClass = colorForGroup(groupName);
-
-        let html = `<div class="quick-cat-group">
-                <div class="quick-cat-group-title">${groupName} <span>${cats.length} เลค</span></div>
-                <div class="quick-cat-grid">`;
-
-        cats.forEach(c => {
-            const isAlreadySelected = window.APP.current_question.category.includes(c.categoryId);
-            const btnStyle = isAlreadySelected
-                ? "opacity: 0.4; cursor: default; background: #e0e0e0; color: #888;"
-                : "cursor: pointer;";
-            const checkMark = isAlreadySelected ? " <i class='fas fa-check-circle'></i>" : "";
-            const clickEvent = isAlreadySelected ? "" : `onclick="window.handleQuickVote('${c.categoryId}', '${c.categoryName.replace(/'/g, "\\'")}')"`;
-
-            html += `<button class="btn-quick-cat ${colorClass}"
-                    style="${btnStyle}"
-                    ${clickEvent}
-                    title="${c.categoryName}">
-                    ${c.categoryName}${checkMark}
-                 </button>`;
-        });
-
-        html += `</div></div>`;
-        $content.append(html);
-    }
-};
-
-window.handleQuickVote = function (catId, catName) {
-    Swal.fire({
-        title: 'ยืนยันแยกหัวข้อ',
-        text: `แยกข้อนี้ไปที่: ${catName}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'ใช่ (Approve)',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#1a73e8'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.submitVoteData([catId], window.APP.current_question, true, 1);
-            setTimeout(window.renderQuickCatPanel, 500);
-        }
     });
 };
 
@@ -528,19 +438,6 @@ $(function () {
 
     $('#btn-add-vote-row').on('click', function () {
         window.addVoteRow();
-    });
-
-    $('#toggle-quick-cat').on('click', function () {
-        const $panel = $('#quick-cat-container');
-        if ($panel.is(':visible')) {
-            $panel.slideUp();
-            $(this).html('<i class="fas fa-bolt"></i> เปิดแผงแยกหัวข้อด่วน (Quick Mode)');
-        } else {
-            window.renderQuickCatPanel();
-            $panel.slideDown();
-            $(this).html('<i class="fas fa-times"></i> ปิดแผงแยกหัวข้อ');
-            $('html, body').animate({ scrollTop: $(this).offset().top - 100 }, 500);
-        }
     });
 
     $('#btn-submit-vote').off('click').on('click', () => {

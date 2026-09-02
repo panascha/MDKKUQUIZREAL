@@ -1211,12 +1211,16 @@
                 </button>
             </div>
 
-            <div id="quick-cat-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 13px;">
-                    <h4 style="margin:0;"><i class="fas fa-tags"></i> Quick Categorization</h4>
-                    <small style="color: var(--color-text-muted);">*กดแล้วระบบจะ Approve ทันที</small>
+            <!-- Peer Discussion — พูดคุยเกี่ยวกับข้อนี้ (js/discussion.js) -->
+            <div id="discussion-panel" style="display:none;">
+                <div id="discussion-panel-header">
+                    <span><i class="fas fa-comments"></i> พูดคุยเกี่ยวกับข้อนี้</span>
+                    <i class="fas fa-chevron-down" id="discussion-panel-toggle-icon"></i>
                 </div>
-                <div id="quick-cat-content"></div>
+                <div id="discussion-panel-body" style="display:none;">
+                    <div id="discussion-loading" style="text-align:center; color:var(--color-text-muted); padding:12px;">กำลังโหลด...</div>
+                    <div id="discussion-content" style="display:none;"></div>
+                </div>
             </div>
 
             <div
@@ -1235,11 +1239,6 @@
                     style="background: linear-gradient(to right, #0D9488, #0F766E); color: #fff;">
                     <i class="fas fa-magic" aria-hidden="true"></i> สรุป Med-Keywords ข้อที่ผิดด้วย AI
                 </button>
-                <div style="margin-top: 8px; width: 100%;">
-                    <button id="toggle-quick-cat" class="quiz-button" style="width: 100%; font-size: 1.05rem;">
-                        <i class="fas fa-bolt"></i> เปิดแผงแยกหัวข้อด่วน (Quick Mode)
-                    </button>
-                </div>
             </div>
             <span
                 style="font-size: 1.15rem; color: var(--color-text-muted); padding: 0 20px 16px; display: block; text-align: center;">(ใครสนใจพรูฟ
@@ -1477,6 +1476,7 @@
     <script src="js/similar.js"></script>
     <script src="js/study-sets.js"></script>
     <script src="js/vote.js"></script>
+    <script src="js/discussion.js"></script>
     <script src="js/pending-reports.js"></script>
     <script src="js/report.js"></script>
     <script src="js/app-feedback.js"></script>

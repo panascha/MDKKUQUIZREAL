@@ -272,8 +272,6 @@ window.showQuestion = function (shouldFocus = true) {
         $('#choices').find('button').first().trigger('focus', { preventScroll: true });
     }
     setTimeout(window.renderAllMath, 50);
-
-    if ($('#quick-cat-container').is(':visible')) { window.renderQuickCatPanel(); }
 };
 
 // 4. ระบบการเดินหน้า / ถอยหลังของคำถาม
