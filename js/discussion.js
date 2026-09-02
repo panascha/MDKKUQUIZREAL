@@ -148,6 +148,12 @@ window.renderDiscussion = function () {
                 : '';
             // Item 4: ปุ่มตอบกลับ — prefill textarea ด้วย @nick #tag (1 ระดับ ไม่มี thread)
             const replyBtn = `<button class="disc-reply-btn" data-nick="${window.discEscape(c.nickname)}" data-tag="${window.discEscape(c.tag)}" title="ตอบกลับ"><i class="fas fa-reply"></i></button>`;
+            // Item 5: ปักหมุด "เฉลยที่ดีที่สุด" — แอดมินเท่านั้นเห็นปุ่ม; toggle pinned⇄visible
+            const pinned = c.status === 'pinned';
+            const pinBtn = isAdmin
+                ? `<button class="disc-pin-btn${pinned ? ' active' : ''}" data-timestamp="${window.discEscape(c.timestamp)}" data-status="${window.discEscape(c.status || 'visible')}" title="${pinned ? 'ยกเลิกปักหมุด' : 'ปักหมุดเป็นเฉลยที่ดีที่สุด'}"><i class="fas fa-thumbtack"></i></button>`
+                : '';
+            const pinBadge = pinned ? '<div class="disc-pin-badge"><i class="fas fa-thumbtack"></i> เฉลยที่ยืนยันโดยแอดมิน</div>' : '';
             // Item 2: แกะ chip prefix (เฉพาะ label ที่รู้จัก) + ref suffix ออกจาก text; ที่เหลือ = ข้อความปกติ (fallback = ทั้งก้อน)
             let body = String(c.text == null ? '' : c.text);
             let chipHtml = '', refHtml = '';
@@ -162,11 +168,13 @@ window.renderDiscussion = function () {
                 body = body.slice(0, rm.index);
             }
             return `
-            <div class="disc-comment">
+            <div class="disc-comment${pinned ? ' pinned' : ''}">
+                ${pinBadge}
                 <div class="disc-comment-head">
                     <span class="disc-nick">${window.discEscape(c.nickname)} <span class="disc-tag">#${window.discEscape(c.tag)}</span></span>
                     <span class="disc-time">${window.discFormatTime(c.timestamp)}</span>
                     ${replyBtn}
+                    ${pinBtn}
                     ${delBtn}
                 </div>
                 ${chipHtml ? `<div class="disc-chip-row-view">${chipHtml}</div>` : ''}
@@ -290,6 +298,30 @@ window.discDeleteComment = async function (timestamp) {
         }
     } catch (e) {
         Swal.fire('ลบไม่สำเร็จ', String((e && e.message) || e), 'error');
+    }
+};
+
+// Item 5: ปัก/ยกเลิกปักหมุด (แอดมินเท่านั้น) — toggle จาก currentStatus, reload กระทู้หลังสำเร็จ
+window.discSetStatus = async function (timestamp, currentStatus) {
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn || !window.EDIT_SESSION.sessionToken) {
+        window.showGoogleSignInModal('เข้าสู่ระบบ');
+        return;
+    }
+    const newStatus = currentStatus === 'pinned' ? 'visible' : 'pinned';
+    const qid = window._discState.qid;
+    try {
+        const res = await window.sendWithRetry({
+            action: 'setCommentStatus', sessionToken: window.EDIT_SESSION.sessionToken,
+            qid: qid, timestamp: timestamp, newStatus: newStatus
+        });
+        if (res && res.result === 'success') {
+            window.bgToast.fire({ icon: 'success', title: newStatus === 'pinned' ? 'ปักหมุดแล้ว' : 'ยกเลิกปักหมุดแล้ว' });
+            await window.loadDiscussion(qid); // backend purge cache แล้ว + จัด pinned ขึ้นบน
+        } else {
+            Swal.fire('ไม่สำเร็จ', (res && res.message) || 'เกิดข้อผิดพลาด', 'error');
+        }
+    } catch (e) {
+        Swal.fire('ไม่สำเร็จ', String((e && e.message) || e), 'error');
     }
 };
 
@@ -486,6 +518,9 @@ $(function () {
     });
     $(document).on('click', '.disc-reply-btn', function () {
         window.discReplyPrefill($(this).attr('data-nick'), $(this).attr('data-tag'));
+    });
+    $(document).on('click', '.disc-pin-btn', function () {
+        window.discSetStatus($(this).attr('data-timestamp'), $(this).attr('data-status'));
     });
 
     // Item 3: สรุป AI + ปิด/พับกล่องสรุป (delegated — comments section สร้างใหม่ทุก render)

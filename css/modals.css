@@ -664,6 +664,42 @@
         border-top: 1px solid var(--color-border);
     }
 
+    /* Item 5: เฉลยที่ปักหมุด — กรอบทอง + พื้นทองจาง (rgba คุมได้ทั้งธีมสว่าง/มืด ไม่เป็นก้อนขาว) */
+    .disc-comment.pinned {
+        border: 2px solid #d4af37;
+        border-top: 2px solid #d4af37;
+        border-radius: 8px;
+        background: rgba(212, 175, 55, 0.10);
+        padding: 10px 12px;
+    }
+
+    .disc-pin-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: #b8860b;
+        font-size: 0.8rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    [data-theme="dark"] .disc-pin-badge {
+        color: #e8c766;
+    }
+
+    .disc-pin-btn {
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        padding: 2px 6px;
+    }
+
+    .disc-pin-btn:hover,
+    .disc-pin-btn.active {
+        color: #d4af37;
+    }
+
     .disc-comment-head {
         display: flex;
         align-items: center;
