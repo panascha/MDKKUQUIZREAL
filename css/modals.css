@@ -695,6 +695,35 @@
         color: var(--color-danger, #dc2626);
     }
 
+    /* Item 4: ปุ่มตอบกลับ — anchor ขวา (มาก่อน del ในลำดับ) */
+    .disc-reply-btn {
+        margin-left: auto;
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        padding: 2px 6px;
+    }
+
+    .disc-reply-btn:hover {
+        color: var(--color-primary, #2563eb);
+    }
+
+    /* Item 1: badge ประวัติการแก้ไข บน header กระทู้ */
+    .disc-rev-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #92400e;
+        background: #fef3c7;
+        border: 1px solid #fcd34d;
+        border-radius: 10px;
+        padding: 1px 8px;
+        vertical-align: middle;
+    }
+
     .disc-comment-text {
         font-size: 0.95rem;
         line-height: 1.5;

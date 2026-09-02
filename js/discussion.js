@@ -78,6 +78,12 @@ window.renderDiscussion = function () {
     const isAdmin = !!(window.EDIT_SESSION && window.EDIT_SESSION.isLoggedIn && window.EDIT_SESSION.role && window.EDIT_SESSION.role !== 'Student');
     const myTag = window._discMyTag;
 
+    // Item 1: badge ประวัติการแก้ไขบน header (ปรากฏหลังกางแผงครั้งแรกที่โหลด revisions มา) — reset ล้างตอนเปลี่ยนข้อ
+    const revCount = (data.revisions || []).length;
+    const $revBadge = $('#disc-rev-badge');
+    if (revCount) $revBadge.html('<i class="fas fa-pen"></i> เคยแก้เฉลย').show();
+    else $revBadge.hide().empty();
+
     // (1) ประวัติรายงาน (พับได้)
     let reportsInner = '';
     if (data.reports && data.reports.length) {
@@ -116,11 +122,14 @@ window.renderDiscussion = function () {
             const delBtn = canDelete
                 ? `<button class="disc-del-btn" data-timestamp="${window.discEscape(c.timestamp)}" title="ลบความคิดเห็น"><i class="fas fa-trash"></i></button>`
                 : '';
+            // Item 4: ปุ่มตอบกลับ — prefill textarea ด้วย @nick #tag (1 ระดับ ไม่มี thread)
+            const replyBtn = `<button class="disc-reply-btn" data-nick="${window.discEscape(c.nickname)}" data-tag="${window.discEscape(c.tag)}" title="ตอบกลับ"><i class="fas fa-reply"></i></button>`;
             return `
             <div class="disc-comment">
                 <div class="disc-comment-head">
                     <span class="disc-nick">${window.discEscape(c.nickname)} <span class="disc-tag">#${window.discEscape(c.tag)}</span></span>
                     <span class="disc-time">${window.discFormatTime(c.timestamp)}</span>
+                    ${replyBtn}
                     ${delBtn}
                 </div>
                 <div class="disc-comment-text">${window.discEscapeMultiline(c.text)}</div>
@@ -227,6 +236,22 @@ window.discDeleteComment = async function (timestamp) {
     }
 };
 
+// Item 4: ตอบกลับ 1 ระดับ — prefill textarea + focus + scroll. ยังไม่ล็อกอิน → เด้ง sign-in (textarea ยังไม่มี)
+window.discReplyPrefill = function (nick, tag) {
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn) {
+        window.showGoogleSignInModal('เข้าสู่ระบบเพื่อตอบกลับ');
+        return;
+    }
+    const $ta = $('#disc-textarea');
+    if (!$ta.length) return;
+    const mention = '@' + (nick || '') + ' #' + (tag || '') + ' ';
+    const cur = $ta.val() || '';
+    $ta.val(cur.indexOf(mention) === 0 ? cur : mention + cur);
+    $('#disc-counter').text(`${$ta.val().length}/${window.DISC_MAX_CHARS}`);
+    $ta[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $ta.trigger('focus');
+};
+
 // ── Hook showQuestion: reset แผงทุกครั้งที่เปลี่ยนข้อ (decorator เดียวกับ similar.js/meq.js) ──
 (function () {
     var _orig = window.showQuestion;
@@ -248,6 +273,7 @@ window.resetDiscussionPanel = function () {
     if (window._discState.qid === q.questionId) { $panel.show(); return; }
     // เปลี่ยนข้อจริง → reset: พับ + ล้าง + mark ยังไม่โหลด (lazy โหลดตอนกางเท่านั้น)
     window._discState = { qid: q.questionId, loaded: false, loading: false };
+    $('#disc-rev-badge').hide().empty();
     $('#discussion-panel-body').hide();
     $('#discussion-panel-toggle-icon').removeClass('open');
     $('#discussion-content').hide().empty();
@@ -288,5 +314,8 @@ $(function () {
     });
     $(document).on('click', '.disc-del-btn', function () {
         window.discDeleteComment($(this).attr('data-timestamp'));
+    });
+    $(document).on('click', '.disc-reply-btn', function () {
+        window.discReplyPrefill($(this).attr('data-nick'), $(this).attr('data-tag'));
     });
 });
