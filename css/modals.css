@@ -875,3 +875,90 @@
     [data-theme="dark"] .disc-chip.active {
         color: #082f49;
     }
+
+    /* Item 3: ปุ่มสรุปประเด็นด้วย AI + กล่องสรุป */
+    .disc-summary-wrap {
+        margin-bottom: 10px;
+    }
+
+    .disc-summary-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--color-primary-pale);
+        color: var(--color-primary-hover);
+        border: 1px solid var(--color-primary-light);
+        border-radius: 8px;
+        padding: 7px 14px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        font-family: var(--font-primary);
+        cursor: pointer;
+    }
+
+    .disc-summary-btn:hover:not(:disabled) {
+        background: var(--color-primary-light);
+    }
+
+    .disc-summary-btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+    .disc-summary-box {
+        margin-top: 8px;
+        border: 1px solid var(--color-primary-light);
+        border-radius: 10px;
+        background: var(--color-surface);
+        overflow: hidden;
+    }
+
+    .disc-summary-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: var(--color-primary-pale);
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .disc-summary-title {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--color-primary-hover);
+    }
+
+    .disc-summary-close {
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        font-size: 0.95rem;
+        padding: 2px 6px;
+    }
+
+    .disc-summary-body {
+        padding: 10px 14px;
+        font-size: 0.92rem;
+        line-height: 1.6;
+        color: var(--color-text);
+    }
+
+    .disc-summary-body ul,
+    .disc-summary-body ol {
+        margin: 0;
+        padding-left: 1.4rem;
+    }
+
+    .disc-summary-loading {
+        padding: 12px 14px;
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .disc-summary-err {
+        padding: 12px 14px;
+        color: #dc2626;
+        font-size: 0.9rem;
+    }

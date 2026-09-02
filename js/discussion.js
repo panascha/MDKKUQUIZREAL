@@ -178,6 +178,14 @@ window.renderDiscussion = function () {
         commentsInner = '<div class="disc-empty">ยังไม่มีความคิดเห็น เป็นคนแรกที่พูดคุยเกี่ยวกับข้อนี้</div>';
     }
 
+    // Item 3: ปุ่มสรุป AI — โผล่เมื่อมี comment ≥ 3 (login-gate ตอนคลิก); กล่องสรุปเรนเดอร์ตอนคลิก
+    const summaryInner = (data.comments && data.comments.length >= 3)
+        ? `<div class="disc-summary-wrap">
+                <button type="button" id="disc-summary-btn" class="disc-summary-btn">✨ สรุปประเด็นด้วย AI</button>
+                <div id="disc-summary-box" class="disc-summary-box" style="display:none;"></div>
+            </div>`
+        : '';
+
     // ฟอร์มโพสต์ — ล็อกอินแล้วเห็น nickname+textarea; ยังไม่ล็อกอินเห็นปุ่มเข้าสู่ระบบ
     const loggedIn = !!(window.EDIT_SESSION && window.EDIT_SESSION.isLoggedIn);
     let formInner;
@@ -213,7 +221,7 @@ window.renderDiscussion = function () {
             <div class="disc-sub-head"><i class="fas fa-chevron-right disc-sub-chev"></i> <i class="fas fa-history"></i> ประวัติการแก้ไข <span class="disc-sub-count">${(data.revisions || []).length}</span></div>
             <div class="disc-sub-body" style="display:none;">${revsInner}</div>
         </div>
-        <div class="disc-comments">${commentsInner}</div>
+        <div class="disc-comments">${summaryInner}${commentsInner}</div>
         ${formInner}`;
 
     $('#discussion-content').html(html).show();
@@ -301,6 +309,112 @@ window.discReplyPrefill = function (nick, tag) {
     $ta.trigger('focus');
 };
 
+// ── Item 3: สรุปประเด็นด้วย AI (IntelSphere flash, memo ต่อข้อ) ──────────────
+window._discSummaryCache = window._discSummaryCache || {};
+
+// เลือกโมเดล flash ราคาถูกจาก catalog เท่านั้น — ห้าม fallback ไป pickAutoModel (deepseek-v4-pro = แพง)
+// null = โหลด catalog ไม่ทัน/ไม่มี flash → caller ปิดปุ่ม (ไม่ยิง network)
+window.discResolveFlashModel = async function () {
+    const FLASH = [/gemini-.*flash-lite/, /gemini-.*flash/, /claude-haiku/, /deepseek-.*flash/];
+    function pick() {
+        const cat = window._chatbotCatalog;
+        if (!cat) return null;
+        const ids = [];
+        Object.keys(cat).forEach(p => (cat[p] || []).forEach(id => ids.push(id)));
+        for (let i = 0; i < FLASH.length; i++) {          // pattern-major → flash-lite ชนะ flash
+            for (let j = 0; j < ids.length; j++) {
+                if (FLASH[i].test(ids[j])) return ids[j];
+            }
+        }
+        return null;
+    }
+    let m = pick();
+    if (m) return m;
+    // catalog ยังไม่มา → โหลดครั้งเดียว (catalog มาแล้วแต่ไม่มี flash → refetch ก็ไม่ช่วย)
+    if (!window._chatbotCatalog && typeof window.loadChatbotModelCatalog === 'function') {
+        await window.loadChatbotModelCatalog();
+        m = pick();
+    }
+    return m;
+};
+
+// ประกอบ prompt: strip marker item-2 (chip/ref) + URL + <svg> ออกจากแต่ละ comment; เอา ~40 อันล่าสุด
+window.discBuildSummaryPrompt = function (comments) {
+    const lines = comments.slice(-40).map(function (c) {
+        let t = String(c.text == null ? '' : c.text);
+        t = t.replace(window.DISC_CHIP_RE, '');               // chip prefix
+        t = t.replace(window.DISC_REF_RE, '');                // ref suffix
+        t = t.replace(/https?:\/\/\S+/g, '');                 // URL
+        t = t.replace(/<svg[\s\S]*?<\/svg>/gi, '[รูปภาพ]');   // inline svg
+        t = t.replace(/\s+/g, ' ').trim();
+        return t ? ('- ' + t) : '';
+    }).filter(Boolean);
+    return 'ต่อไปนี้คือความคิดเห็นของนิสิตแพทย์ในกระทู้พูดคุยเกี่ยวกับข้อสอบข้อหนึ่ง:\n\n' +
+        lines.join('\n') + '\n\n' +
+        'ช่วยสรุปประเด็นสำคัญของการพูดคุยนี้เป็นภาษาไทย เป็น 3 หัวข้อ (bullet ขึ้นต้นด้วย -) สั้นกระชับ ' +
+        'เน้นข้อถกเถียง ข้อสงสัยเรื่องเฉลย และข้อสรุปที่หลายคนเห็นตรงกัน (ถ้ามี). ' +
+        'ตอบเฉพาะ 3 bullet เท่านั้น ไม่ต้องมีคำนำหรือคำท้าย';
+};
+
+window.discRenderSummaryBox = function (innerHtml) {
+    $('#disc-summary-box').html(
+        '<div class="disc-summary-head">' +
+        '<span class="disc-summary-title"><i class="fas fa-wand-magic-sparkles"></i> สรุปโดย AI</span>' +
+        '<button type="button" class="disc-summary-close" title="ปิด"><i class="fas fa-times"></i></button>' +
+        '</div>' +
+        '<div class="disc-summary-body">' + innerHtml + '</div>'
+    ).show();
+};
+
+window.discSummarizeAI = async function () {
+    // login-gate: guest ยิงจะไปกอง rate-limit bucket "guest_user" เดียวกันทั้งเว็บ (15/ชม.) → เด้ง sign-in
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn || !window.EDIT_SESSION.sessionToken) {
+        window.showGoogleSignInModal('เข้าสู่ระบบเพื่อสรุปประเด็นด้วย AI');
+        return;
+    }
+    const qid = window._discState.qid;
+    const data = window._discData || { comments: [] };
+    const comments = data.comments || [];
+    if (comments.length < 3) return;
+
+    // cache key monotonic: length เปลี่ยนตอน add/delete; timestamp ตัวสุดท้ายกัน delete+repost (length เท่าเดิม)
+    const last = comments[comments.length - 1];
+    const cacheKey = comments.length + '|' + (last && last.timestamp);
+    const cached = window._discSummaryCache[qid];
+    if (cached && cached.key === cacheKey) { window.discRenderSummaryBox(cached.html); return; }
+
+    const $btn = $('#disc-summary-btn');
+    const model = await window.discResolveFlashModel();
+    if (!model) {   // ไม่มี flash → ปิดปุ่ม ไม่ยิง (กัน deepseek-v4-pro cost bug)
+        $btn.prop('disabled', true).attr('title', 'ยังโหลดโมเดลไม่เสร็จ');
+        window.bgToast.fire({ icon: 'warning', title: 'ยังโหลดโมเดลไม่เสร็จ ลองใหม่ภายหลัง' });
+        return;
+    }
+
+    $btn.prop('disabled', true);
+    $('#disc-summary-box').show().html('<div class="disc-summary-loading"><i class="fas fa-spinner fa-spin"></i> กำลังสรุป…</div>');
+    try {
+        const res = await window.sendWithRetry({
+            action: 'askAIExpert', provider: 'IntelSphere',
+            prompt: window.discBuildSummaryPrompt(comments),
+            model: model, sessionToken: window.EDIT_SESSION.sessionToken
+        });
+        // ข้อเปลี่ยนระหว่างรอ network → ทิ้งผล (กัน summary ข้อเก่า render ทับ panel ข้อใหม่ — เหมือน loadDiscussion)
+        if (window._discState.qid !== qid) return;
+        if (res && res.result === 'success') {
+            const html = window.renderMarkdownSafe(res.answer);   // - ... → <ul><li>, escaped-by-construction
+            window._discSummaryCache[qid] = { key: cacheKey, html: html };
+            window.discRenderSummaryBox(html);
+        } else {
+            $('#disc-summary-box').html('<div class="disc-summary-err">สรุปไม่สำเร็จ ลองใหม่อีกครั้ง</div>');
+        }
+    } catch (e) {
+        if (window._discState.qid === qid) $('#disc-summary-box').html('<div class="disc-summary-err">สรุปไม่สำเร็จ ลองใหม่อีกครั้ง</div>');
+    } finally {
+        $btn.prop('disabled', false);   // ปุ่มอาจถูก re-render ไปแล้ว → jQuery no-op
+    }
+};
+
 // ── Hook showQuestion: reset แผงทุกครั้งที่เปลี่ยนข้อ (decorator เดียวกับ similar.js/meq.js) ──
 (function () {
     var _orig = window.showQuestion;
@@ -372,5 +486,15 @@ $(function () {
     });
     $(document).on('click', '.disc-reply-btn', function () {
         window.discReplyPrefill($(this).attr('data-nick'), $(this).attr('data-tag'));
+    });
+
+    // Item 3: สรุป AI + ปิด/พับกล่องสรุป (delegated — comments section สร้างใหม่ทุก render)
+    $(document).on('click', '#disc-summary-btn', window.discSummarizeAI);
+    $(document).on('click', '.disc-summary-close', function () {
+        $('#disc-summary-box').hide().empty();
+    });
+    $(document).on('click', '.disc-summary-head', function (e) {
+        if ($(e.target).closest('.disc-summary-close').length) return; // ปุ่มปิดจัดการเอง
+        $(this).next('.disc-summary-body').slideToggle(120);
     });
 });
