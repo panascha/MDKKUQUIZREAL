@@ -10,6 +10,30 @@ window._discMyTag = null; // tag 4 ตัวของผู้ใช้ปัจ
 
 window.DISC_MAX_CHARS = 500;
 
+// Item 2: ป้ายกำกับ (chip) เลือกได้ 1 อัน + ช่องอ้างอิง — encode ลงใน text (backend ไม่แตะ, Tag column = email-hash ห้ามใช้)
+// ⚠️ append-only: ห้ามเปลี่ยน/ลบ label เดิม ไม่งั้น comment เก่าที่โพสต์ด้วย label นั้นจะ render เป็น "[label] " ดิบ
+window.DISC_CHIPS = ['🔬 กลไก', '📚 แนวทาง', '❓ สงสัยเฉลย', '📝 โจทย์พิมพ์ผิด'];
+window.DISC_CHIP_SET = new Set(window.DISC_CHIPS); // gate การ parse ให้ render pill เฉพาะ label ที่รู้จัก
+// regex assemble/parse ต้องตรงกันเป๊ะ (Commit C summarizer ก็ reuse ตัวนี้ strip marker ก่อนส่ง AI)
+window.DISC_CHIP_RE = /^\[(.+?)\]\s/;              // prefix chip:  "[🔬 กลไก] "
+window.DISC_REF_RE = /\n📖 อ้างอิง: (.+)$/;       // suffix อ้างอิง (บรรทัดเดียว, ต่อท้ายสุด): "\n📖 อ้างอิง: ..."
+
+// ประกอบข้อความสุดท้ายที่จะส่ง (chip prefix + ข้อความ + ref suffix). ใช้ทั้งตอนนับตัวอักษรและตอนส่ง
+window.discAssembleText = function () {
+    const chip = ($('.disc-chip.active').attr('data-label') || '').trim();
+    const text = ($('#disc-textarea').val() || '').trim();
+    const ref = ($('#disc-ref').val() || '').trim();
+    return (chip ? `[${chip}] ` : '') + text + (ref ? `\n📖 อ้างอิง: ${ref}` : '');
+};
+
+// นับความยาว "สตริงที่ประกอบแล้ว" เทียบ 500 (chip+ref กินโควตาด้วย) — เกินให้ counter แดง
+window.discUpdateCounter = function () {
+    const len = window.discAssembleText().length;
+    const $c = $('#disc-counter');
+    $c.text(`${len}/${window.DISC_MAX_CHARS}`);
+    $c.toggleClass('over', len > window.DISC_MAX_CHARS);
+};
+
 // escape ข้อความที่ผู้ใช้คนอื่นเขียน (nickname/text/report free-text) ก่อนใส่ .html() — plain text + \n→<br>
 window.discEscape = function (s) {
     return String(s == null ? '' : s)
@@ -124,6 +148,19 @@ window.renderDiscussion = function () {
                 : '';
             // Item 4: ปุ่มตอบกลับ — prefill textarea ด้วย @nick #tag (1 ระดับ ไม่มี thread)
             const replyBtn = `<button class="disc-reply-btn" data-nick="${window.discEscape(c.nickname)}" data-tag="${window.discEscape(c.tag)}" title="ตอบกลับ"><i class="fas fa-reply"></i></button>`;
+            // Item 2: แกะ chip prefix (เฉพาะ label ที่รู้จัก) + ref suffix ออกจาก text; ที่เหลือ = ข้อความปกติ (fallback = ทั้งก้อน)
+            let body = String(c.text == null ? '' : c.text);
+            let chipHtml = '', refHtml = '';
+            const cm = body.match(window.DISC_CHIP_RE);
+            if (cm && window.DISC_CHIP_SET.has(cm[1])) {
+                chipHtml = `<span class="disc-chip-pill">${window.discEscape(cm[1])}</span>`;
+                body = body.slice(cm[0].length);
+            }
+            const rm = body.match(window.DISC_REF_RE);
+            if (rm) {
+                refHtml = `<div class="disc-ref-line"><i class="fas fa-book"></i> อ้างอิง: ${window.discEscape(rm[1].trim())}</div>`;
+                body = body.slice(0, rm.index);
+            }
             return `
             <div class="disc-comment">
                 <div class="disc-comment-head">
@@ -132,7 +169,9 @@ window.renderDiscussion = function () {
                     ${replyBtn}
                     ${delBtn}
                 </div>
-                <div class="disc-comment-text">${window.discEscapeMultiline(c.text)}</div>
+                ${chipHtml ? `<div class="disc-chip-row-view">${chipHtml}</div>` : ''}
+                <div class="disc-comment-text">${window.discEscapeMultiline(body)}</div>
+                ${refHtml}
             </div>`;
         }).join('');
     } else {
@@ -144,10 +183,14 @@ window.renderDiscussion = function () {
     let formInner;
     if (loggedIn) {
         const nick = window.discEscape(window.discGetNickname());
+        const chipsHtml = window.DISC_CHIPS.map(lbl =>
+            `<button type="button" class="disc-chip" data-label="${window.discEscape(lbl)}">${window.discEscape(lbl)}</button>`).join('');
         formInner = `
             <div class="disc-form">
                 <input type="text" id="disc-nickname" class="disc-nickname-input" maxlength="40" placeholder="ชื่อที่จะแสดง" value="${nick}">
+                <div class="disc-chip-row">${chipsHtml}</div>
                 <textarea id="disc-textarea" class="disc-textarea" maxlength="${window.DISC_MAX_CHARS}" placeholder="พิมพ์ความคิดเห็น... (เช่น อาจารย์ใช้เฉลยปีเก่าหรือเปล่า)"></textarea>
+                <input type="text" id="disc-ref" class="disc-ref-input" maxlength="200" placeholder="อ้างอิง (ไม่บังคับ) เช่น Costanzo p.120">
                 <div class="disc-form-foot">
                     <span id="disc-counter" class="disc-counter">0/${window.DISC_MAX_CHARS}</span>
                     <button id="disc-submit" class="quiz-button"><i class="fas fa-paper-plane"></i> ส่งความคิดเห็น</button>
@@ -155,8 +198,9 @@ window.renderDiscussion = function () {
             </div>`;
     } else {
         formInner = `
-            <div class="disc-form">
-                <button id="disc-login-btn" class="quiz-button" style="width:100%;"><i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบเพื่อแสดงความคิดเห็น</button>
+            <div class="disc-login-prompt">
+                <div class="disc-login-text"><i class="fas fa-comments"></i> เข้าสู่ระบบด้วยบัญชี KKU เพื่อร่วมพูดคุยและแสดงความคิดเห็น</div>
+                <button id="disc-login-btn" class="disc-login-btn"><i class="fas fa-sign-in-alt me-1"></i> เข้าสู่ระบบ</button>
             </div>`;
     }
 
@@ -184,9 +228,11 @@ window.discPostComment = async function () {
     }
     const qid = window._discState.qid;
     const nickname = ($('#disc-nickname').val() || '').trim();
-    const text = ($('#disc-textarea').val() || '').trim();
-    if (!text) { window.bgToast.fire({ icon: 'warning', title: 'พิมพ์ความคิดเห็นก่อนส่ง' }); return; }
-    if (text.length > window.DISC_MAX_CHARS) { window.bgToast.fire({ icon: 'warning', title: `ยาวเกิน ${window.DISC_MAX_CHARS} ตัวอักษร` }); return; }
+    const rawText = ($('#disc-textarea').val() || '').trim();
+    if (!rawText) { window.bgToast.fire({ icon: 'warning', title: 'พิมพ์ความคิดเห็นก่อนส่ง' }); return; }
+    // Item 2: cap นับสตริงที่ประกอบแล้ว (chip+ref กินโควตา) — ต้องตรงกับที่ backend เช็ค (pcText.trim().length)
+    const text = window.discAssembleText();
+    if (text.length > window.DISC_MAX_CHARS) { window.bgToast.fire({ icon: 'warning', title: `ยาวเกิน ${window.DISC_MAX_CHARS} ตัวอักษร (รวมป้ายกำกับและอ้างอิง)` }); return; }
     if (nickname) { try { localStorage.setItem('mdkku_disc_nickname', nickname); } catch (e) { } }
 
     const $btn = $('#disc-submit').prop('disabled', true);
@@ -197,6 +243,9 @@ window.discPostComment = async function () {
         });
         if (res && res.result === 'success') {
             $('#disc-textarea').val('');
+            $('#disc-ref').val('');
+            $('.disc-chip.active').removeClass('active');
+            window.discUpdateCounter();
             window.bgToast.fire({ icon: 'success', title: 'ส่งความคิดเห็นแล้ว' });
             await window.loadDiscussion(qid); // reload กระทู้ (backend purge cache แล้ว)
         } else {
@@ -247,7 +296,7 @@ window.discReplyPrefill = function (nick, tag) {
     const mention = '@' + (nick || '') + ' #' + (tag || '') + ' ';
     const cur = $ta.val() || '';
     $ta.val(cur.indexOf(mention) === 0 ? cur : mention + cur);
-    $('#disc-counter').text(`${$ta.val().length}/${window.DISC_MAX_CHARS}`);
+    window.discUpdateCounter();
     $ta[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
     $ta.trigger('focus');
 };
@@ -303,9 +352,15 @@ $(function () {
         $(this).next('.disc-sub-body').slideToggle(150);
     });
 
-    // char counter
-    $(document).on('input', '#disc-textarea', function () {
-        $('#disc-counter').text(`${this.value.length}/${window.DISC_MAX_CHARS}`);
+    // char counter — นับสตริงที่ประกอบแล้ว (textarea + chip + ref). delegated เพราะ form ถูกสร้างใหม่ทุก render
+    $(document).on('input', '#disc-textarea, #disc-ref', window.discUpdateCounter);
+
+    // Item 2: chip เลือกได้ทีละ 1 (คลิกซ้ำ = ยกเลิก) → อัปเดต counter
+    $(document).on('click', '.disc-chip', function () {
+        const wasActive = $(this).hasClass('active');
+        $('.disc-chip').removeClass('active');
+        if (!wasActive) $(this).addClass('active');
+        window.discUpdateCounter();
     });
 
     $(document).on('click', '#disc-submit', window.discPostComment);
