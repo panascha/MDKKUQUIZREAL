@@ -187,7 +187,10 @@ window.showQuestion = function (shouldFocus = true) {
         choiceMemo = { sig: orderSig, order: order, allowed: null };
         window.APP._choiceOrderByQid[orderQid] = choiceMemo;
     }
-    const indices = choiceMemo.order;
+    // ตอบแล้ว → คงลำดับตามฐานข้อมูลเสมอ / ยังไม่ตอบ → ใช้ลำดับสุ่มที่จำไว้ (คงที่ระหว่างวาดซ้ำ)
+    const indices = window.APP.current_question.state
+        ? choicesArray.map((_, i) => i)
+        : choiceMemo.order;
 
     let allowedOriginalIndices = [];
     if (window.APP.isFastMode && !window.APP.current_question.state) {
