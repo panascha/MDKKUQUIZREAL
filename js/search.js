@@ -196,6 +196,7 @@ window.performSearch = function () {
     if (searchTerm === '""' || !searchTerm) {
         $('#search-results-container').html('<p class="small-text">กรุณาป้อนคำเพื่อค้นหา</p>');
         $('#search-suggestions-container').hide();
+        window.clearAiOverviewCard();   // กันการ์ดสรุปของคำค้นก่อนหน้าค้างอยู่เหนือข้อความนี้
         return;
     }
 
@@ -314,6 +315,7 @@ window.performSearch = function () {
 
     if (searchResults.length === 0) {
         $('#search-results-container').html('<p class="small-text">ไม่พบผลลัพธ์ที่ตรงกัน</p>');
+        window.clearAiOverviewCard();   // กันการ์ดสรุปของคำค้นก่อนหน้าค้างอยู่เหนือข้อความนี้
         return;
     }
 
@@ -453,6 +455,12 @@ window.performSearch = function () {
 
     cardsHtml += `</div>`;
     $('#search-results-container').html(cardsHtml);
+
+    // AI Search Overview — ใช้เฉพาะคำค้นจริง (ตัด AND/OR/NOT ออก) ไม่ await: การ์ดโผล่ทีหลังใน anchor ที่จองไว้แล้ว
+    window.initAiOverview(
+        searchResults,
+        terms.filter(t => !operators.includes(t.toLowerCase())).join(' ').trim()
+    );
 
     $('.btn-search-report').on('click', function () {
         const idx = $(this).data('idx');
@@ -662,3 +670,245 @@ window.renderExplainHtmlForSearchCard = function (explainRaw) {
     }
     return html;
 };
+
+/* ═══════════════════════════════════════════════════════════════
+   AI Search Overview — การ์ดสรุปภาพรวมเหนือผลค้นหา (on-demand)
+   flow: performSearch → initAiOverview → (cache hit = เรนเดอร์ทันที | miss = ปุ่ม)
+         กดปุ่ม → fetchAiOverview → GAS getSearchAIOverview → cache ลง IndexedDB
+   cache key: ai_overview_<subject>_<v>_<keyword>  (v = data version ใน IndexedDB 'ver_<subject>'
+   ที่ runIncrementalSync เขียนไว้ — แอดมินแก้ข้อสอบ → v เปลี่ยน → cache หมดอายุเอง)
+   ═══════════════════════════════════════════════════════════════ */
+
+window._aiOverviewState = { keyword: '', payload: null, cacheKey: '' };
+
+window.aiOvEscape = function (s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+};
+
+// คีย์แคช/พรอมต์ต้องนิ่งกับการพิมพ์ต่างกันเล็กน้อย: ตัดอัญประกาศ ยุบช่องว่าง ตัวพิมพ์เล็ก
+window.normalizeSearchKeyword = function (t) {
+    return String(t || '').toLowerCase().replace(/["“”]/g, '').replace(/\s+/g, ' ').trim();
+};
+
+// ตัด HTML/URL ออกก่อนส่งขึ้น AI — กัน Drive URL รั่วเข้าพรอมต์ และคุมงบ token (~800)
+window.stripQuestionText = function (raw, max) {
+    var t = String(raw == null ? '' : raw)
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/https?:\/\/\S+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return t.length > max ? t.slice(0, max) + '…' : t;
+};
+
+// รวมสถิติผลค้นหาในเครื่อง + ตัดสไนป์เพ็ต 5 ข้อแรก (โจทย์ ≤200, คำอธิบาย ≤150 ตัวอักษร)
+window.buildSearchOverviewPayload = function (results, keyword) {
+    var yearCount = {}, discCount = {};
+    results.forEach(function (q) {
+        var meta = (typeof window.parseQuestionMetadata === 'function')
+            ? window.parseQuestionMetadata(q) : {};
+        if (meta.year && meta.year !== 'N/A') yearCount[meta.year] = (yearCount[meta.year] || 0) + 1;
+        if (meta.suffix && meta.suffix !== 'N/A') discCount[meta.suffix] = (discCount[meta.suffix] || 0) + 1;
+    });
+
+    var years = Object.keys(yearCount).sort(function (a, b) { return Number(b) - Number(a); });
+    var disciplines = Object.keys(discCount)
+        .sort(function (a, b) { return discCount[b] - discCount[a]; })
+        .slice(0, 4);
+
+    var snippets = results.slice(0, 5).map(function (q) {
+        var explainText = (typeof window.parseExplain === 'function')
+            ? window.parseExplain(q.explain).text : (q.explain || '');
+        return {
+            qid: q.questionId,
+            problem: window.stripQuestionText(q.problem, 200),
+            answer: window.stripQuestionText(q.answer, 80),
+            explain: window.stripQuestionText(explainText, 150)
+        };
+    }).filter(function (s) { return s.problem; });
+
+    return {
+        keyword: String(keyword || '').trim().slice(0, 100),
+        stats: { total: results.length, years: years, disciplines: disciplines },
+        snippets: snippets
+    };
+};
+
+window.getAiOverviewCacheKey = async function (keyword) {
+    var subjectParam = new URLSearchParams(window.location.search).get('subject') || '';
+    var v = '0';
+    try { v = (await window.getCacheDB('ver_' + subjectParam)) || '0'; } catch (e) { }
+    return 'ai_overview_' + (subjectParam || 'all') + '_' + v + '_' + window.normalizeSearchKeyword(keyword);
+};
+
+window.clearAiOverviewCard = function () {
+    $('#search-ai-overview-card').empty().hide();
+    window._aiOverviewState = { keyword: '', payload: null, cacheKey: '' };
+};
+
+window.renderAiOverviewCard = function (state, data) {
+    var $card = $('#search-ai-overview-card').show();
+    var kw = window.aiOvEscape(window._aiOverviewState.keyword);
+
+    if (state === 'few') {
+        $card.html('<div class="ai-overview-card ai-ov-few">'
+            + '<i class="fas fa-circle-info"></i> ข้อสอบน้อยเกินไปที่จะสรุปภาพรวม</div>');
+        return;
+    }
+
+    if (state === 'cta') {
+        $card.html('<div class="ai-overview-card ai-ov-cta">'
+            + '<button type="button" id="ai-overview-btn" class="ai-ov-btn">'
+            + '<i class="fas fa-wand-magic-sparkles"></i> สร้าง AI Overview</button>'
+            + '<span class="ai-ov-hint">สรุปแนวข้อสอบของ “' + kw + '” ด้วย AI</span>'
+            + '</div>');
+        return;
+    }
+
+    if (state === 'loading') {
+        // โครงร่างสูงใกล้เคียงการ์ดจริง — กัน layout กระโดด (CLS) ตอนผลลัพธ์มาแทนที่
+        $card.html('<div class="ai-overview-card ai-ov-loading">'
+            + '<div class="ai-ov-head"><i class="fas fa-wand-magic-sparkles fa-fade"></i> กำลังสรุปภาพรวม “' + kw + '” …</div>'
+            + '<div class="ai-ov-skel" style="width:100%"></div>'
+            + '<div class="ai-ov-skel" style="width:88%"></div>'
+            + '<div class="ai-ov-skel" style="width:64%"></div>'
+            + '<div class="ai-ov-skel" style="width:76%"></div>'
+            + '</div>');
+        return;
+    }
+
+    if (state === 'error') {
+        $card.html('<div class="ai-overview-card ai-ov-err">'
+            + '<i class="fas fa-triangle-exclamation"></i> ' + window.aiOvEscape(data || 'สรุปภาพรวมไม่สำเร็จ')
+            + ' <button type="button" id="ai-overview-btn" class="ai-ov-retry">ลองใหม่</button></div>');
+        return;
+    }
+
+    // state === 'data'
+    var ov = data || {};
+    var st = (window._aiOverviewState.payload && window._aiOverviewState.payload.stats) || {};
+    var statBits = ['พบ ' + (st.total || 0) + ' ข้อ'];
+    if (st.years && st.years.length) statBits.push('ปี ' + st.years.slice(0, 4).join(', '));
+    if (st.disciplines && st.disciplines.length) statBits.push(st.disciplines.join(' · '));
+
+    var listHtml = function (title, icon, arr) {
+        if (!arr || !arr.length) return '';
+        return '<div class="ai-ov-sec"><h4><i class="fas ' + icon + '"></i> ' + title + '</h4><ul>'
+            + arr.map(function (x) { return '<li>' + window.aiOvEscape(x) + '</li>'; }).join('')
+            + '</ul></div>';
+    };
+
+    var chipsHtml = '';
+    if (ov.relatedConcepts && ov.relatedConcepts.length) {
+        chipsHtml = '<div class="ai-ov-chips">'
+            + ov.relatedConcepts.map(function (c) {
+                return '<button type="button" class="ai-ov-chip" data-concept="' + window.aiOvEscape(c) + '">'
+                    + window.aiOvEscape(c) + '</button>';
+            }).join('')
+            + '</div>';
+    }
+
+    $card.html('<div class="ai-overview-card">'
+        + '<div class="ai-ov-head"><i class="fas fa-wand-magic-sparkles"></i> AI Overview: <b>' + kw + '</b></div>'
+        + '<div class="ai-ov-stats">' + window.aiOvEscape(statBits.join(' · ')) + '</div>'
+        + '<div class="ai-ov-body">'
+        + '<p class="ai-ov-summary">' + window.aiOvEscape(ov.summary || '') + '</p>'
+        + listHtml('แนวการออกข้อสอบ', 'fa-bullseye', ov.examPatterns)
+        + listHtml('จุดที่มักพลาด', 'fa-triangle-exclamation', ov.pitfallPoints)
+        + chipsHtml
+        + '</div>'
+        + '<button type="button" class="ai-ov-expand">ดูเพิ่มเติม <i class="fas fa-chevron-down"></i></button>'
+        + '<div class="ai-ov-disclaimer">สรุปโดย AI จากข้อสอบที่ค้นเจอ — ตรวจสอบกับตำราก่อนใช้จริง</div>'
+        + '</div>');
+};
+
+window.fetchAiOverview = async function () {
+    // login-gate: bucket rate-limit ฝั่งหลังบ้านผูกกับอีเมลผู้ใช้ — guest ยิงไม่ผ่านอยู่แล้ว
+    if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn || !window.EDIT_SESSION.sessionToken) {
+        window.showGoogleSignInModal('เข้าสู่ระบบเพื่อสรุปภาพรวมด้วย AI');
+        return;
+    }
+
+    var payload = window._aiOverviewState.payload;
+    var keyword = window._aiOverviewState.keyword;
+    var cacheKey = window._aiOverviewState.cacheKey;
+    if (!payload || !payload.snippets || payload.snippets.length < 2) return;
+
+    window.renderAiOverviewCard('loading');
+    if (typeof window.logFeature === 'function') window.logFeature('ai_search_overview');
+
+    try {
+        // retries 2 (ไม่ใช่ 3): ทุก request ที่ถึงหลังบ้านกินโควต้า 15/ชม. ของผู้ใช้ แม้ response หายระหว่างทาง
+        var res = await window.sendWithRetry({
+            action: 'getSearchAIOverview',
+            sessionToken: window.EDIT_SESSION.sessionToken,
+            keyword: payload.keyword,
+            stats: payload.stats,
+            snippets: payload.snippets
+        }, 2);
+
+        // ผู้ใช้ค้นคำใหม่ระหว่างรอ network → ทิ้งผล (กันสรุปคำเก่าเรนเดอร์ทับคำใหม่)
+        if (window._aiOverviewState.keyword !== keyword) return;
+
+        if (res && res.result === 'success' && res.overview) {
+            try { await window.setCacheDB(cacheKey, res.overview); } catch (e) { }
+            window.renderAiOverviewCard('data', res.overview);
+        } else if (res && res.message === 'session_expired') {
+            // token 30 วันหมดอายุกลางคัน — ห้ามโชว์ 'session_expired' ดิบในการ์ดภาษาไทย
+            window.renderAiOverviewCard('cta');
+            window.showGoogleSignInModal('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+        } else {
+            window.renderAiOverviewCard('error', (res && res.message) || 'สรุปภาพรวมไม่สำเร็จ');
+        }
+    } catch (e) {
+        if (window._aiOverviewState.keyword === keyword) {
+            window.renderAiOverviewCard('error', 'เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง');
+        }
+    }
+};
+
+window.initAiOverview = async function (results, keyword) {
+    if (!keyword || !results || results.length === 0) { window.clearAiOverviewCard(); return; }
+
+    window._aiOverviewState = {
+        keyword: keyword,
+        payload: window.buildSearchOverviewPayload(results, keyword),
+        cacheKey: ''
+    };
+
+    if (results.length < 2 || window._aiOverviewState.payload.snippets.length < 2) {
+        window.renderAiOverviewCard('few');
+        return;
+    }
+
+    var key = await window.getAiOverviewCacheKey(keyword);
+    if (window._aiOverviewState.keyword !== keyword) return; // ค้นคำใหม่ระหว่างอ่าน IndexedDB
+    window._aiOverviewState.cacheKey = key;
+
+    var cached = null;
+    try { cached = await window.getCacheDB(key); } catch (e) { }
+    if (window._aiOverviewState.keyword !== keyword) return;
+
+    if (cached && cached.summary) window.renderAiOverviewCard('data', cached);
+    else window.renderAiOverviewCard('cta');
+};
+
+// ปุ่ม/ชิปถูก re-render ทุกครั้ง → ผูก event แบบ delegated ที่ document
+$(document).on('click', '#ai-overview-btn', function () { window.fetchAiOverview(); });
+
+$(document).on('click', '.ai-ov-chip', function () {
+    // performSearch อ่านคำค้นจาก #search-input เสมอ (ไม่รับ argument) — ต้องเขียนค่าลงช่องก่อนเรียก
+    $('#search-input').val($(this).data('concept'));
+    $('#search-suggestions-container').hide();
+    window.performSearch();
+    var el = document.getElementById('search-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+$(document).on('click', '.ai-ov-expand', function () {
+    var $c = $(this).closest('.ai-overview-card').toggleClass('ai-ov-open');
+    $(this).html($c.hasClass('ai-ov-open')
+        ? 'ย่อลง <i class="fas fa-chevron-up"></i>'
+        : 'ดูเพิ่มเติม <i class="fas fa-chevron-down"></i>');
+});
