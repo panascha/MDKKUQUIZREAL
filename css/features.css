@@ -903,6 +903,35 @@ body.chatbot-open #chatbot-fab {
 
 .ai-ov-head b { color: var(--color-text); }
 
+/* ปุ่มสร้างใหม่ — ชิดขวาสุดของหัวการ์ด (head เป็น flex → margin-left:auto ดันชิดขวา) */
+.ai-ov-regen {
+    margin-left: auto;
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1.5px solid var(--color-border);
+    border-radius: 7px;
+    padding: 4px 11px;
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ai-ov-regen:hover:not(:disabled) {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+}
+
+.ai-ov-regen:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .ai-ov-stats {
     font-size: 0.95rem;
     color: var(--color-text-muted);

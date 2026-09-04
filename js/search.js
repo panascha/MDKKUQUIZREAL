@@ -680,6 +680,8 @@ window.renderExplainHtmlForSearchCard = function (explainRaw) {
    ═══════════════════════════════════════════════════════════════ */
 
 window._aiOverviewState = { keyword: '', payload: null, cacheKey: '' };
+// ธงกำลังยิง — กันกด "สร้างใหม่" รัวๆ แล้วยิงซ้ำ (ทุก request กินโควต้า 15/ชม. ของผู้ใช้)
+window._aiOverviewLoading = false;
 
 window.aiOvEscape = function (s) {
     return String(s == null ? '' : s)
@@ -688,6 +690,43 @@ window.aiOvEscape = function (s) {
 };
 
 // คีย์แคช/พรอมต์ต้องนิ่งกับการพิมพ์ต่างกันเล็กน้อย: ตัดอัญประกาศ ยุบช่องว่าง ตัวพิมพ์เล็ก
+// flash-lite หลุด token ซีริลลิกปนกลางคำอังกฤษ (เจอจริง: 'พยาธิгенesis') — มาปกลับเป็นลาตินตอนเรนเดอร์
+// ใช้ map ตามเสียง (г→g, н→n → 'gene') ไม่ใช่ตามหน้าตา (г→r, н→H → 'reHe' ผิด)
+// แตะเฉพาะ [\u0400-\u04FF] — กรีก (β-blocker, α-thalassemia) เป็นศัพท์แพทย์ปกติ ห้ามแตะ
+window.AI_OV_CYRILLIC_MAP = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e', 'ж': 'zh', 'з': 'z',
+    'и': 'i', 'й': 'i', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r',
+    'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch',
+    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+    'і': 'i', 'ї': 'i', 'є': 'ie', 'ґ': 'g', 'ѕ': 's', 'ј': 'j', 'ў': 'u'
+};
+
+window.sanitizeCyrillic = function (s) {
+    if (s == null) return '';
+    var t = String(s);
+    if (!/[\u0400-\u04FF]/.test(t)) return t;   // fast path: ส่วนใหญ่ไม่มีซีริลลิกเลย
+    return t.replace(/[\u0400-\u04FF]/g, function (ch) {
+        var lower = ch.toLowerCase();
+        var lat = window.AI_OV_CYRILLIC_MAP[lower];
+        if (lat == null) return '';               // ตัวที่ไม่มีใน map → ทิ้ง ดีกว่าปล่อยหลุด
+        if (ch !== lower && lat) return lat.charAt(0).toUpperCase() + lat.slice(1);
+        return lat;
+    });
+};
+
+// ล้าง overview ทั้งก้อนที่เดียว — ทำตอน render จึงครอบทั้ง cache hit และ fetch ใหม่
+// (ข้อความที่เพี้ยนลง IndexedDB ไปก่อนแพตช์นี้จึงถูกล้างด้วย)
+window.sanitizeAiOverview = function (ov) {
+    var o = ov || {};
+    var arr = function (a) { return Array.isArray(a) ? a.map(window.sanitizeCyrillic) : []; };
+    return {
+        summary: window.sanitizeCyrillic(o.summary || ''),
+        examPatterns: arr(o.examPatterns),
+        pitfallPoints: arr(o.pitfallPoints),
+        relatedConcepts: arr(o.relatedConcepts)
+    };
+};
+
 window.normalizeSearchKeyword = function (t) {
     return String(t || '').toLowerCase().replace(/["“”]/g, '').replace(/\s+/g, ' ').trim();
 };
@@ -786,7 +825,7 @@ window.renderAiOverviewCard = function (state, data) {
     }
 
     // state === 'data'
-    var ov = data || {};
+    var ov = window.sanitizeAiOverview(data);
     var st = (window._aiOverviewState.payload && window._aiOverviewState.payload.stats) || {};
     var statBits = ['พบ ' + (st.total || 0) + ' ข้อ'];
     if (st.years && st.years.length) statBits.push('ปี ' + st.years.slice(0, 4).join(', '));
@@ -810,7 +849,8 @@ window.renderAiOverviewCard = function (state, data) {
     }
 
     $card.html('<div class="ai-overview-card">'
-        + '<div class="ai-ov-head"><i class="fas fa-wand-magic-sparkles"></i> AI Overview: <b>' + kw + '</b></div>'
+        + '<div class="ai-ov-head"><i class="fas fa-wand-magic-sparkles"></i> AI Overview: <b>' + kw + '</b>'
+        + '<button type="button" class="ai-ov-regen" title="สรุปใหม่ด้วย AI อีกครั้ง"><i class="fas fa-rotate"></i> สร้างใหม่</button></div>'
         + '<div class="ai-ov-stats">' + window.aiOvEscape(statBits.join(' · ')) + '</div>'
         + '<div class="ai-ov-body">'
         + '<p class="ai-ov-summary">' + window.aiOvEscape(ov.summary || '') + '</p>'
@@ -834,7 +874,9 @@ window.fetchAiOverview = async function () {
     var keyword = window._aiOverviewState.keyword;
     var cacheKey = window._aiOverviewState.cacheKey;
     if (!payload || !payload.snippets || payload.snippets.length < 2) return;
+    if (window._aiOverviewLoading) return;   // กดซ้ำระหว่างรอคำตอบ → ทิ้ง
 
+    window._aiOverviewLoading = true;
     window.renderAiOverviewCard('loading');
     if (typeof window.logFeature === 'function') window.logFeature('ai_search_overview');
 
@@ -865,6 +907,8 @@ window.fetchAiOverview = async function () {
         if (window._aiOverviewState.keyword === keyword) {
             window.renderAiOverviewCard('error', 'เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง');
         }
+    } finally {
+        window._aiOverviewLoading = false;
     }
 };
 
@@ -896,6 +940,15 @@ window.initAiOverview = async function (results, keyword) {
 
 // ปุ่ม/ชิปถูก re-render ทุกครั้ง → ผูก event แบบ delegated ที่ document
 $(document).on('click', '#ai-overview-btn', function () { window.fetchAiOverview(); });
+
+// สร้างใหม่: fetchAiOverview ยิง GAS สดเสมอ และ setCacheDB ทับ cacheKey เดิมเมื่อสำเร็จ
+// จึงไม่ต้องลบ key ทิ้งก่อน — ถ้าลบก่อนแล้วยิงพลาด ผู้ใช้จะเสียสรุปเดิมที่ใช้ได้ไปฟรีๆ
+$(document).on('click', '.ai-ov-regen', function () {
+    if (window._aiOverviewLoading) return;
+    $(this).prop('disabled', true);   // กันคลิกซ้ำก่อน render โครงร่างจะมาทับ
+    if (typeof window.logFeature === 'function') window.logFeature('ai_search_overview_regen');
+    window.fetchAiOverview();
+});
 
 $(document).on('click', '.ai-ov-chip', function () {
     // performSearch อ่านคำค้นจาก #search-input เสมอ (ไม่รับ argument) — ต้องเขียนค่าลงช่องก่อนเรียก
