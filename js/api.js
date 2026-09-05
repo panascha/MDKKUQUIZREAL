@@ -395,3 +395,74 @@ window.fetchQuestionsForSubject = async function (subjectParam, structure) {
         return window.APPSCRIPT_URL + '?action=getQuestions&subject=' + subjectParam + '&_=' + Date.now();
     });
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPABASE READ LAYER — slice structure/category/announcements (getStructure)
+//
+// GAS ตอบสามอย่างนี้ใน response เดียว ⇒ ที่นี่ยิงสาม view พร้อมกันแล้วประกอบเป็นรูปเดิม
+//
+// ⚠️ ลำดับ category เป็น "ของจริงที่ผู้ใช้เห็น": renderAccordionUI (ui.js) ไม่ sort เลย
+//    ใช้ลำดับ array ตรงๆ ⇒ ต้อง order=SheetOrder เสมอ (มาจาก 007_structure_readpath.sql
+//    ซึ่งเก็บลำดับแถวในชีทผ่าน WITH ORDINALITY) การ sort ด้วย CategoryID เพี้ยนทุกวิชา
+//    ต่อท้ายด้วย CategoryID เพราะ sbFetchPaged ต้องการ order ที่ unique
+//
+// ⚠️ Status=eq.live ตัดหมวด auto_created (หมวดที่ถูกปั้นตอนโหลดเพราะ Questions อ้างถึง
+//    แต่ชีท Category ไม่มี) ออกจากทางเดิน "ทุกวิชา" — ทางเดินต่อวิชาไม่โดนอยู่แล้ว
+//    เพราะแถวพวกนั้น SubjectRef ว่าง
+//
+// ไม่ถูกเรียกเลยถ้า window.USE_SUPABASE_STRUCTURE = false
+// ─────────────────────────────────────────────────────────────────────────────
+window.fetchSupabaseStructure = async function (subjectParam) {
+    var clean = subjectParam ? String(subjectParam).trim() : '';
+    var subjFilter = clean ? '&SubjectID=eq.' + encodeURIComponent(clean) : '';
+    var catFilter  = clean ? '&SubjectRef=eq.' + encodeURIComponent(clean) : '&Status=eq.live';
+
+    var results = await Promise.all([
+        window.sbFetchPaged('v_structure?select=*' + subjFilter + '&order=SheetOrder,SubjectID,AccordionGroup'),
+        window.sbFetchPaged('v_categories?select=*' + catFilter + '&order=SheetOrder,CategoryID'),
+        window.sbFetchPaged('v_announcements?select=*&order=Id')
+    ]);
+
+    // วิชาที่ไม่มีอยู่จริงคืน array ว่าง ซึ่ง "ดูเหมือนสำเร็จ" — ต้องตกไป GAS แทนที่จะแคชของเปล่า
+    if (clean && !results[0].length) {
+        throw new Error('[Supabase] ไม่พบวิชา ' + clean + ' ใน v_structure');
+    }
+
+    return {
+        subjects: results[0].map(function (s) {
+            return {
+                year: s.Year,
+                subjectId: s.SubjectID,
+                subjectName: s.SubjectName,
+                accordionGroup: s.AccordionGroup
+            };
+        }),
+        category: results[1].map(function (c) {
+            return {
+                categoryId: c.CategoryID,
+                subjectRef: c.SubjectRef,
+                accordionGroup: c.AccordionGroup,
+                categoryName: c.CategoryName
+            };
+        }),
+        // ประกาศใช้ชื่อคอลัมน์ PascalCase เหมือน GAS ทุกตัว (Id/Text/Type/Active/Order) จึงไม่ต้อง map
+        // Active เป็น boolean ที่นี่ แต่ ui.js อ่านด้วย String(a.Active).toUpperCase()==='TRUE' อยู่แล้ว
+        announcements: results[2]
+    };
+};
+
+// จุดเรียกใช้จริงของ app.js — ลอง Supabase ก่อน ล้มเมื่อไรตกไป GAS getStructure ทันที
+// subjectParam ว่าง = ขอทั้งหมด (ใช้ populate dropdown) เหมือน URL เดิมที่ไม่มี &subject=
+window.fetchStructure = async function (subjectParam) {
+    if (window.USE_SUPABASE_STRUCTURE) {
+        try {
+            return await window.fetchSupabaseStructure(subjectParam);
+        } catch (err) {
+            console.warn('[Supabase] โหลด structure ไม่สำเร็จ ใช้ GAS แทน:', err);
+        }
+    }
+    return window.fetchGAS(function () {
+        return window.APPSCRIPT_URL + '?action=getStructure'
+            + (subjectParam ? '&subject=' + subjectParam : '') + '&_=' + Date.now();
+    });
+};

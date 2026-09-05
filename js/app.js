@@ -57,7 +57,7 @@ window.updateSubjectUI = function (subjectParam) {
 window.getAllSubjectsList = async function () {
     let allSubjects = await window.getCacheDB('all_subjects_list_v2');
     if (!allSubjects) {
-        const resAllStruct = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&_=${Date.now()}`);
+        const resAllStruct = await window.fetchStructure('');
         if (resAllStruct && resAllStruct.subjects) {
             const uniqueSubjs = [];
             const seen = new Set();
@@ -417,7 +417,7 @@ window.runIncrementalSync = async function () {
         });
 
         if (!res.changed || res.changed.length === 0) {
-            var structRes = await window.fetchGAS(function () { return window.APPSCRIPT_URL + '?action=getStructure' + (subjectParam ? '&subject=' + subjectParam : '') + '&_=' + Date.now(); });
+            var structRes = await window.fetchStructure(subjectParam);
 
             if (structRes && structRes.subjects) {
                 var existingCache = await window.getCacheDB(cacheKey);
@@ -773,7 +773,7 @@ window._syncInBackground = function (subjectParam, localVer, verKey, cacheKey, s
                             window.searchDictionaryDirty = true;
                         }
                     } else {
-                        const structRes = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`);
+                        const structRes = await window.fetchStructure(subjectParam);
                         if (structRes && structRes.subjects) {
                             const existingCache = await window.getCacheDB(cacheKey);
                             if (existingCache) {
@@ -795,7 +795,7 @@ window._syncInBackground = function (subjectParam, localVer, verKey, cacheKey, s
                 }
 
                 if (!incrementalOk) {
-                    const resStruct = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`);
+                    const resStruct = await window.fetchStructure(subjectParam);
                     const resQues = await window.fetchQuestionsForSubject(subjectParam, resStruct);
                     const newData = {
                         structure: resStruct,
@@ -1038,12 +1038,12 @@ window.initApp = async function () {
             // Supabase ต้องรู้ก่อนว่าวิชานี้มีหมวดอะไรบ้างถึงจะกรองได้ → structure ต้องมาก่อน questions
             // (เดิมยิงคู่กันแบบ parallel — เสีย 1 round trip เฉพาะรอบแรกที่ยังไม่มี cache)
             const structFetchPromises = [
-                window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`)
+                window.fetchStructure(subjectParam)
             ];
             // ดึง Structure ทั้งหมด (ไม่ filter) พร้อมกันเพื่อ populate dropdown — เฉพาะเมื่อมี subject filter
             if (subjectParam) {
                 structFetchPromises.push(
-                    window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&_=${Date.now()}`)
+                    window.fetchStructure('')
                 );
             }
             const structResults = await Promise.all(structFetchPromises);
@@ -1110,7 +1110,7 @@ window.initApp = async function () {
                     }
                 } else {
                     // ไม่มีคำถามเปลี่ยน แต่ version ต่าง → Structure/Category เปลี่ยน
-                    const structRes = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`);
+                    const structRes = await window.fetchStructure(subjectParam);
                     if (structRes && structRes.subjects) {
                         const existingCache = await window.getCacheDB(cacheKey);
                         if (existingCache) {
@@ -1134,7 +1134,7 @@ window.initApp = async function () {
 
             if (!incrementalOk) {
                 // Fallback: Full re-download
-                const resStruct = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`);
+                const resStruct = await window.fetchStructure(subjectParam);
                 const resQues = await window.fetchQuestionsForSubject(subjectParam, resStruct);
                 const newData = {
                     structure: resStruct,

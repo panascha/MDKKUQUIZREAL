@@ -12,6 +12,10 @@ window.SUPABASE_ANON_KEY = 'sb_publishable_lbCmPZ0_OfQ-DwBjgU4Fnw_wDN8Vsa6';
 // false = กลับไปใช้ GAS getQuestions ทั้งหมดทันที (kill switch)
 window.USE_SUPABASE_QUESTIONS = true;
 
+// slice structure/category/announcements (getStructure) — kill switch แยกจาก questions
+// ลำดับหมวดที่นักศึกษาเห็นมาจาก v_categories."SheetOrder" (007_structure_readpath.sql)
+window.USE_SUPABASE_STRUCTURE = false;
+
 // PostgREST ตัดผลลัพธ์ที่ 1000 แถวเสมอ — ต้องเดินหน้าเองด้วย limit/offset
 window.SUPABASE_PAGE_SIZE = 1000;
 
