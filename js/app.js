@@ -795,10 +795,8 @@ window._syncInBackground = function (subjectParam, localVer, verKey, cacheKey, s
                 }
 
                 if (!incrementalOk) {
-                    const [resStruct, resQues] = await Promise.all([
-                        window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`),
-                        window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}&_=${Date.now()}`)
-                    ]);
+                    const resStruct = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`);
+                    const resQues = await window.fetchQuestionsForSubject(subjectParam, resStruct);
                     const newData = {
                         structure: resStruct,
                         questions: resQues.map((q, index) => ({
@@ -1036,21 +1034,22 @@ window.initApp = async function () {
         const serverVersion = resVer.v;
 
         if (!localData) {
-            // ─── T3.6: First Run — ดึงทุกอย่างใน Parallel รวม Structure ไม่ filter สำหรับ Dropdown ───
-            const initFetchPromises = [
-                window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`),
-                window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}&_=${Date.now()}`)
+            // ─── T3.6: First Run — ดึง Structure (scoped + full สำหรับ Dropdown) พร้อมกัน แล้วค่อยดึงข้อสอบ ───
+            // Supabase ต้องรู้ก่อนว่าวิชานี้มีหมวดอะไรบ้างถึงจะกรองได้ → structure ต้องมาก่อน questions
+            // (เดิมยิงคู่กันแบบ parallel — เสีย 1 round trip เฉพาะรอบแรกที่ยังไม่มี cache)
+            const structFetchPromises = [
+                window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`)
             ];
             // ดึง Structure ทั้งหมด (ไม่ filter) พร้อมกันเพื่อ populate dropdown — เฉพาะเมื่อมี subject filter
             if (subjectParam) {
-                initFetchPromises.push(
+                structFetchPromises.push(
                     window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&_=${Date.now()}`)
                 );
             }
-            const initResults = await Promise.all(initFetchPromises);
-            const resStruct = initResults[0];
-            const resQues   = initResults[1];
-            const resAllStruct = initResults[2]; // undefined เมื่อ subjectParam ว่าง (scoped = full ในกรณีนั้น)
+            const structResults = await Promise.all(structFetchPromises);
+            const resStruct = structResults[0];
+            const resAllStruct = structResults[1]; // undefined เมื่อ subjectParam ว่าง (scoped = full ในกรณีนั้น)
+            const resQues = await window.fetchQuestionsForSubject(subjectParam, resStruct);
 
             const newData = {
                 structure: resStruct,
@@ -1135,10 +1134,8 @@ window.initApp = async function () {
 
             if (!incrementalOk) {
                 // Fallback: Full re-download
-                const [resStruct, resQues] = await Promise.all([
-                    window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`),
-                    window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getQuestions&subject=${subjectParam}&_=${Date.now()}`)
-                ]);
+                const resStruct = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=getStructure&subject=${subjectParam}&_=${Date.now()}`);
+                const resQues = await window.fetchQuestionsForSubject(subjectParam, resStruct);
                 const newData = {
                     structure: resStruct,
                     questions: resQues.map((q, index) => ({

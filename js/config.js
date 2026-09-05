@@ -3,6 +3,23 @@
 // 1. ตั้งค่าการเชื่อมต่อ Server API และตั้งค่าพื้นฐาน
 window.APPSCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqv5BXxGOvTKO1DJoahJSTgn74_lPnRq_opqrUndXhJC3TAt7PHv6B_PbMvxzrAAIl/exec';
 
+// ── Supabase (Phase 1 ฝั่ง REAL: อ่าน slice `questions` เท่านั้น) ─────────────
+// anon key เป็น publishable key โดยเจตนา — RLS ปิดทางเขียนไว้แล้ว ไฟล์นี้ขึ้น GitHub Pages
+// ห้ามใส่ sb_secret_… ที่นี่เด็ดขาด
+window.SUPABASE_URL = 'https://nqczccbhjrzjlwirmjot.supabase.co';
+window.SUPABASE_ANON_KEY = 'sb_publishable_lbCmPZ0_OfQ-DwBjgU4Fnw_wDN8Vsa6';
+
+// false = กลับไปใช้ GAS getQuestions ทั้งหมดทันที (kill switch)
+window.USE_SUPABASE_QUESTIONS = true;
+
+// PostgREST ตัดผลลัพธ์ที่ 1000 แถวเสมอ — ต้องเดินหน้าเองด้วย limit/offset
+window.SUPABASE_PAGE_SIZE = 1000;
+
+// งบความยาว (หลัง encode) ของ array literal ที่ใส่ใน ?category=ov.{...} ต่อหนึ่งคำขอ
+// CVS วันนี้มี 205 หมวด = ~8.6KB ถ้ายิงก้อนเดียว ซึ่งชิดเพดาน URL ของ proxy (~8KB) เกินไป
+// ตัดเป็นก้อนละ ~3KB แล้วรวมผลฝั่ง client ⇒ เพิ่มหมวดได้อีกเท่าไรก็ไม่ 414
+window.SUPABASE_FILTER_URL_BUDGET = 3000;
+
 window.zoomStep = 10;
 window.maxZoom = 200;
 window.minZoom = 30;

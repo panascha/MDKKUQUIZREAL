@@ -198,3 +198,200 @@ window.saveReportToGoogleSheet = async function (from, category, questionId, que
         console.error("Error saving report after retries:", error);
     }
 };
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPABASE READ LAYER — Phase 1 ฝั่ง REAL, slice `questions` เท่านั้น
+//
+// structure/category/announcements/votes/reports ยังมาจาก GAS ทั้งหมด — เปลี่ยนเฉพาะ
+// ตัวที่หนักที่สุด (getQuestions) ซึ่งเป็นคำขอที่ทำให้ GAS ช้าและกินโควตามากที่สุด
+//
+// ⚠️ v_questions ไม่มีคอลัมน์ subject — การตัดสินว่าข้อไหนอยู่วิชาไหนต้องผ่าน
+//    category → subjectRef map ฝั่ง client (มาจาก getStructure ของ GAS) เสมอ
+//    predicate ตัวเดียวกันนี้ถูกส่งเข้าไปเป็น ?category=ov.{...} เพื่อไม่ต้องโหลด
+//    ข้อสอบทั้งฐาน 23,904 ข้อ (~19MB) ลงเครื่องนักศึกษาเพื่อดูวิชาเดียว
+//
+// ทุกฟังก์ชันในบล็อกนี้ไม่ถูกเรียกเลยถ้า window.USE_SUPABASE_QUESTIONS = false
+// ─────────────────────────────────────────────────────────────────────────────
+
+// PostgREST บังคับ header `apikey` — Authorization: Bearer เปล่าๆ ถูกปฏิเสธ 401
+window.sbHeaders = function () {
+    return {
+        apikey: window.SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + window.SUPABASE_ANON_KEY,
+        Accept: 'application/json'
+    };
+};
+
+// ยิงจริง + retry — คืน Response ดิบ เพราะ sbFetchPaged ต้องอ่าน header Content-Range
+// (Supabase ประกาศ Content-Range ไว้ใน Access-Control-Expose-Headers แล้ว ตรวจจากของจริง 2026-09-05)
+async function sbRequest(path, init, retries) {
+    retries = (typeof retries === 'number') ? retries : 3;
+    var BASE_MS = 500;
+    var CAP_MS = 8000;
+
+    for (var i = 0; i < retries; i++) {
+        var response;
+        try {
+            response = await fetch(window.SUPABASE_URL + '/rest/v1/' + path, init);
+        } catch (netErr) {
+            if (i === retries - 1) throw netErr;
+            var nd = Math.random() * Math.min(BASE_MS * Math.pow(2, i), CAP_MS);
+            console.warn('[sbFetch] Network error attempt ' + (i + 1) + '. Retry in ' + Math.round(nd) + 'ms');
+            await new Promise(function (r) { setTimeout(r, nd); });
+            continue;
+        }
+
+        // 4xx = คำขอผิดเอง (คีย์ผิด/คอลัมน์ผิด/RLS/URL ยาวเกิน) — ยิงซ้ำได้ผลเดิม
+        if (response.status >= 400 && response.status < 500) {
+            throw new Error('[sbFetch] HTTP ' + response.status + ' ' + path.slice(0, 120) + ' — ' + (await response.text()).slice(0, 200));
+        }
+        if (!response.ok) {
+            if (i === retries - 1) throw new Error('[sbFetch] HTTP ' + response.status + ' after ' + retries + ' attempts');
+            var hd = Math.random() * Math.min(BASE_MS * Math.pow(2, i), CAP_MS);
+            console.warn('[sbFetch] HTTP ' + response.status + ' attempt ' + (i + 1) + '. Retry in ' + Math.round(hd) + 'ms');
+            await new Promise(function (r) { setTimeout(r, hd); });
+            continue;
+        }
+
+        return response;
+    }
+}
+
+window.sbFetch = async function (path, init, retries) {
+    var response = await sbRequest(path, init, retries);
+    return response.json();
+};
+
+// ผลลัพธ์ถูกตัดที่ 1000 แถวเสมอ และต้องใช้ ?limit=&offset= — header Range ถูกเมิน
+// pathWithQuery ต้องมี order= ที่ unique อยู่แล้ว ไม่งั้น offset ข้าม/ซ้ำแถวเงียบๆ
+//
+// หน้าที่หายไปหนึ่งหน้าจะ "เร็วและดูถูกต้อง" ทุกประการ — จึงขอ count=exact ติดมากับหน้าแรก
+// (ไม่เปลืองคำขอเพิ่ม) แล้วเทียบยอดรวมก่อนคืนค่า ถ้าไม่ตรงให้ throw เพื่อให้ caller ตกไป GAS
+window.sbFetchPaged = async function (pathWithQuery) {
+    var pageSize = window.SUPABASE_PAGE_SIZE;
+    var out = [];
+    var expected = null;
+
+    for (var offset = 0; ; offset += pageSize) {
+        var headers = window.sbHeaders();
+        if (offset === 0) headers.Prefer = 'count=exact';
+
+        var response = await sbRequest(pathWithQuery + '&limit=' + pageSize + '&offset=' + offset, { headers: headers });
+
+        if (offset === 0) {
+            var cr = response.headers.get('Content-Range');       // เช่น "0-999/2557"
+            var total = cr ? cr.split('/')[1] : null;
+            if (total && total !== '*') expected = parseInt(total, 10);
+        }
+
+        var page = await response.json();
+        if (!Array.isArray(page)) throw new Error('[sbFetchPaged] ไม่ได้ array จาก ' + pathWithQuery.slice(0, 120));
+        for (var i = 0; i < page.length; i++) out.push(page[i]);   // ห้าม spread — 1000 args ต่อรอบ
+
+        if (page.length < pageSize) break;
+    }
+
+    if (expected !== null && !isNaN(expected) && out.length !== expected) {
+        throw new Error('[sbFetchPaged] อ่านได้ ' + out.length + ' แถว คาด ' + expected + ' — ข้อมูลไม่ครบ');
+    }
+    return out;
+};
+
+// cursor/ยอดรวมของฐาน — อ่านจาก DB เสมอ ห้ามใช้นาฬิกาของเครื่อง client
+// คืน { questions: <ISO|null>, serverTime: <ISO>, questionCount: <int> }
+window.fetchSupabaseDataVersion = function () {
+    return window.sbFetch('rpc/data_version', {
+        method: 'POST',
+        headers: Object.assign(window.sbHeaders(), { 'Content-Type': 'application/json' }),
+        body: '{}'
+    });
+};
+
+// เรียงตาม questionId แบบรู้จักตัวเลข: CVS_51MCQ1_2 มาก่อน CVS_51MCQ1_10
+// (เรียงแบบ lexical ล้วนจะได้ _10 ก่อน _2 ซึ่งพังลำดับข้อสอบในโหมด "ไม่สุ่ม")
+var _sbCollator = null;
+window.sortQuestionsNatural = function (rows) {
+    if (!_sbCollator) _sbCollator = new Intl.Collator('en', { numeric: true });
+    return rows.sort(function (a, b) {
+        return _sbCollator.compare(String(a.questionId), String(b.questionId));
+    });
+};
+
+// ตัด categoryId เป็นก้อนตามความยาว "หลัง encode" ไม่ใช่ตามจำนวนหมวด
+// ชื่อหมวดยาวไม่เท่ากันมาก (CVS ~42 ตัว/หมวด, GI ~62) การนับจำนวนหมวดจึงคุมความยาว URL ไม่ได้จริง
+window.sbChunkCategoryIds = function (ids) {
+    var budget = window.SUPABASE_FILTER_URL_BUDGET;
+    var out = [];
+    var cur = [];
+    var len = 2;                                   // วงเล็บปีกกาเปิด-ปิด
+    for (var i = 0; i < ids.length; i++) {
+        var cost = encodeURIComponent('"' + ids[i] + '",').length;
+        if (cur.length && len + cost > budget) { out.push(cur); cur = []; len = 2; }
+        cur.push(ids[i]);
+        len += cost;
+    }
+    if (cur.length) out.push(cur);
+    return out;
+};
+
+// โหลดข้อสอบของวิชาเดียวจาก Supabase
+//   structure = ผลลัพธ์ getStructure&subject=<subjectParam> ของ GAS (ต้องมี .category)
+// throw ทุกกรณีที่ไม่มั่นใจว่าได้ข้อมูลครบ — caller (fetchQuestionsForSubject) จะตกไป GAS ให้เอง
+window.fetchSupabaseQuestionsForSubject = async function (subjectParam, structure) {
+    var cleanFilter = subjectParam ? String(subjectParam).trim().toUpperCase() : '';
+
+    // ── โหลดทุกวิชา (ผู้ใช้กด "โหลดทุกวิชา") — ไม่มี predicate, เทียบครบด้วย questionCount ของ DB
+    if (cleanFilter === '') {
+        var dv = await window.fetchSupabaseDataVersion();
+        var allRows = await window.sbFetchPaged('v_questions?select=*&order=questionId');
+        var expected = Number(dv && dv.questionCount);
+        if (!isNaN(expected) && allRows.length !== expected) {
+            throw new Error('[Supabase] อ่านข้อสอบได้ไม่ครบ: ' + allRows.length + '/' + expected);
+        }
+        return window.sortQuestionsNatural(allRows);
+    }
+
+    // ── map หมวด→วิชา ฝั่ง client: ใช้เกณฑ์เดียวกับ GAS getQuestionsArray เป๊ะ
+    //    (cache.gs: key = categoryId.trim(), value = subjectRef.trim().toUpperCase())
+    var catIds = [];
+    var catRows = (structure && structure.category) || [];
+    for (var i = 0; i < catRows.length; i++) {
+        if (String(catRows[i].subjectRef || '').trim().toUpperCase() !== cleanFilter) continue;
+        var cid = String(catRows[i].categoryId || '').trim();
+        if (cid) catIds.push(cid);
+    }
+
+    // หมวดว่าง ⇒ ov.{} คืน 0 แถว ซึ่ง "ดูเหมือนสำเร็จ" — ต้องตกไป GAS แทนที่จะแคชวิชาเปล่า
+    if (!catIds.length) {
+        throw new Error('[Supabase] ไม่พบหมวดของวิชา ' + cleanFilter + ' ใน structure — ไม่ยิง query');
+    }
+
+    var chunks = window.sbChunkCategoryIds(catIds);
+    var byId = new Map();
+    for (var c = 0; c < chunks.length; c++) {
+        var literal = '{' + chunks[c].map(function (id) {
+            return '"' + id.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+        }).join(',') + '}';
+        // ov. = array overlap ⇒ "ข้อนี้มีหมวดใดหมวดหนึ่งของวิชานี้" = predicate เดียวกับ GAS .some()
+        var rows = await window.sbFetchPaged(
+            'v_questions?select=*&category=ov.' + encodeURIComponent(literal) + '&order=questionId'
+        );
+        for (var r = 0; r < rows.length; r++) byId.set(rows[r].questionId, rows[r]);   // ข้อเดียวอยู่ได้หลายหมวด/หลายก้อน
+    }
+
+    return window.sortQuestionsNatural(Array.from(byId.values()));
+};
+
+// จุดเรียกใช้จริงของ app.js — ลอง Supabase ก่อน ล้มเมื่อไรตกไป GAS getQuestions ทันที
+// คืน array ของข้อสอบรูปแบบเดียวกับ GAS ทุกประการ (มี updatedAt เพิ่มมาเฉยๆ ไม่มีใครอ่าน)
+window.fetchQuestionsForSubject = async function (subjectParam, structure) {
+    if (window.USE_SUPABASE_QUESTIONS) {
+        try {
+            return await window.fetchSupabaseQuestionsForSubject(subjectParam, structure);
+        } catch (err) {
+            console.warn('[Supabase] โหลดข้อสอบไม่สำเร็จ ใช้ GAS แทน:', err);
+        }
+    }
+    return window.fetchGAS(function () {
+        return window.APPSCRIPT_URL + '?action=getQuestions&subject=' + subjectParam + '&_=' + Date.now();
+    });
+};
