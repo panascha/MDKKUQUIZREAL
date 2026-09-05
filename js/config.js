@@ -14,7 +14,7 @@ window.USE_SUPABASE_QUESTIONS = true;
 
 // slice structure/category/announcements (getStructure) — kill switch แยกจาก questions
 // ลำดับหมวดที่นักศึกษาเห็นมาจาก v_categories."SheetOrder" (007_structure_readpath.sql)
-window.USE_SUPABASE_STRUCTURE = false;
+window.USE_SUPABASE_STRUCTURE = true;
 
 // PostgREST ตัดผลลัพธ์ที่ 1000 แถวเสมอ — ต้องเดินหน้าเองด้วย limit/offset
 window.SUPABASE_PAGE_SIZE = 1000;
