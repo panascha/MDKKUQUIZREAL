@@ -1040,7 +1040,7 @@
                                 class="fas fa-brain"></i> โหมด MEQ (ตอบก่อนดูตัวเลือก): ปิด</button>
                         <button id="toggle-scratchpad-btn" class="quiz-button"
                             style="width:100%; margin:0; font-size: 0.95rem; min-height: 44px; padding: 8px; background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text); font-weight: 600;"><i
-                                class="fas fa-pen"></i> <span>เขียนบนโจทย์ (Scratchpad): เปิด</span></button>
+                                class="fas fa-pen"></i> <span>เขียนบนโจทย์ (Scratchpad): ปิด</span></button>
                     </div>
                     </details>
                     
@@ -1109,7 +1109,11 @@
          ========================================= -->
         <main id="quiz-container">
 
-            <h1>Random Quiz | ข้อที่ <span id="questionIndex"></span> | <span id="score"></span></h1>
+            <!-- แถวบนสุด: ปุ่มลัดเปิด/ปิดปากกา + h1 — ปุ่มห้ามอยู่ใน h1 เพราะ app.js เขียนทับ h1 ด้วย .html() -->
+            <div class="quiz-topbar">
+                <button type="button" id="quiz-scratchpad-toggle-btn" aria-pressed="false" title="เปิดปากกาเขียนบนโจทย์"><i class="fas fa-pen"></i> <span class="sp-toggle-text">ปากกา: ปิด</span></button>
+                <h1>Random Quiz | ข้อที่ <span id="questionIndex"></span> | <span id="score"></span></h1>
+            </div>
 
             <!-- INDEX CARD PANEL (NEW) -->
             <div id="question-index-panel">

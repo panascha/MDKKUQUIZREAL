@@ -46,6 +46,64 @@ body.scratchpad-master-off #quiz-card-wrapper.scratchpad-finger {
     touch-action: auto;
 }
 
+/* ปุ่มลัดเปิด/ปิดปากกา มุมซ้ายบนของหน้าทำข้อสอบ — สถานะเดียวกับ #toggle-scratchpad-btn (setMasterEnabled) */
+#quiz-scratchpad-toggle-btn {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    min-width: 40px;
+    min-height: 40px;
+    margin-block: 4px;
+    padding: 0 12px;
+    border: 1.5px solid var(--color-primary);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-primary);
+    font-family: var(--font-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+#quiz-scratchpad-toggle-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+#quiz-scratchpad-toggle-btn .fa-pen {
+    position: relative;
+}
+body.scratchpad-master-off #quiz-scratchpad-toggle-btn {
+    border-color: var(--color-border);
+    background: transparent;
+    color: var(--color-text-muted);
+}
+/* FA 6.0.0-beta3 ไม่มี fa-pen-slash (Pro เท่านั้น) — ขีดทับไอคอนปากกาเองด้วย ::after */
+body.scratchpad-master-off #quiz-scratchpad-toggle-btn .fa-pen::after {
+    content: '';
+    position: absolute;
+    left: -3px;
+    right: -3px;
+    top: 50%;
+    height: 2px;
+    background: currentColor;
+    box-shadow: 0 0 0 1.5px var(--color-surface-2);   /* ช่องว่างรอบเส้น ให้ขีดแยกจากตัวปากกา */
+    transform: rotate(45deg);   /* บนซ้าย→ล่างขวา ตัดขวางปากกา (-45deg ขนานกับตัวปากกา มองไม่เห็น) */
+}
+/* จอแคบ: เหลือแค่ไอคอน (ยังกด 40px) ไม่ให้ดันหัวข้อ "Random Quiz | ข้อที่…" ตกบรรทัด */
+@media (max-width: 480px) {
+    #quiz-scratchpad-toggle-btn {
+        padding: 0;
+    }
+    #quiz-scratchpad-toggle-btn .sp-toggle-text {
+        display: none;
+    }
+}
+
 /* โหมดวาดด้วยนิ้วเปิด: ปิด browser gesture บนการ์ด (นิ้วต้องวาด ไม่ใช่เลื่อน) */
 #quiz-card-wrapper.scratchpad-finger {
     touch-action: none;
@@ -564,7 +622,7 @@ body.sp-zen #quiz-container {
    ที่อยู่นอก <main> ไม่ต้องซ่อน เพราะ overlay ทึบทับหมดแล้ว
    เก็บไว้: #feedback, #quiz-explain-container, .nav-container — ไม่งั้นตอบเสร็จแล้ว
    ดูเฉลยหรือไปข้อถัดไปไม่ได้ ต้องออกจาก Zen ก่อน */
-body.sp-zen #quiz-container > h1,
+body.sp-zen #quiz-container > .quiz-topbar,
 body.sp-zen #quiz-container > #question-index-panel,
 body.sp-zen #quiz-container > #vote-notification-bar,
 body.sp-zen #quiz-container > #report-notification-bar,

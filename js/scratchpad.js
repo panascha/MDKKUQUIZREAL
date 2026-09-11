@@ -1563,7 +1563,7 @@
         });
     }
 
-    // ─── Phase 4 Q1: สวิตช์หลัก (ปุ่มใน "ตั้งค่าโหมดทำข้อสอบ") ─
+    // ─── Phase 4 Q1: สวิตช์หลัก (ปุ่มใน "ตั้งค่าโหมดทำข้อสอบ" + ปุ่มลัดมุมซ้ายบน) ─
     function setMasterEnabled(on, persist) {
         masterOn = on;
         if (persist) try { localStorage.setItem(MASTER_KEY, String(on)); } catch (e) { }
@@ -1583,6 +1583,13 @@
         var b = document.getElementById('toggle-scratchpad-btn');
         var label = b && b.querySelector('span');
         if (label) label.textContent = 'เขียนบนโจทย์ (Scratchpad): ' + (on ? 'เปิด' : 'ปิด');
+        var qb = document.getElementById('quiz-scratchpad-toggle-btn');   // สีเปิด/ปิดมาจาก body.scratchpad-master-off (CSS)
+        if (qb) {
+            qb.setAttribute('aria-pressed', String(on));
+            qb.title = (on ? 'ปิด' : 'เปิด') + 'ปากกาเขียนบนโจทย์';
+            var qt = qb.querySelector('.sp-toggle-text');
+            if (qt) qt.textContent = 'ปากกา: ' + (on ? 'เปิด' : 'ปิด');
+        }
         renderAll();
     }
     window.setScratchpadEnabled = function (on) { if (wrapper) setMasterEnabled(!!on, true); };
@@ -1749,10 +1756,12 @@
 
         var masterBtn = document.getElementById('toggle-scratchpad-btn');
         if (masterBtn) masterBtn.addEventListener('click', function () { setMasterEnabled(!masterOn, true); });
+        var quickBtn = document.getElementById('quiz-scratchpad-toggle-btn');
+        if (quickBtn) quickBtn.addEventListener('click', function () { setMasterEnabled(!masterOn, true); });
         var notesBtn = document.getElementById('btn-view-notes');
         if (notesBtn) notesBtn.addEventListener('click', toggleNotesView);
-        var savedMaster = true;
-        try { savedMaster = localStorage.getItem(MASTER_KEY) !== 'false'; } catch (e) { }
+        var savedMaster = false;   // ค่าเริ่มต้นปิด — เปิดเฉพาะคนที่เคยกดเปิดเอง (key เขียนตอนคลิกเท่านั้น)
+        try { savedMaster = localStorage.getItem(MASTER_KEY) === 'true'; } catch (e) { }
         setMasterEnabled(savedMaster);
     });
 
