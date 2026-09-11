@@ -799,13 +799,16 @@
     }
     // Phase 4 Q5/Q5b: snap แล้วลากต่อ = ย่อขยายสดจนยกปากกา — คิดใหม่จากท่าตอน snap ทุกเฟรม (ไม่สะสม) จึงหดกลับได้
     // เส้นตรง: จุดเริ่มเดิม → ปลายปากกา (หมุนได้รอบทิศ) ; วงรี/สี่เหลี่ยม: ยึดจุดกลางกรอบเดิม ไม่ลอยออกจากข้อความที่วงไว้
-    // ครึ่งกว้าง = ค่าตอน snap + ระยะที่ปากกาห่างจุดกลางเพิ่มขึ้น — ใช้ |px−cx| ตรงๆ ไม่ได้: วงกลมที่เริ่ม-จบด้านบน
-    // ปากกาอยู่ที่ px≈cx เฟรมแรกหลัง snap จะแฟบเหลือขั้นต่ำทันที ; ขั้นต่ำไม่เกินขนาดตอน snap (รูปแบนๆ ไม่กระโดด)
+    // ย่อขยายแบบรัศมี: scale = ระยะปากกา→จุดกลางตอนนี้ / ตอน snap — สัดส่วนเดิมคงที่ ไม่มีรอยต่อกระโดดเมื่อปากกาข้ามแกน
+    // (สูตรแยกแกนเดิม |px−cx| สะดุดตอนปากกาผ่านเส้นกลาง) ; scale = 1 พอดีตอน snap จึงไม่แฟบ ; ปากกาจบใกล้จุดกลาง (r0 ≤ 4) = ไม่ย่อขยาย
+    // ขั้นต่ำไม่เกินขนาดตอน snap (รูปแบนๆ ไม่กระโดดเป็น 12px ทันที)
     function resizeSnap(px, py) {
         var m = activeMeta, s = m.snap;
         if (s.shape === 'line') { setSnapPoints([m.raw[0], [px, py]]); return; }
-        var hw = Math.max(Math.min(SNAP_MIN_HALF, s.hw0), s.hw0 + Math.abs(px - s.cx) - Math.abs(s.px0 - s.cx));
-        var hh = Math.max(Math.min(SNAP_MIN_HALF, s.hh0), s.hh0 + Math.abs(py - s.cy) - Math.abs(s.py0 - s.cy));
+        var r0 = Math.hypot(s.px0 - s.cx, s.py0 - s.cy);
+        var scale = r0 > 4 ? Math.hypot(px - s.cx, py - s.cy) / r0 : 1;
+        var hw = Math.max(Math.min(SNAP_MIN_HALF, s.hw0), s.hw0 * scale);
+        var hh = Math.max(Math.min(SNAP_MIN_HALF, s.hh0), s.hh0 * scale);
         setSnapPoints(synthesizeShape(s.shape, { raw: m.raw, minX: s.cx - hw, maxX: s.cx + hw, minY: s.cy - hh, maxY: s.cy + hh }));
     }
     // line: ทุกจุดห่างจากคอร์ดต้น→ปลายไม่เกิน max(6px, 8% ของคอร์ด) ; closed: ต้น-ปลายใกล้กัน ;
