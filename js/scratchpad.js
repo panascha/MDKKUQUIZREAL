@@ -108,8 +108,13 @@
     function scratchKey(sp, qid) { return 'scratch_' + sp + '_' + qid; }
 
     function state() { return window.APP._scratchpadState; }
-    // ลายเส้นแสดง + รับ input ได้ไหม — ทุกทางเข้า (วาด/ท่าทาง/คีย์ลัด/แตะเทป) เช็กตัวนี้ตัวเดียว
-    function inkLive() { return masterOn; }
+    // ลายเส้นแสดง + รับ input ได้ไหม — ทุกทางเข้า (วาด/ท่าทาง/คีย์ลัด/แตะเทป/undo) เช็กตัวนี้ตัวเดียว
+    // Phase 4 Q4: ข้อที่ตอบแล้ว ซ่อนหมึก + ไม่รับ input จนกว่าจะเปิด "ดูโน้ต" (ไม่งั้นแก้หมึกที่มองไม่เห็นได้)
+    function inkLive() {
+        if (!masterOn) return false;
+        var q = window.APP.current_question;
+        return !q || q.state !== true || !!window.APP._notesViewOn;
+    }
 
     // ─── Prefs (Q17) ─────────────────────────────────────────
     // อ่านทับ default ทีละ field — JSON เก่า/พังไม่ทำให้ toolbar ตาย
@@ -1190,7 +1195,7 @@
     }
     function undo() {
         var st = state();
-        if (!st || !st.actions || !st.actions.length) return;
+        if (!st || !inkLive() || !st.actions || !st.actions.length) return;
         var a = st.actions.pop();
         if (a.t === 'transform') {
             a.items.forEach(function (it) { var g = geomOf(it.stroke); setGeom(it.stroke, it.prev); it.next = g; });
@@ -1207,7 +1212,7 @@
     }
     function redo() {
         var st = state();
-        if (!st || !st.redoStack.length) return;
+        if (!st || !inkLive() || !st.redoStack.length) return;
         var a = st.redoStack.pop();
         if (a.t === 'transform') {
             a.items.forEach(function (it) { setGeom(it.stroke, it.next); });
@@ -1222,7 +1227,7 @@
     }
     function clearAll() {
         var st = state();
-        if (!st || (!st.strokes.length && !st.redoStack.length && !st.tapes.length)) return;
+        if (!st || !inkLive() || (!st.strokes.length && !st.redoStack.length && !st.tapes.length)) return;
         Swal.fire({
             title: 'ล้างลายเส้นของข้อนี้?',
             text: 'ลบลายเส้นและเทปที่ทำไว้ในข้อนี้ ข้ออื่นไม่กระทบ',
@@ -1376,9 +1381,10 @@
         var u = toolbar.querySelector('[data-sp-act="undo"]');
         var r = toolbar.querySelector('[data-sp-act="redo"]');
         var c = toolbar.querySelector('[data-sp-act="clear"]');
-        if (u) u.disabled = !st || !st.actions || !st.actions.length;
-        if (r) r.disabled = !st || !st.redoStack.length;
-        if (c) c.disabled = !st || (!st.strokes.length && !st.redoStack.length && !st.tapes.length);
+        var live = inkLive();
+        if (u) u.disabled = !live || !st || !st.actions || !st.actions.length;
+        if (r) r.disabled = !live || !st || !st.redoStack.length;
+        if (c) c.disabled = !live || !st || (!st.strokes.length && !st.redoStack.length && !st.tapes.length);
     }
     // ─── Phase 3 req 1: Apple Pencil แตะสองครั้งที่ก้าน ─────
     // Safari/iPadOS ยิง webkitpencilaction ที่ window (ไม่มีในเบราว์เซอร์อื่น — ทดสอบจริงได้บน iPad เท่านั้น)
@@ -1534,13 +1540,36 @@
             hidePopover();
             hideFlyout();
             if (zenOn) setZenMode(false);     // toolbar ถูกซ่อน → ปุ่มออกจาก Zen หายไปด้วย
+            if (window.APP._notesViewOn) {    // ปุ่มดูโน้ตหายไป → คืนลำดับตัวเลือกตามฐานข้อมูล
+                window.APP._notesViewOn = false;
+                if (window.APP.current_question) window.showQuestion(false);
+            }
         }
+        updateNotesUI();
         var b = document.getElementById('toggle-scratchpad-btn');
         var label = b && b.querySelector('span');
         if (label) label.textContent = 'เขียนบนโจทย์ (Scratchpad): ' + (on ? 'เปิด' : 'ปิด');
         renderAll();
     }
     window.setScratchpadEnabled = function (on) { if (wrapper) setMasterEnabled(!!on, true); };
+
+    // ─── Phase 4 Q4: ปุ่ม "ดูโน้ต" หลังตอบ ───────────────────
+    // ตอบแล้วตัวเลือกเรียงตามฐานข้อมูล — หมึกที่เขียนตอนตัวเลือกยังสลับอยู่จึงไม่ตรงตำแหน่ง ซ่อนไว้ก่อน
+    // เปิดดู = quiz-core กลับไปใช้ลำดับสุ่มเดิม (choiceMemo.order) หมึกตรง และเขียนต่อได้ (ฝนเปลี่ยนคำตอบไม่ได้ — canShadeSelect)
+    function updateNotesUI() {
+        var b = document.getElementById('btn-view-notes');
+        if (!b) return;
+        var q = window.APP.current_question;
+        b.style.display = masterOn && q && q.state === true ? '' : 'none';
+        b.textContent = window.APP._notesViewOn ? '👁️ ซ่อนโน้ต' : '📝 ดูโน้ตที่เขียน';
+    }
+    function toggleNotesView() {
+        var q = window.APP.current_question;
+        if (!masterOn || !q || q.state !== true) return;
+        window.APP._notesViewOn = !window.APP._notesViewOn;
+        if (!window.APP._notesViewOn) { abortActive(); selection = null; lassoPath = null; }
+        window.showQuestion(false);     // วาดตัวเลือกใหม่ตามลำดับ — hook ท้ายไฟล์เรียก updateNotesUI + render ต่อ
+    }
 
     // ─── Modal guard: มี .modal-card เปิดอยู่ → ปิด overlay ─────
     function initModalGuard() {
@@ -1678,6 +1707,8 @@
 
         var masterBtn = document.getElementById('toggle-scratchpad-btn');
         if (masterBtn) masterBtn.addEventListener('click', function () { setMasterEnabled(!masterOn, true); });
+        var notesBtn = document.getElementById('btn-view-notes');
+        if (notesBtn) notesBtn.addEventListener('click', toggleNotesView);
         var savedMaster = true;
         try { savedMaster = localStorage.getItem(MASTER_KEY) !== 'false'; } catch (e) { }
         setMasterEnabled(savedMaster);
@@ -1691,8 +1722,15 @@
             return;
         }
         window.showQuestion = function (shouldFocus) {
+            // Phase 4 Q4: "ดูโน้ต" มีผลเฉพาะข้อเดิมที่ตอบแล้ว — ต้องรีเซ็ต "ก่อน" _orig เพราะ quiz-core อ่านค่านี้ตอนเรียงตัวเลือก
+            // (ข้อ retry ของโหมดทวนข้อผิดมี questionId ซ้ำแต่ state=false → ถูกรีเซ็ตด้วยเงื่อนไข state)
+            var next = window.APP.currentQuestions[window.APP.questionIndex];
+            var st0 = state();
+            if (!next || next.state !== true || !st0 || st0.qid !== next.questionId) window.APP._notesViewOn = false;
             _orig.call(this, shouldFocus);
             if (!wrapper) return;
+            updateNotesUI();
+            updateToolbarState();
             var q = window.APP.current_question;
             var qid = q && q.questionId;
             if (!qid) return;

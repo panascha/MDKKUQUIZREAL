@@ -188,7 +188,8 @@ window.showQuestion = function (shouldFocus = true) {
         window.APP._choiceOrderByQid[orderQid] = choiceMemo;
     }
     // ตอบแล้ว → คงลำดับตามฐานข้อมูลเสมอ / ยังไม่ตอบ → ใช้ลำดับสุ่มที่จำไว้ (คงที่ระหว่างวาดซ้ำ)
-    const indices = window.APP.current_question.state
+    // Phase 4 Q4: ตอบแล้วแต่เปิด "ดูโน้ต" (scratchpad.js) → กลับไปลำดับสุ่มเดิม ให้ลายเส้นที่เขียนตอนทำข้อตรงตำแหน่ง
+    const indices = (window.APP.current_question.state && !window.APP._notesViewOn)
         ? choicesArray.map((_, i) => i)
         : choiceMemo.order;
 

@@ -572,8 +572,11 @@ body.sp-zen #quiz-container > .category-header-wrap,
 body.sp-zen #quiz-container > #glossary-tap-hint,
 body.sp-zen #quiz-container > #similar-panel,
 body.sp-zen #quiz-container > #discussion-panel,
-body.sp-zen #quiz-container > #quiz-action-row,
 body.sp-zen #quiz-container > span {
+    display: none !important;
+}
+/* Phase 4 Q4: แถวปุ่มท้ายข้อซ่อนใน Zen ยกเว้นปุ่ม "ดูโน้ต" — ทบทวนโน้ตข้อที่ตอบแล้วได้โดยไม่ต้องออกจาก Zen */
+body.sp-zen #quiz-container > #quiz-action-row > :not(#btn-view-notes) {
     display: none !important;
 }
 
