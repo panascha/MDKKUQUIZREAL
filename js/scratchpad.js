@@ -73,9 +73,12 @@
         dark:  { fill: '#3a4250', edge: '#64748b' }
     };
     // Phase 3: ท่าทาง (Pencil double-tap / สองนิ้ว) + คีย์ลัด + วงบอกรัศมียางลบ
-    var TWO_FINGER_TAP_MS = 300;     // แตะสองนิ้วต้องยกภายในเวลานี้ถึงนับเป็น "แตะ" ไม่ใช่ค้าง
-    var TWO_FINGER_GAP_MS = 400;     // สองแตะห่างกันไม่เกินนี้ = double-tap
-    var TWO_FINGER_MOVE_PX = 24;     // จุดกึ่งกลางสองนิ้วขยับเกินนี้ = ซูม/เลื่อน ไม่ใช่แตะ
+    var TWO_FINGER_TAP_MS = 300;     // แตะสอง/สามนิ้วต้องยกภายในเวลานี้ถึงนับเป็น "แตะ" ไม่ใช่ค้าง
+    var TWO_FINGER_MOVE_PX = 24;     // จุดกึ่งกลางนิ้วขยับเกินนี้ = ซูม/เลื่อน ไม่ใช่แตะ
+    // v3.31.0: ปลาย Pencil แตะจอสองครั้ง = สลับปากกา/ยางลบ — จุด ":" หรือวรรณยุกต์ที่เขียนเร็ว ๆ ชนเกณฑ์นี้ได้ ปรับตรงนี้
+    var PEN_DTAP_MS = 280;           // แต่ละแตะกดค้างไม่เกินนี้ และแตะที่สองต้องลงภายในนี้หลังยกแตะแรก
+    var PEN_DTAP_PX = 15;            // สองแตะห่างกันไม่เกินนี้
+    var PEN_TAP_MOVE_PX = 6;         // ปลายปากกาเคลื่อนเกินนี้ระหว่างกด = ขีดเส้น ไม่ใช่แตะ
     var ERASER_CURSOR_DASH = [4, 4];
     // Phase 3 req 7: lasso — เลือก ย้าย ย่อขยาย
     var LASSO_HANDLE = 10;           // px ด้านของสี่เหลี่ยมมือจับ (และระยะเผื่อตอนแตะ)
@@ -103,8 +106,11 @@
     var masterOn = true;             // Phase 4 Q1: false = ปิดทั้งระบบ (ซ่อน toolbar/ลายเส้น, ไม่รับ input) — listener ยังผูกอยู่ แค่ return ก่อน
     var eraserCursor = null;         // { x, y } ตำแหน่งวงยางลบบน wrapper — null = ไม่ต้องวาด
     var lastNonEraserTool = null;    // เครื่องมือก่อนสลับไปยางลบ (Pencil double-tap สลับกลับ)
-    var twoFinger = null;            // { t, cx, cy, moved } ระหว่างแตะสองนิ้ว
-    var lastTwoFingerTapAt = 0;
+    var twoFinger = null;            // { t, cx, cy, moved, n } ระหว่างแตะสอง/สามนิ้ว — n = จำนวนนิ้วสูงสุดที่เห็น
+    var fingersDown = 0;             // นิ้วบนพื้นผิวตอนนี้ (ไม่นับ Pencil/ฝ่ามือ)
+    var holdEraseFrom = null;        // เครื่องมือก่อนนิ้วค้างสลับเป็นยางลบชั่วคราว — แยกจาก lastNonEraserTool ไม่ให้สองท่าชนกัน
+    var penTapStart = null;          // { x, y, t } จุดที่ Pencil กดลง — ล้างทิ้งเมื่อเคลื่อนเกิน PEN_TAP_MOVE_PX
+    var lastPenTap = null;           // { t, x, y, stroke, redo } แตะปลายปากกาครั้งล่าสุด (เวลาตอนยก)
     var selection = null;            // { strokes, tapes, box } — box เป็น px เทียบ wrapper
     var lassoPath = null;            // [[x,y]...] ห่วงที่กำลังลาก
     var transform = null;            // { mode, handle, startX, startY, box0, items, tapeItems }
@@ -693,7 +699,16 @@
         if (!wantsDraw(e)) return;
         // Q7: textarea/input ปล่อยผ่าน — Apple Scribble + วางเคอร์เซอร์ใน MEQ textarea ต้องใช้ได้
         if (e.target.closest('textarea, input, [contenteditable]')) return;
+        // v3.31.0: Pencil + นิ้วค้าง = ยางลบชั่วคราว — ติดตอน Pencil ลง ไม่ใช่ตอนนิ้วแตะ (setTool ปิด flyout/ล้าง lasso แค่เลื่อนหน้าก็กระพริบ)
+        // ไม่มีนิ้วค้าง → เช็กแตะปลายสองครั้ง ; เฉพาะปากกา/ไฮไลต์/ยางลบ — แตะเทป (เปิด/ปิด) กับแตะ lasso เป็นการกระทำจริง ห้ามกลืน
+        var inkTool = tool === 'pen' || tool === 'highlighter' || tool === 'eraser';
+        if (e.pointerType === 'pen' && inkTool) {
+            if (fingersDown === 1 && !window.APP._fingerDrawMode) {
+                if (tool !== 'eraser' && !holdEraseFrom) { holdEraseFrom = tool; setTool('eraser'); }
+            } else if (penDoubleTap(e)) return;
+        }
         if (!resizeCanvas()) return;
+        penTapStart = e.pointerType === 'pen' && inkTool ? { x: e.clientX, y: e.clientY, t: Date.now() } : null;
 
         var w = canvas.getBoundingClientRect();   // Phase 4 Q3: จุดกำเนิดพิกัด = canvas (wrapLeft/wrapTop ด้านล่างหมายถึงมุม canvas)
         var px = e.clientX - w.left, py = e.clientY - w.top;
@@ -892,6 +907,7 @@
 
     function onPointerMove(e) {
         if (!activeMeta || e.pointerId !== activeMeta.pointerId) return;
+        if (penTapStart && Math.hypot(e.clientX - penTapStart.x, e.clientY - penTapStart.y) > PEN_TAP_MOVE_PX) penTapStart = null;
         var px = e.clientX - activeMeta.wrapLeft, py = e.clientY - activeMeta.wrapTop;
         if (activeMeta.erasing) { setEraserCursor(px, py); eraseAt(px, py); return; }
         if (activeMeta.taping) { sizeTape(px, py); requestRender(); return; }
@@ -913,6 +929,8 @@
 
     function onPointerEnd(e) {
         if (!activeMeta || e.pointerId !== activeMeta.pointerId) return;
+        var tapStart = penTapStart, st0 = state(), redoBefore = st0.redoStack, strokesBefore = st0.strokes.length;
+        penTapStart = null;
         try { canvas.releasePointerCapture(e.pointerId); } catch (err) { }
         canvas.style.pointerEvents = 'none';
         wrapper.classList.remove('scratchpad-drawing');
@@ -975,6 +993,13 @@
         clearShadingClass();
         activeTape = null;
         activeMeta = null;
+        // จำแตะปลายปากกาไว้ให้ penDoubleTap: จุดหมึกที่แตะนี้เพิ่ง commit (ถ้ามี) + redo ก่อน commit ล้างทิ้ง
+        var tapped = tapStart && e.type === 'pointerup' && Date.now() - tapStart.t <= PEN_DTAP_MS &&
+            Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) <= PEN_TAP_MOVE_PX;
+        lastPenTap = tapped ? {
+            t: Date.now(), x: tapStart.x, y: tapStart.y, redo: redoBefore,
+            stroke: st0.strokes.length > strokesBefore ? st0.strokes[st0.strokes.length - 1] : null
+        } : null;
         renderAll();
     }
 
@@ -1000,10 +1025,11 @@
 
     // iOS Safari: touch-action ไม่แยกปากกากับนิ้ว — กันหน้าเลื่อนตอนใช้ Pencil ผ่าน touchstart/touchmove แทน
     function onTouchGuard(e) {
-        var t = e.touches[0];
-        if (!t) return;
-        if (e.touches.length > 1) return;        // สองนิ้วขึ้นไป = ท่าทาง/ซูม ปล่อยให้ onTwoFingerTouch จัดการ
-        var stylus = t.touchType === 'stylus';
+        if (!e.touches.length) return;
+        // v3.31.0: Pencil อยู่ช่องไหนของ touches ก็ได้ (นิ้วค้างไว้ก่อน → touches[0] เป็นนิ้ว) — มี Pencil แตะอยู่ = กันหน้าเลื่อนแม้มีหลายจุด
+        var stylus = false;
+        for (var i = 0; i < e.touches.length; i++) if (e.touches[i].touchType === 'stylus') stylus = true;
+        if (!stylus && e.touches.length > 1) return;   // หลายนิ้วไม่มี Pencil = ท่าทาง/ซูม ปล่อยให้ onFingerTouch จัดการ
         if (!stylus && !window.APP._fingerDrawMode) return;
         if (e.target.closest('textarea, input, [contenteditable]')) return;
         if (wrapper.classList.contains('scratchpad-disabled') || !inkLive() || !inSurface(e.target)) return;
@@ -1013,37 +1039,53 @@
         e.preventDefault();
     }
 
-    // ─── ท่าทางสองนิ้ว (Phase 3 req 2a): แตะสองนิ้วสองครั้ง = undo แบบ GoodNotes/Procreate ─
-    // อ่านจาก touch event เพราะ pointer event แยก "สองนิ้วพร้อมกัน" ไม่ได้ในตัวเอง
+    // ─── ท่าทางนิ้ว (v3.31.0): แตะสองนิ้ว = undo, แตะสามนิ้ว = redo, นิ้วค้าง + Pencil = ยางลบชั่วคราว ─
+    // (Phase 3 เดิมต้องแตะสองนิ้ว "สองครั้ง") อ่านจาก touch event เพราะ pointer event แยก "หลายนิ้วพร้อมกัน" ไม่ได้ในตัวเอง
     function touchCentroid(list) {
         var x = 0, y = 0;
         for (var i = 0; i < list.length; i++) { x += list[i].clientX; y += list[i].clientY; }
         return { x: x / list.length, y: y / list.length };
     }
-    function onTwoFingerTouch(e) {
+    // นิ้วจริงบนพื้นผิว — iPadOS ใส่ Pencil ไว้ใน e.touches ด้วย (นับรวม = Pencil + นิ้วค้างกลายเป็น "สองนิ้ว" ทิ้งเส้นที่กำลังเขียน)
+    // ฝ่ามือ = ใหญ่ทั้งสองแกน (เกณฑ์เดียวกับ wantsDraw ; radius คือครึ่งความกว้าง)
+    function fingerList(touches) {
+        var out = [];
+        for (var i = 0; i < touches.length; i++) {
+            var t = touches[i];
+            if (t.touchType === 'stylus' || !inSurface(t.target)) continue;
+            if (t.radiusX * 2 >= PALM_BLOB_PX && t.radiusY * 2 >= PALM_BLOB_PX) continue;
+            out.push(t);
+        }
+        return out;
+    }
+    function onFingerTouch(e) {
+        var fingers = fingerList(e.touches);
+        fingersDown = fingers.length;
+        if (!fingersDown && holdEraseFrom) endHoldErase();
         if (wrapper.classList.contains('scratchpad-disabled') || !inkLive() || !inSurface(e.target)) return;
         if (e.type === 'touchstart') {
-            if (e.touches.length !== 2) { if (e.touches.length > 2) twoFinger = null; return; }
-            abortActive();                       // นิ้วแรกอาจเริ่มลากไปแล้ว — ทิ้ง ไม่บันทึกเป็นเส้น
-            var c = touchCentroid(e.touches);
-            twoFinger = { t: Date.now(), cx: c.x, cy: c.y, moved: false };
+            if (fingers.length < 2) return;
+            if (fingers.length > 3) { twoFinger = null; return; }
+            if (!twoFinger) { abortActive(); twoFinger = { t: Date.now(), n: 0, moved: false }; }   // นิ้วแรกอาจเริ่มลากไปแล้ว — ทิ้ง ไม่บันทึกเป็นเส้น
+            var c = touchCentroid(fingers);
+            twoFinger.cx = c.x; twoFinger.cy = c.y;   // นิ้วเพิ่ม = จุดกึ่งกลางกระโดด ตั้งฐานใหม่ ไม่งั้นนับเป็นการลาก
+            twoFinger.n = Math.max(twoFinger.n, fingers.length);
             return;
         }
         if (!twoFinger) return;
         if (e.type === 'touchmove') {
-            if (e.touches.length !== 2) { twoFinger.moved = true; return; }
-            var m = touchCentroid(e.touches);
+            if (fingers.length !== twoFinger.n) { twoFinger.moved = true; return; }
+            var m = touchCentroid(fingers);
             if (Math.hypot(m.x - twoFinger.cx, m.y - twoFinger.cy) > TWO_FINGER_MOVE_PX) twoFinger.moved = true;
             return;
         }
-        // touchend / touchcancel — ตัดสินตอนนิ้วแรกยก แล้วเคลียร์ (นิ้วที่สองยกทีหลังจะ return ที่ !twoFinger)
+        if (e.type === 'touchend' && fingers.length >= twoFinger.n) return;   // ที่ยกคือ Pencil/ฝ่ามือ ไม่ใช่นิ้วของท่าทาง
+        // touchend / touchcancel — ตัดสินตอนนิ้วแรกยก แล้วเคลียร์ (นิ้วที่เหลือยกทีหลังจะ return ที่ !twoFinger)
         var g = twoFinger;
         twoFinger = null;
-        suppressClickUntil = Date.now() + 400;   // ยกสองนิ้วแล้วอย่าให้ click หลุดไปโดนตัวเลือก
-        if (e.type === 'touchcancel' || g.moved || Date.now() - g.t > TWO_FINGER_TAP_MS) { lastTwoFingerTapAt = 0; return; }
-        var now = Date.now();
-        if (now - lastTwoFingerTapAt <= TWO_FINGER_GAP_MS) { lastTwoFingerTapAt = 0; undo(); }
-        else lastTwoFingerTapAt = now;
+        suppressClickUntil = Date.now() + 400;   // ยกนิ้วแล้วอย่าให้ click หลุดไปโดนตัวเลือก
+        if (e.type === 'touchcancel' || g.moved || Date.now() - g.t > TWO_FINGER_TAP_MS) return;
+        if (g.n === 3) redo(); else undo();
     }
 
     // ─── Lasso / Transform (Phase 3 req 7) ───────────────────
@@ -1443,6 +1485,34 @@
         if (e && e.cancelable) e.preventDefault();
         togglePenEraser();
     }
+    // ─── v3.31.0: ปลาย Pencil แตะจอสองครั้ง = สลับเหมือนแตะก้าน (ใช้ lastNonEraserTool ร่วมกัน) ─
+    // ตัดสินตอนแตะที่สองลงแล้วกลืนแตะนั้น ; จุดหมึกจากแตะแรกเอาออกแบบ undo (คืนคำตอบที่ฝนไว้) แต่ไม่เข้า redo และคืน redo เดิม
+    // ข้อจำกัด: แตะแรกตอนเป็นยางลบ ลบหมึกใต้ปลายไปแล้ว เอาคืนไม่ได้
+    function penDoubleTap(e) {
+        var tap = lastPenTap;
+        lastPenTap = null;
+        if (!tap || Date.now() - tap.t > PEN_DTAP_MS) return false;
+        if (Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > PEN_DTAP_PX) return false;
+        var st = state();
+        if (tap.stroke && st.strokes[st.strokes.length - 1] === tap.stroke) {
+            st.strokes.pop();
+            st.actions.pop();
+            st.redoStack = tap.redo;
+            restoreSelection(tap.stroke, 'previousSelectedAnswer');
+            renderAll(); markDirty();
+        }
+        e.preventDefault();
+        suppressClickUntil = Date.now() + 400;
+        togglePenEraser();
+        return true;
+    }
+    // นิ้วค้างยกออกหมด → คืนเครื่องมือเดิม (ติดใน onPointerDown) ; ระหว่างค้างเลือกเครื่องมืออื่นเองแล้ว = ไม่คืน
+    function endHoldErase() {
+        var from = holdEraseFrom;
+        holdEraseFrom = null;
+        suppressClickUntil = Date.now() + 400;   // นิ้วที่ค้างไว้ยกขึ้น ห้าม click หลุดไปเลือกตัวเลือก
+        if (tool === 'eraser') setTool(from);
+    }
 
     // ─── Phase 3 req 2b: คีย์ลัด undo/redo ทั้งหน้า ─────────
     // ไม่ทำงานเมื่อเคอร์เซอร์อยู่ในช่องพิมพ์ (MEQ textarea / ช่องค้นหา / chatbot) หรือมี modal เปิดอยู่
@@ -1736,11 +1806,11 @@
         canvas.addEventListener('pointercancel', onPointerEnd);
         surface.addEventListener('touchstart', onTouchGuard, { passive: false });
         surface.addEventListener('touchmove', onTouchGuard, { passive: false });
-        // Phase 3: ท่าทางสองนิ้ว — ผูกก่อน onTouchGuard ไม่ได้ (คนละ handler) แต่ onTouchGuard ปล่อยผ่านเมื่อ >1 นิ้วอยู่แล้ว
-        surface.addEventListener('touchstart', onTwoFingerTouch, { passive: true });
-        surface.addEventListener('touchmove', onTwoFingerTouch, { passive: true });
-        surface.addEventListener('touchend', onTwoFingerTouch, { passive: true });
-        surface.addEventListener('touchcancel', onTwoFingerTouch, { passive: true });
+        // ท่าทางนิ้ว (แตะ 2/3 นิ้ว + นิ้วค้าง) — onTouchGuard ปล่อยผ่านเมื่อมีหลายนิ้วโดยไม่มี Pencil
+        surface.addEventListener('touchstart', onFingerTouch, { passive: true });
+        surface.addEventListener('touchmove', onFingerTouch, { passive: true });
+        surface.addEventListener('touchend', onFingerTouch, { passive: true });
+        surface.addEventListener('touchcancel', onFingerTouch, { passive: true });
         // Phase 3 req 8: วงยางลบตามเมาส์/ปากกาแม้ยังไม่กด (canvas ปิด pointer-events ตอนว่าง จึงฟังที่พื้นผิว)
         surface.addEventListener('pointermove', function (e) {
             if (tool !== 'eraser' || activeMeta || !inkLive()) return;
