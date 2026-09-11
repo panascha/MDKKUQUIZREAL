@@ -929,7 +929,8 @@
 
     function onPointerEnd(e) {
         if (!activeMeta || e.pointerId !== activeMeta.pointerId) return;
-        var tapStart = penTapStart, st0 = state(), redoBefore = st0.redoStack, strokesBefore = st0.strokes.length;
+        var tapStart = penTapStart, st0 = state();   // เปลี่ยนข้อระหว่างลาก state อาจเป็น null — ห้าม throw ก่อนปล่อย capture
+        var redoBefore = st0 && st0.redoStack, strokesBefore = st0 ? st0.strokes.length : 0;
         penTapStart = null;
         try { canvas.releasePointerCapture(e.pointerId); } catch (err) { }
         canvas.style.pointerEvents = 'none';
@@ -994,7 +995,7 @@
         activeTape = null;
         activeMeta = null;
         // จำแตะปลายปากกาไว้ให้ penDoubleTap: จุดหมึกที่แตะนี้เพิ่ง commit (ถ้ามี) + redo ก่อน commit ล้างทิ้ง
-        var tapped = tapStart && e.type === 'pointerup' && Date.now() - tapStart.t <= PEN_DTAP_MS &&
+        var tapped = st0 && tapStart && e.type === 'pointerup' && Date.now() - tapStart.t <= PEN_DTAP_MS &&
             Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) <= PEN_TAP_MOVE_PX;
         lastPenTap = tapped ? {
             t: Date.now(), x: tapStart.x, y: tapStart.y, redo: redoBefore,
@@ -1494,7 +1495,7 @@
         if (!tap || Date.now() - tap.t > PEN_DTAP_MS) return false;
         if (Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > PEN_DTAP_PX) return false;
         var st = state();
-        if (tap.stroke && st.strokes[st.strokes.length - 1] === tap.stroke) {
+        if (st && tap.stroke && st.strokes[st.strokes.length - 1] === tap.stroke) {
             st.strokes.pop();
             st.actions.pop();
             st.redoStack = tap.redo;
