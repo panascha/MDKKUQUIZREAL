@@ -35,6 +35,9 @@
     var SAVE_DEBOUNCE_MS = 300;
     var TOOLBAR_COLLAPSED_KEY = 'scratchpad_toolbar_collapsed';
     var MASTER_KEY = 'mdkku_scratchpad_enabled';   // Phase 4 Q1: สวิตช์หลัก — key แยกจาก scratchpad_prefs (ไม่ผ่าน loadPrefs whitelist)
+    var MAX_CANVAS_PX = 16e6;        // Phase 4 Q3: iOS Safari ทิ้ง canvas ที่เกิน ~16.7M พิกเซลแบบเงียบ (ขาวทั้งแผ่น)
+    // Phase 4 Q3: ใน Zen นอกการ์ด ปากกาห้ามวาดทับของที่ต้องกดได้ — แตะ "ถัดไป"/toolbar ต้องยังเป็นการกด
+    var SURFACE_SKIP = 'button, a, input, select, textarea, label, summary, [contenteditable], #scratchpad-toolbar, #scratchpad-toolbar-toggle';
     // Phase 1b: ฝนวงกลม .choice-badge เพื่อเลือกคำตอบ — แยกจาก window.OMR_CONFIG (นั่นของกระดาษ OMR/grader.js)
     var CHOICE_BADGE_RADIUS = 18;    // px รัศมีเป้ารอบจุดกลาง badge (badge กว้าง 30px + เผื่อขอบ)
     var SHADE_COMMIT_FACTOR = 2.5;   // ความยาวเส้นสะสมใน badge ≥ factor × เส้นผ่านศูนย์กลาง → เลือก (≈ ฝน 4 รอบ)
@@ -79,6 +82,7 @@
     var outlineCache = new WeakMap();  // stroke → { w, path } — outline คำนวณแพง ไม่ต้องทำซ้ำทุกเฟรมตอนลากเส้นใหม่
 
     var wrapper, canvas, ctx, offscreen, offCtx, toolbar;
+    var surface;                     // Phase 4 Q3: #quiz-container — ผูก listener ที่นี่ (Zen เขียนนอกการ์ดได้) ; พิกัด px ทั้งหมดเทียบมุม canvas
     var tool = 'pen';
     var prefs = loadPrefs();
     var popTarget = null;            // popover เปิดอยู่ที่ { kind:'color'|'width', idx }
@@ -166,21 +170,29 @@
         }
         return null;
     }
-    // rect ของ anchor เทียบมุมซ้ายบนของ wrapper — null ถ้า element ไม่อยู่/ซ่อน (เช่น #choices.meq-hidden)
+    // rect ของ anchor เทียบมุมซ้ายบนของ canvas — null ถ้า element ไม่อยู่/ซ่อน (เช่น #choices.meq-hidden)
+    // Phase 4 Q3: เดิมเทียบ wrapper ; นอก Zen canvas ทับ wrapper พอดีจึงได้ค่าเท่าเดิม ; ใน Zen canvas คลุมทั้ง overlay
+    // → x = (elRect.left − canvasRect.left) + nx·w ทำให้เส้นขอบกระดาษ (nx<0, nx>1 ของ 'card') วาดได้ไม่ต้องมี anchor ใหม่
     function anchorRect(anchor) {
         var el = resolveAnchor(anchor);
         if (!el) return null;
         var r = el.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) return null;
-        var w = wrapper.getBoundingClientRect();
-        return { x: r.left - w.left, y: r.top - w.top, w: r.width };
+        var c = canvas.getBoundingClientRect();
+        return { x: r.left - c.left, y: r.top - c.top, w: r.width };
+    }
+    // Phase 4 Q3: listener อยู่ที่ #quiz-container — นอก Zen รับเฉพาะในการ์ด (เท่าเดิมเป๊ะ) ; ใน Zen รับทั้ง overlay ยกเว้น SURFACE_SKIP
+    function inSurface(target) {
+        if (wrapper.contains(target)) return true;
+        return zenOn && !target.closest(SURFACE_SKIP);
     }
 
     // ─── Canvas ───────────────────────────────────────────────
     function resizeCanvas() {
-        var r = wrapper.getBoundingClientRect();
+        var r = canvas.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) return false;
-        dpr = window.devicePixelRatio || 1;
+        // Phase 4 Q3: canvas เต็ม overlay ใน Zen สูงได้หลายพัน px — ลด dpr เท่าที่จำเป็นให้ไม่เกินเพดาน iOS (เบลอนิดหน่อยดีกว่าหายทั้งแผ่น)
+        dpr = Math.min(window.devicePixelRatio || 1, Math.sqrt(MAX_CANVAS_PX / (r.width * r.height)));
         var W = Math.round(r.width * dpr), H = Math.round(r.height * dpr);
         if (canvas.width !== W || canvas.height !== H) {
             canvas.width = W; canvas.height = H;
@@ -346,7 +358,24 @@
     var resizeTimer = null;
     function scheduleRender() {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(renderAll, 60);
+        resizeTimer = setTimeout(function () { layoutZenCanvas(); renderAll(); }, 60);
+    }
+    // Phase 4 Q3: Zen — canvas คลุมทั้ง overlay (CSS ทำ wrapper เป็น static → containing block ของ canvas คือ #quiz-container)
+    // ความสูง = ขอบล่างเนื้อหาจริง + padding-bottom (60vh ที่ว่างคิดเลข) อย่างน้อยเต็มจอ — ห้ามใช้ scrollHeight:
+    // canvas absolute นับรวมใน scrollHeight เอง ต้องยุบเป็น 0 ก่อนวัด = layout ทั้ง overlay 2 รอบต่อ tick
+    // พิกัดเทียบ padding box ของ surface (จุดตั้ง top:0 ของ canvas) — รวม scrollTop เพราะเนื้อหาเลื่อนไปแล้ว
+    // เรียกเฉพาะทาง debounce / เข้า-ออก Zen เท่านั้น ห้ามใส่ใน renderAll (ทุกเฟรมจะบังคับ layout ทั้ง overlay)
+    function layoutZenCanvas() {
+        if (!zenOn) { canvas.style.height = ''; return; }
+        var top = surface.getBoundingClientRect().top + surface.clientTop - surface.scrollTop;
+        var bottom = 0;
+        [wrapper, 'feedback', 'quiz-explain-container', 'quiz-action-row'].forEach(function (el) {
+            if (typeof el === 'string') el = document.getElementById(el);
+            if (!el) return;
+            bottom = Math.max(bottom, el.getBoundingClientRect().bottom + (parseFloat(getComputedStyle(el).marginBottom) || 0) - top);
+        });
+        var padBottom = parseFloat(getComputedStyle(surface).paddingBottom) || 0;
+        canvas.style.height = Math.max(surface.clientHeight, bottom + padBottom) + 'px';
     }
 
     // ─── Persistence ─────────────────────────────────────────
@@ -453,8 +482,8 @@
     // Q10: แตะเทป = เปิด/ปิด — true เมื่อโดนเทป (ผู้เรียกต้องกันไม่ให้ event ไหลไปโดนปุ่มตัวเลือก)
     function toggleTapeAt(clientX, clientY) {
         if (!wrapper || !state()) return false;
-        var w = wrapper.getBoundingClientRect();
-        var t = tapeAt(clientX - w.left, clientY - w.top);
+        var c = canvas.getBoundingClientRect();
+        var t = tapeAt(clientX - c.left, clientY - c.top);
         if (!t) return false;
         t.revealed = !t.revealed;
         renderAll();
@@ -649,14 +678,14 @@
     }
 
     function onPointerDown(e) {
-        if (active || !state() || !inkLive()) return;
+        if (active || !state() || !inkLive() || !inSurface(e.target)) return;
         if (wrapper.classList.contains('scratchpad-disabled')) return;
         if (!wantsDraw(e)) return;
         // Q7: textarea/input ปล่อยผ่าน — Apple Scribble + วางเคอร์เซอร์ใน MEQ textarea ต้องใช้ได้
         if (e.target.closest('textarea, input, [contenteditable]')) return;
         if (!resizeCanvas()) return;
 
-        var w = wrapper.getBoundingClientRect();
+        var w = canvas.getBoundingClientRect();   // Phase 4 Q3: จุดกำเนิดพิกัด = canvas (wrapLeft/wrapTop ด้านล่างหมายถึงมุม canvas)
         var px = e.clientX - w.left, py = e.clientY - w.top;
 
         if (tool === 'eraser') {
@@ -963,7 +992,7 @@
         var stylus = t.touchType === 'stylus';
         if (!stylus && !window.APP._fingerDrawMode) return;
         if (e.target.closest('textarea, input, [contenteditable]')) return;
-        if (wrapper.classList.contains('scratchpad-disabled') || !inkLive()) return;
+        if (wrapper.classList.contains('scratchpad-disabled') || !inkLive() || !inSurface(e.target)) return;
         // Phase 3 req 9: โหมดนิ้ว กันเฉพาะตอนลาก (touchmove) — กัน touchstart จะฆ่า click สังเคราะห์
         // ทำให้แตะเลือกตัวเลือก/เปิดเทปไม่ได้ ; หน้าไม่เลื่อนอยู่แล้วเพราะ .scratchpad-finger ตั้ง touch-action:none
         if (!stylus && e.type === 'touchstart') return;
@@ -978,7 +1007,7 @@
         return { x: x / list.length, y: y / list.length };
     }
     function onTwoFingerTouch(e) {
-        if (wrapper.classList.contains('scratchpad-disabled') || !inkLive()) return;
+        if (wrapper.classList.contains('scratchpad-disabled') || !inkLive() || !inSurface(e.target)) return;
         if (e.type === 'touchstart') {
             if (e.touches.length !== 2) { if (e.touches.length > 2) twoFinger = null; return; }
             abortActive();                       // นิ้วแรกอาจเริ่มลากไปแล้ว — ทิ้ง ไม่บันทึกเป็นเส้น
@@ -1415,6 +1444,7 @@
     function setFingerMode(on) {
         window.APP._fingerDrawMode = on;
         wrapper.classList.toggle('scratchpad-finger', on);
+        surface.classList.toggle('scratchpad-finger', on);   // Phase 4 Q3: CSS ใช้เฉพาะตอน Zen — ขอบนอกการ์ดวาดด้วยนิ้วได้
         var b = toolbar.querySelector('[data-sp-act="finger"]');
         if (b) b.classList.toggle('active', on);
     }
@@ -1440,6 +1470,7 @@
         zenOn = on;
         document.body.classList.toggle('sp-zen', on);
         if (on) syncZenWidth();
+        layoutZenCanvas();               // Phase 4 Q3: เข้า Zen = canvas คลุม overlay ; ออก = ล้างความสูง inline กลับไปทับ wrapper
         var b = toolbar.querySelector('[data-sp-act="zen"]');
         if (b) {
             b.classList.toggle('active', on);
@@ -1661,39 +1692,47 @@
         canvas = document.getElementById('quiz-annotation-canvas');
         toolbar = document.getElementById('scratchpad-toolbar');
         if (!wrapper || !canvas || !toolbar) return;
+        surface = document.getElementById('quiz-container') || wrapper;
         ctx = canvas.getContext('2d');
         offscreen = document.createElement('canvas');
         offCtx = offscreen.getContext('2d');
 
-        wrapper.addEventListener('pointerdown', onPointerDown);
+        // Phase 4 Q3: listener ของ "พื้นผิว" ผูกที่ #quiz-container แทน wrapper — handler แต่ละตัวกรองด้วย inSurface()
+        // (นอก Zen = เฉพาะในการ์ดเท่าเดิม) ; move/up อยู่ที่ canvas เหมือนเดิมเพราะ capture pointer ไว้ที่ canvas
+        surface.addEventListener('pointerdown', onPointerDown);
         canvas.addEventListener('pointermove', onPointerMove);
         canvas.addEventListener('pointerup', onPointerEnd);
         canvas.addEventListener('pointercancel', onPointerEnd);
-        wrapper.addEventListener('touchstart', onTouchGuard, { passive: false });
-        wrapper.addEventListener('touchmove', onTouchGuard, { passive: false });
+        surface.addEventListener('touchstart', onTouchGuard, { passive: false });
+        surface.addEventListener('touchmove', onTouchGuard, { passive: false });
         // Phase 3: ท่าทางสองนิ้ว — ผูกก่อน onTouchGuard ไม่ได้ (คนละ handler) แต่ onTouchGuard ปล่อยผ่านเมื่อ >1 นิ้วอยู่แล้ว
-        wrapper.addEventListener('touchstart', onTwoFingerTouch, { passive: true });
-        wrapper.addEventListener('touchmove', onTwoFingerTouch, { passive: true });
-        wrapper.addEventListener('touchend', onTwoFingerTouch, { passive: true });
-        wrapper.addEventListener('touchcancel', onTwoFingerTouch, { passive: true });
-        // Phase 3 req 8: วงยางลบตามเมาส์/ปากกาแม้ยังไม่กด (canvas ปิด pointer-events ตอนว่าง จึงฟังที่ wrapper)
-        wrapper.addEventListener('pointermove', function (e) {
+        surface.addEventListener('touchstart', onTwoFingerTouch, { passive: true });
+        surface.addEventListener('touchmove', onTwoFingerTouch, { passive: true });
+        surface.addEventListener('touchend', onTwoFingerTouch, { passive: true });
+        surface.addEventListener('touchcancel', onTwoFingerTouch, { passive: true });
+        // Phase 3 req 8: วงยางลบตามเมาส์/ปากกาแม้ยังไม่กด (canvas ปิด pointer-events ตอนว่าง จึงฟังที่พื้นผิว)
+        surface.addEventListener('pointermove', function (e) {
             if (tool !== 'eraser' || activeMeta || !inkLive()) return;
-            var w = wrapper.getBoundingClientRect();
-            setEraserCursor(e.clientX - w.left, e.clientY - w.top);
+            if (!inSurface(e.target)) { clearEraserCursor(); return; }
+            var c = canvas.getBoundingClientRect();
+            setEraserCursor(e.clientX - c.left, e.clientY - c.top);
         });
-        wrapper.addEventListener('pointerleave', clearEraserCursor);
+        surface.addEventListener('pointerleave', clearEraserCursor);
         document.addEventListener('keydown', onKeyDown);
         window.addEventListener('webkitpencilaction', onPencilAction);
         window.addEventListener('pencilaction', onPencilAction);
         // click ที่หลุดมาหลังยกปากกา (เช่น ตอน capture ล้มเหลวบน WebKit) ห้ามไปกดตัวเลือก
         // Q10: แตะโดนเทป = เปิด/ปิดเทป ไม่ให้ทะลุไปเลือกคำตอบ ; ไม่โดนเทปก็ปล่อยผ่านตามปกติ (ฟังตลอด ไม่ขึ้นกับเครื่องมือ)
-        wrapper.addEventListener('click', function (e) {
+        surface.addEventListener('click', function (e) {
+            if (!inSurface(e.target)) return;
             if (Date.now() < suppressClickUntil) { e.stopPropagation(); e.preventDefault(); return; }
             if (inkLive() && toggleTapeAt(e.clientX, e.clientY)) { e.stopPropagation(); e.preventDefault(); }
         }, true);
 
-        new ResizeObserver(scheduleRender).observe(wrapper);
+        // Phase 4 Q3: เนื้อหาใต้การ์ด (เฉลย/feedback) และความสูง toolbar เปลี่ยน scrollHeight ของ overlay ใน Zen → วัด canvas ใหม่
+        var ro = new ResizeObserver(scheduleRender);
+        [wrapper, toolbar, document.getElementById('feedback'), document.getElementById('quiz-explain-container'), document.getElementById('quiz-action-row')]
+            .forEach(function (el) { if (el) ro.observe(el); });
         window.addEventListener('resize', function () {
             if (zenOn) syncZenWidth();   // หมุนจอตอนอยู่ใน Zen → วัดความกว้างใหม่
             scheduleRender();

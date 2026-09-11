@@ -580,12 +580,27 @@ body.sp-zen #quiz-container > #quiz-action-row > :not(#btn-view-notes) {
     display: none !important;
 }
 
+/* Phase 4 Q3: Zen — canvas คลุมทั้ง overlay ให้เขียนขอบซ้าย/ขวา/ใต้การ์ดได้
+   wrapper เป็น static → containing block ของ canvas (absolute) กลายเป็น #quiz-container (fixed) ; top/left/width:100% ตาม rule เดิม
+   ความสูง js ตั้งเป็น scrollHeight ของ overlay (layoutZenCanvas) ; การ์ดยังกว้าง --sp-zen-w เท่าเดิม ข้อความไม่ reflow
+   #image-container-div มี position:relative ของตัวเอง ปุ่มเลื่อนรูป/ตัวนับจึงไม่ขยับ */
+body.sp-zen #quiz-card-wrapper {
+    position: static;
+}
+/* โหมดนิ้วใน Zen: ขอบนอกการ์ดต้องวาด ไม่ใช่เลื่อน (ในการ์ด .scratchpad-finger ของ wrapper คุมอยู่แล้ว) */
+body.sp-zen #quiz-container.scratchpad-finger {
+    touch-action: none;
+}
+body.scratchpad-master-off #quiz-container.scratchpad-finger {
+    touch-action: auto;
+}
+
 /* เดสก์ท็อป: ตรึง toolbar ไว้บนสุดของกล่อง scroll — เลื่อนอ่านลงไปแล้วปุ่มออกยังอยู่ */
 @media (min-width: 768px) {
     body.sp-zen #scratchpad-toolbar {
         position: sticky;
         top: 0;
-        z-index: 2;
+        z-index: 6;   /* Phase 4 Q3: เหนือ canvas (z-index 5) ที่คลุมทั้ง overlay */
     }
 }
 
