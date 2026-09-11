@@ -49,7 +49,8 @@
     };
     // Phase 2 §8 Q6–Q8/Q12: วาดค้าง → snap เป็นรูปทรง (เส้นตรง / วงรี / สี่เหลี่ยม) — ไฮไลต์ได้แค่เส้นตรง
     var HOLD_MS = 450;               // ปากกานิ่งนานเท่านี้ (ยังไม่ยก) → ลอง snap
-    var HOLD_JITTER_PX = 6;          // ขยับไม่เกินนี้ยังนับว่านิ่ง
+    var HOLD_JITTER_PX = 14;         // ปากกา: ขยับไม่เกินนี้ยังนับว่านิ่ง (เดิม 6 — Pencil 120Hz สั่นเกินจนตัวจับเวลารีเซ็ต snap ไม่ติดบน iPad)
+    var HOLD_JITTER_HL_PX = 6;       // ไฮไลต์คงค่าเดิม — 14 ทำให้ลากช้าๆ ถูกดัดเป็นเส้นตรงง่ายเกินไป
     var SNAP_MIN_BBOX = 24;          // px กรอบเส้นต้องกว้างหรือสูงอย่างน้อยเท่านี้ถึงจะเริ่มจับเวลา
     var SNAP_MIN_HALF = 12;          // Phase 4 Q5: px ครึ่งกว้าง/ครึ่งสูงขั้นต่ำตอนลากย่อรูปที่ snap แล้ว
     var RECT_FILL_RATIO = 0.815;     // Phase 4 bugfix: เดิม 0.86 — สี่เหลี่ยมวาดมือบน iPad มุมมนได้ 0.80–0.85 เลยกลายเป็นวงรี (วงรีจริง π/4 ≈ 0.785)
@@ -57,7 +58,9 @@
     var RECT_EDGE_PTS = 12;          // มุมสี่เหลี่ยมต้องมีจุดถี่ ไม่งั้น streamline ของ perfect-freehand ดึงมุมจนเบี้ยว
     // Phase 2 §8 Q9: ขีดฆ่า (zigzag) ทับเส้นเดิมด้วยปากกา → ลบเส้นนั้นแทนการวาด — ประเมินตอนยกปากกา (ค่าเหล่านี้ยังต้องจูนบน iPad จริง)
     var SCRIBBLE_MIN_PTS = 8;
-    var SCRIBBLE_MIN_REVERSALS = 3;  // จำนวนครั้งที่ทิศทางกลับ (แกน x หรือ y)
+    var SCRIBBLE_MIN_REVERSALS = 5;  // จำนวนครั้งที่ทิศทางกลับ (แกน x หรือ y) — เดิม 3 ตัว w / ม / ส เขียนเร็วๆ ก็ลบเส้นข้างๆ
+    var SCRIBBLE_MIN_ASPECT = 1.8;   // กรอบ zigzag ต้องยาว:กว้าง ≥ เท่านี้ — ตัวอักษร (m, ม, ส) กรอบเกือบจัตุรัส ; ขีดฆ่าจริงกรอบยาว
+    var SCRIBBLE_SQUARE_REVERSALS = 8; // กรอบจัตุรัสยังนับเป็นขีดฆ่าได้ถ้ากลับทิศถี่ขนาดนี้ (ขีดฆ่าจุดเล็กๆ) — ตัวอักษรตัวเดียวไม่ถึง
     var SCRIBBLE_MIN_SWING = 0.3;    // แต่ละช่วงไป-กลับต้องยาว ≥ 30% ของกรอบในแกนนั้น ไม่งั้นนับเป็นมือสั่น
     var SCRIBBLE_DENSITY = 2.5;      // ความยาวเส้นรวม ≥ 2.5 × เส้นทแยงกรอบ — ตัว w / ห่วงเดียวไม่ผ่าน
     var SCRIBBLE_MIN_HITS = 3;       // จุดตัวอย่างของ zigzag ที่โดนเส้นเป้า ≥ เท่านี้ (หรือเส้นเป้าอยู่ในกรอบ zigzag ทั้งเส้น)
@@ -239,19 +242,23 @@
         ctx.restore();
     }
 
+    // ไฮไลต์: เส้นโค้งเรียบ — quadratic ผ่านจุดกึ่งกลางระหว่างจุด (เดิม lineTo ต่อกันเป็นเหลี่ยมตอนลากโค้งเร็ว)
     function strokePath(c, stroke, rect) {
-        var pts = stroke.points;
-        if (!pts.length) return;
+        var pts = stroke.points, n = pts.length;
+        if (!n) return;
         var s = rect.w / (stroke.aw || rect.w);
-        c.beginPath();
+        function X(i) { return rect.x + pts[i].nx * rect.w; }
+        function Y(i) { return rect.y + pts[i].ny * rect.w; }
         c.lineCap = 'round';
         c.lineJoin = 'round';
         c.lineWidth = stroke.width * s;
         c.strokeStyle = stroke.color;
-        c.moveTo(rect.x + pts[0].nx * rect.w, rect.y + pts[0].ny * rect.w);
-        for (var i = 1; i < pts.length; i++) c.lineTo(rect.x + pts[i].nx * rect.w, rect.y + pts[i].ny * rect.w);
-        if (pts.length === 1) c.lineTo(rect.x + pts[0].nx * rect.w + 0.01, rect.y + pts[0].ny * rect.w);
-        c.stroke();
+        var path = new Path2D();
+        path.moveTo(X(0), Y(0));
+        if (n === 1) path.lineTo(X(0) + 0.01, Y(0));
+        for (var i = 1; i < n - 1; i++) path.quadraticCurveTo(X(i), Y(i), (X(i) + X(i + 1)) / 2, (Y(i) + Y(i + 1)) / 2);
+        if (n > 1) path.lineTo(X(n - 1), Y(n - 1));
+        c.stroke(path);
     }
 
     // perfect-freehand: จุด normalize → หน่วยของ rect แล้วขอ outline polygon กลับมา (ไม่ใช่ stroke เส้นกลาง)
@@ -538,7 +545,10 @@
             }
             return count;
         }
-        return Math.max(reversals(0, bw), reversals(1, bh)) >= SCRIBBLE_MIN_REVERSALS;
+        var rev = Math.max(reversals(0, bw), reversals(1, bh));
+        if (rev < SCRIBBLE_MIN_REVERSALS) return false;
+        // ความยาว/เส้นทแยงแยก m ไม่ออก (m กรอบจัตุรัส ได้ค่าสูงกว่า zigzag กว้างๆ) — ใช้สัดส่วนกรอบแทน
+        return Math.max(bw, bh) / Math.min(bw, bh) >= SCRIBBLE_MIN_ASPECT || rev >= SCRIBBLE_SQUARE_REVERSALS;
     }
     function rawBBox(raw) {
         var b = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
@@ -762,7 +772,8 @@
         m.raw.push([px, py]);
         if (px < m.minX) m.minX = px; if (px > m.maxX) m.maxX = px;
         if (py < m.minY) m.minY = py; if (py > m.maxY) m.maxY = py;
-        if (Math.hypot(px - m.holdX, py - m.holdY) <= HOLD_JITTER_PX) return;
+        var jitter = active.tool === 'highlighter' ? HOLD_JITTER_HL_PX : HOLD_JITTER_PX;
+        if (Math.hypot(px - m.holdX, py - m.holdY) <= jitter) return;
         m.holdX = px; m.holdY = py;
         clearHold();
         if (!canSnap()) return;
@@ -1083,7 +1094,8 @@
         var strokes = st.strokes.filter(function (s) {
             var rect = anchorRect(s.anchor);
             if (!rect || !s.points.length) return false;
-            return s.points.every(function (p) {
+            // แตะห่วงบางส่วนก็เลือกทั้งเส้น (แบบ GoodNotes) — เดิมต้องอยู่ในห่วงทุกจุด
+            return s.points.some(function (p) {
                 return pointInPoly(rect.x + p.nx * rect.w, rect.y + p.ny * rect.w, poly);
             });
         });
@@ -1091,8 +1103,11 @@
             var rect = anchorRect(t.anchor);
             if (!rect) return false;
             var b = tapeBox(t, rect);
-            return [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]]
-                .every(function (c) { return pointInPoly(c[0], c[1], poly); });
+            var x1 = Math.min(b.x, b.x + b.w), x2 = Math.max(b.x, b.x + b.w);
+            var y1 = Math.min(b.y, b.y + b.h), y2 = Math.max(b.y, b.y + b.h);
+            // มุมเทปมุมใดอยู่ในห่วง หรือห่วงวาดอยู่ในเทป (เทปใหญ่กว่าห่วง ไม่มีมุมไหนเข้าห่วงเลย)
+            return [[x1, y1], [x2, y1], [x1, y2], [x2, y2]].some(function (c) { return pointInPoly(c[0], c[1], poly); }) ||
+                poly.some(function (p) { return p[0] >= x1 && p[0] <= x2 && p[1] >= y1 && p[1] <= y2; });
         });
         if (!strokes.length && !tapes.length) return null;
         var box = selectionBox(strokes, tapes);
@@ -1514,6 +1529,12 @@
             }
             var btn = e.target.closest('button');
             if (!btn) return;
+            // แตะปุ่มปากกาหลักซ้ำตอนใช้ปากกาอยู่แล้ว = เปิด/ปิด flyout เลือกแบบ (แบบ GoodNotes) ; กดค้างยังใช้ได้
+            if (btn.dataset.spFlyout && tool === btn.dataset.spTool) {
+                var fly = toolbar.querySelector('.sp-flyout');
+                if (fly && fly.hidden) showFlyout(); else hideFlyout();
+                return;
+            }
             if (btn.dataset.spTool) { setTool(btn.dataset.spTool, btn.dataset.spStyle); return; }
             switch (btn.dataset.spAct) {
                 case 'undo': undo(); break;
