@@ -33,6 +33,19 @@
     pointer-events: none !important;
 }
 
+/* Phase 4 Q1: สวิตช์หลักปิด scratchpad (ตั้งค่าโหมดทำข้อสอบ) — class อยู่ที่ body เพราะ toolbar/ปุ่มกลมเป็นพี่น้อง "ก่อน" wrapper
+   แยกจาก .scratchpad-disabled (modal guard สลับทิ้งทุกครั้งที่ modal เปิด/ปิด) ; js ปิด input ทุกทางด้วย guard อยู่แล้ว */
+body.scratchpad-master-off #scratchpad-toolbar,
+body.scratchpad-master-off #scratchpad-toolbar-toggle {
+    display: none !important;
+}
+body.scratchpad-master-off #quiz-annotation-canvas {
+    pointer-events: none !important;
+}
+body.scratchpad-master-off #quiz-card-wrapper.scratchpad-finger {
+    touch-action: auto;
+}
+
 /* โหมดวาดด้วยนิ้วเปิด: ปิด browser gesture บนการ์ด (นิ้วต้องวาด ไม่ใช่เลื่อน) */
 #quiz-card-wrapper.scratchpad-finger {
     touch-action: none;

@@ -34,6 +34,7 @@
     var PALM_BLOB_PX = 60;           // Phase 3: ปัดทิ้งเมื่อกว้าง "ทั้งสองแกน" เกินนี้ = ฝ่ามือ (เดิม 40 และใช้ AND-เล็ก → iPad รายงานนิ้ว 40–60 เลยวาดไม่ติดเลย)
     var SAVE_DEBOUNCE_MS = 300;
     var TOOLBAR_COLLAPSED_KEY = 'scratchpad_toolbar_collapsed';
+    var MASTER_KEY = 'mdkku_scratchpad_enabled';   // Phase 4 Q1: สวิตช์หลัก — key แยกจาก scratchpad_prefs (ไม่ผ่าน loadPrefs whitelist)
     // Phase 1b: ฝนวงกลม .choice-badge เพื่อเลือกคำตอบ — แยกจาก window.OMR_CONFIG (นั่นของกระดาษ OMR/grader.js)
     var CHOICE_BADGE_RADIUS = 18;    // px รัศมีเป้ารอบจุดกลาง badge (badge กว้าง 30px + เผื่อขอบ)
     var SHADE_COMMIT_FACTOR = 2.5;   // ความยาวเส้นสะสมใน badge ≥ factor × เส้นผ่านศูนย์กลาง → เลือก (≈ ฝน 4 รอบ)
@@ -47,6 +48,8 @@
     var HOLD_MS = 450;               // ปากกานิ่งนานเท่านี้ (ยังไม่ยก) → ลอง snap
     var HOLD_JITTER_PX = 6;          // ขยับไม่เกินนี้ยังนับว่านิ่ง
     var SNAP_MIN_BBOX = 24;          // px กรอบเส้นต้องกว้างหรือสูงอย่างน้อยเท่านี้ถึงจะเริ่มจับเวลา
+    var SNAP_MIN_HALF = 12;          // Phase 4 Q5: px ครึ่งกว้าง/ครึ่งสูงขั้นต่ำตอนลากย่อรูปที่ snap แล้ว
+    var RECT_FILL_RATIO = 0.815;     // Phase 4 bugfix: เดิม 0.86 — สี่เหลี่ยมวาดมือบน iPad มุมมนได้ 0.80–0.85 เลยกลายเป็นวงรี (วงรีจริง π/4 ≈ 0.785)
     var ELLIPSE_PTS = 40;
     var RECT_EDGE_PTS = 12;          // มุมสี่เหลี่ยมต้องมีจุดถี่ ไม่งั้น streamline ของ perfect-freehand ดึงมุมจนเบี้ยว
     // Phase 2 §8 Q9: ขีดฆ่า (zigzag) ทับเส้นเดิมด้วยปากกา → ลบเส้นนั้นแทนการวาด — ประเมินตอนยกปากกา (ค่าเหล่านี้ยังต้องจูนบน iPad จริง)
@@ -90,6 +93,7 @@
     var suppressClickUntil = 0;
     var zenOn = false;               // Q4/Q4b: โหมดโฟกัส — ไม่จำใน localStorage (เปิดแอปใหม่ต้องได้หน้าปกติ)
     var zenPrevCollapsed = false;    // สถานะยุบ toolbar ก่อนเข้า Zen — ออกแล้วคืนค่าเดิม
+    var masterOn = true;             // Phase 4 Q1: false = ปิดทั้งระบบ (ซ่อน toolbar/ลายเส้น, ไม่รับ input) — listener ยังผูกอยู่ แค่ return ก่อน
     var eraserCursor = null;         // { x, y } ตำแหน่งวงยางลบบน wrapper — null = ไม่ต้องวาด
     var lastNonEraserTool = null;    // เครื่องมือก่อนสลับไปยางลบ (Pencil double-tap สลับกลับ)
     var twoFinger = null;            // { t, cx, cy, moved } ระหว่างแตะสองนิ้ว
@@ -104,6 +108,8 @@
     function scratchKey(sp, qid) { return 'scratch_' + sp + '_' + qid; }
 
     function state() { return window.APP._scratchpadState; }
+    // ลายเส้นแสดง + รับ input ได้ไหม — ทุกทางเข้า (วาด/ท่าทาง/คีย์ลัด/แตะเทป) เช็กตัวนี้ตัวเดียว
+    function inkLive() { return masterOn; }
 
     // ─── Prefs (Q17) ─────────────────────────────────────────
     // อ่านทับ default ทีละ field — JSON เก่า/พังไม่ทำให้ toolbar ตาย
@@ -311,6 +317,7 @@
     function renderAll() {
         if (!resizeCanvas()) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (!inkLive()) return;          // ต้องอยู่หลัง clearRect ไม่งั้นลายเส้นเก่าค้างบนจอ
         var st = state();
         if (!st) { drawEraserCursor(); drawLassoUI(); return; }
         var rects = {};
@@ -637,7 +644,7 @@
     }
 
     function onPointerDown(e) {
-        if (active || !state()) return;
+        if (active || !state() || !inkLive()) return;
         if (wrapper.classList.contains('scratchpad-disabled')) return;
         if (!wantsDraw(e)) return;
         // Q7: textarea/input ปล่อยผ่าน — Apple Scribble + วางเคอร์เซอร์ใน MEQ textarea ต้องใช้ได้
@@ -735,17 +742,37 @@
         if (!activeMeta) return;
         activeMeta.holdTimer = null;
         if (!canSnap()) return;
-        var shape = classifyShape(activeMeta.raw, active.tool === 'highlighter');
+        var m = activeMeta;
+        var shape = classifyShape(m.raw, active.tool === 'highlighter');
         if (!shape) return;
-        var pts = synthesizeShape(shape, activeMeta);
+        // Phase 4 Q5: จำท่าตอน snap แยกไว้ — minX..maxY สะสมโตอย่างเดียว เอามาย่อกลับไม่ได้
+        var last = m.raw[m.raw.length - 1];
+        m.snap = {
+            shape: shape, cx: (m.minX + m.maxX) / 2, cy: (m.minY + m.maxY) / 2,
+            hw0: (m.maxX - m.minX) / 2, hh0: (m.maxY - m.minY) / 2, px0: last[0], py0: last[1]
+        };
+        setSnapPoints(synthesizeShape(shape, m));
+        active.shapeType = shape;
+        active._snapped = true;
+        requestRender();
+    }
+    function setSnapPoints(pts) {
         active.points = pts.map(function (p) {
             var pt = { nx: (p[0] - activeMeta.ax) / activeMeta.aw, ny: (p[1] - activeMeta.ay) / activeMeta.aw };
             if (activeMeta.pressure) pt.p = 0.5;
             return pt;
         });
-        active.shapeType = shape;
-        active._snapped = true;
-        requestRender();
+    }
+    // Phase 4 Q5/Q5b: snap แล้วลากต่อ = ย่อขยายสดจนยกปากกา — คิดใหม่จากท่าตอน snap ทุกเฟรม (ไม่สะสม) จึงหดกลับได้
+    // เส้นตรง: จุดเริ่มเดิม → ปลายปากกา (หมุนได้รอบทิศ) ; วงรี/สี่เหลี่ยม: ยึดจุดกลางกรอบเดิม ไม่ลอยออกจากข้อความที่วงไว้
+    // ครึ่งกว้าง = ค่าตอน snap + ระยะที่ปากกาห่างจุดกลางเพิ่มขึ้น — ใช้ |px−cx| ตรงๆ ไม่ได้: วงกลมที่เริ่ม-จบด้านบน
+    // ปากกาอยู่ที่ px≈cx เฟรมแรกหลัง snap จะแฟบเหลือขั้นต่ำทันที ; ขั้นต่ำไม่เกินขนาดตอน snap (รูปแบนๆ ไม่กระโดด)
+    function resizeSnap(px, py) {
+        var m = activeMeta, s = m.snap;
+        if (s.shape === 'line') { setSnapPoints([m.raw[0], [px, py]]); return; }
+        var hw = Math.max(Math.min(SNAP_MIN_HALF, s.hw0), s.hw0 + Math.abs(px - s.cx) - Math.abs(s.px0 - s.cx));
+        var hh = Math.max(Math.min(SNAP_MIN_HALF, s.hh0), s.hh0 + Math.abs(py - s.cy) - Math.abs(s.py0 - s.cy));
+        setSnapPoints(synthesizeShape(s.shape, { raw: m.raw, minX: s.cx - hw, maxX: s.cx + hw, minY: s.cy - hh, maxY: s.cy + hh }));
     }
     // line: ทุกจุดห่างจากคอร์ดต้น→ปลายไม่เกิน max(6px, 8% ของคอร์ด) ; closed: ต้น-ปลายใกล้กัน ;
     // rect vs ellipse: พื้นที่ (shoelace) / พื้นที่กรอบ — วงกลมวาดมือ ≈ 0.78, สี่เหลี่ยม ≈ 0.9+
@@ -768,7 +795,7 @@
         if (lineOnly) return null;
         var bw = maxX - minX, bh = maxY - minY;
         if (chord > Math.max(bw, bh) * 0.2 + 10) return null;
-        return Math.abs(area) / 2 / (bw * bh) >= 0.86 ? 'rect' : 'ellipse';
+        return Math.abs(area) / 2 / (bw * bh) >= RECT_FILL_RATIO ? 'rect' : 'ellipse';
     }
     function synthesizeShape(shape, m) {
         var raw = m.raw;
@@ -826,7 +853,7 @@
             requestRender();
             return;
         }
-        if (active._snapped) return;   // Q7: snap แล้วล็อกจนยกปากกา
+        if (active._snapped) { resizeSnap(px, py); requestRender(); return; }   // Phase 4 Q5: snap แล้วลากต่อ = ย่อขยาย (ไม่เก็บ raw ไม่ฝน badge)
         var dx = px - activeMeta.lastX, dy = py - activeMeta.lastY;
         if (dx * dx + dy * dy < DECIMATE_SQ) return;
         accumulateShade(activeMeta.lastX, activeMeta.lastY, px, py);
@@ -869,9 +896,11 @@
 
         if (active) {
             if (e.type !== 'pointercancel') {
-                // R6: จุดสุดท้ายเก็บเสมอ ไม่ผ่าน decimation (ยกเว้น stroke ที่ snap แล้ว)
-                if (!active._snapped) {
-                    var px = e.clientX - activeMeta.wrapLeft, py = e.clientY - activeMeta.wrapTop;
+                // R6: จุดสุดท้ายเก็บเสมอ ไม่ผ่าน decimation ; stroke ที่ snap แล้วใช้ตำแหน่งยกปากกาเป็นขนาดสุดท้าย
+                var px = e.clientX - activeMeta.wrapLeft, py = e.clientY - activeMeta.wrapTop;
+                if (active._snapped) {
+                    resizeSnap(px, py);
+                } else {
                     accumulateShade(activeMeta.lastX, activeMeta.lastY, px, py);
                     active.points.push(makePoint(px, py, e));
                     activeMeta.raw.push([px, py]);
@@ -929,7 +958,7 @@
         var stylus = t.touchType === 'stylus';
         if (!stylus && !window.APP._fingerDrawMode) return;
         if (e.target.closest('textarea, input, [contenteditable]')) return;
-        if (wrapper.classList.contains('scratchpad-disabled')) return;
+        if (wrapper.classList.contains('scratchpad-disabled') || !inkLive()) return;
         // Phase 3 req 9: โหมดนิ้ว กันเฉพาะตอนลาก (touchmove) — กัน touchstart จะฆ่า click สังเคราะห์
         // ทำให้แตะเลือกตัวเลือก/เปิดเทปไม่ได้ ; หน้าไม่เลื่อนอยู่แล้วเพราะ .scratchpad-finger ตั้ง touch-action:none
         if (!stylus && e.type === 'touchstart') return;
@@ -944,7 +973,7 @@
         return { x: x / list.length, y: y / list.length };
     }
     function onTwoFingerTouch(e) {
-        if (wrapper.classList.contains('scratchpad-disabled')) return;
+        if (wrapper.classList.contains('scratchpad-disabled') || !inkLive()) return;
         if (e.type === 'touchstart') {
             if (e.touches.length !== 2) { if (e.touches.length > 2) twoFinger = null; return; }
             abortActive();                       // นิ้วแรกอาจเริ่มลากไปแล้ว — ทิ้ง ไม่บันทึกเป็นเส้น
@@ -1118,8 +1147,8 @@
             ctx.strokeStyle = isDark() ? 'rgba(255,255,255,.9)' : 'rgba(37,99,235,.9)';
             ctx.beginPath();
             ctx.moveTo(lassoPath[0][0], lassoPath[0][1]);
+            // Phase 4 Q2: ไม่ closePath — ระหว่างลากเป็นเส้นเปิด ไม่มีเส้นคอร์ดต้น→ปลายพาดกลางจอ (buildSelection ปิดห่วงเองตอนคำนวณ)
             for (var i = 1; i < lassoPath.length; i++) ctx.lineTo(lassoPath[i][0], lassoPath[i][1]);
-            ctx.closePath();
             ctx.stroke();
         }
         if (selection) {
@@ -1371,7 +1400,7 @@
         if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
         if (isTypingTarget(document.activeElement)) return;
         if (!wrapper || wrapper.classList.contains('scratchpad-disabled')) return;
-        if (!state()) return;
+        if (!state() || !inkLive()) return;
         var k = (e.key || '').toLowerCase();
         if (k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
         else if (k === 'y' && !e.shiftKey) { e.preventDefault(); redo(); }
@@ -1494,6 +1523,25 @@
         });
     }
 
+    // ─── Phase 4 Q1: สวิตช์หลัก (ปุ่มใน "ตั้งค่าโหมดทำข้อสอบ") ─
+    function setMasterEnabled(on, persist) {
+        masterOn = on;
+        if (persist) try { localStorage.setItem(MASTER_KEY, String(on)); } catch (e) { }
+        document.body.classList.toggle('scratchpad-master-off', !on);
+        if (!on) {
+            abortActive();
+            selection = null;
+            hidePopover();
+            hideFlyout();
+            if (zenOn) setZenMode(false);     // toolbar ถูกซ่อน → ปุ่มออกจาก Zen หายไปด้วย
+        }
+        var b = document.getElementById('toggle-scratchpad-btn');
+        var label = b && b.querySelector('span');
+        if (label) label.textContent = 'เขียนบนโจทย์ (Scratchpad): ' + (on ? 'เปิด' : 'ปิด');
+        renderAll();
+    }
+    window.setScratchpadEnabled = function (on) { if (wrapper) setMasterEnabled(!!on, true); };
+
     // ─── Modal guard: มี .modal-card เปิดอยู่ → ปิด overlay ─────
     function initModalGuard() {
         var modals = document.querySelectorAll('.modal-card');
@@ -1601,7 +1649,7 @@
         wrapper.addEventListener('touchcancel', onTwoFingerTouch, { passive: true });
         // Phase 3 req 8: วงยางลบตามเมาส์/ปากกาแม้ยังไม่กด (canvas ปิด pointer-events ตอนว่าง จึงฟังที่ wrapper)
         wrapper.addEventListener('pointermove', function (e) {
-            if (tool !== 'eraser' || activeMeta) return;
+            if (tool !== 'eraser' || activeMeta || !inkLive()) return;
             var w = wrapper.getBoundingClientRect();
             setEraserCursor(e.clientX - w.left, e.clientY - w.top);
         });
@@ -1613,7 +1661,7 @@
         // Q10: แตะโดนเทป = เปิด/ปิดเทป ไม่ให้ทะลุไปเลือกคำตอบ ; ไม่โดนเทปก็ปล่อยผ่านตามปกติ (ฟังตลอด ไม่ขึ้นกับเครื่องมือ)
         wrapper.addEventListener('click', function (e) {
             if (Date.now() < suppressClickUntil) { e.stopPropagation(); e.preventDefault(); return; }
-            if (toggleTapeAt(e.clientX, e.clientY)) { e.stopPropagation(); e.preventDefault(); }
+            if (inkLive() && toggleTapeAt(e.clientX, e.clientY)) { e.stopPropagation(); e.preventDefault(); }
         }, true);
 
         new ResizeObserver(scheduleRender).observe(wrapper);
@@ -1627,6 +1675,12 @@
 
         initToolbar();
         initModalGuard();
+
+        var masterBtn = document.getElementById('toggle-scratchpad-btn');
+        if (masterBtn) masterBtn.addEventListener('click', function () { setMasterEnabled(!masterOn, true); });
+        var savedMaster = true;
+        try { savedMaster = localStorage.getItem(MASTER_KEY) !== 'false'; } catch (e) { }
+        setMasterEnabled(savedMaster);
     });
 
     // Hook showQuestion: flush ข้อเก่า โหลดลายเส้นข้อใหม่ (decorator pattern เหมือน meq.js/glossary.js)
