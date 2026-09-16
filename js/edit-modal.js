@@ -6,6 +6,81 @@ window.explainImageIndex = 0;
 window.choiceImagesData = {}; // Stores pending base64/blob for choice images
 window.currentLibTarget = { type: 'main', rowId: null };
 
+// ปลายทางโฟลเดอร์ของรูป (MD > Y[ปี] > [วิชา]) — ส่งไปกับ uploadImage เสมอ
+// ถ้าไม่ส่ง backend จะรัน getQuestionRoutingInfo ซึ่งอ่านชีต Questions/Category/Structure ทั้งใบ "ต่อรูป" ใต้ admin lock
+// ย่อรูปก่อนส่ง — ภาพจากมือถือ/สแกนมักกว้าง 3000-4000px ทำให้ base64 ใหญ่หลาย MB
+// PDF/SVG ย่อไม่ได้ → คืนของเดิม; ถ้าย่อแล้วไม่เล็กลงก็คืนของเดิมเช่นกัน
+// 1800/0.85 ตั้งสูงกว่าค่ามาตรฐานทั่วไป เพราะภาพเป็น histopath/imaging ที่รายละเอียดคือตัววินิจฉัย
+window.IMG_MAX_WIDTH = 1800;
+window.IMG_JPEG_QUALITY = 0.85;
+window.IMG_BATCH_SIZE = 5;
+
+window.compressImageBase64 = function (base64) {
+    return new Promise(resolve => {
+        if (typeof base64 !== 'string' || !base64.startsWith('data:image/') || base64.startsWith('data:image/svg')) {
+            resolve(base64);
+            return;
+        }
+        const img = new Image();
+        img.onload = () => {
+            try {
+                const scale = Math.min(1, window.IMG_MAX_WIDTH / img.naturalWidth);
+                if (scale === 1 && base64.length < 600000) { resolve(base64); return; }
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.naturalWidth * scale);
+                canvas.height = Math.round(img.naturalHeight * scale);
+                const ctx = canvas.getContext('2d');
+                // JPEG ไม่มี alpha — ถมขาวก่อน ไม่งั้นพื้นโปร่งของ PNG จะกลายเป็นดำ
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const out = canvas.toDataURL('image/jpeg', window.IMG_JPEG_QUALITY);
+                resolve(out.length < base64.length ? out : base64);
+            } catch (e) {
+                resolve(base64);
+            }
+        };
+        img.onerror = () => resolve(base64);
+        img.src = base64;
+    });
+};
+
+// ส่งรูปเป็นชุดแทนการยิงทีละรูป; รูปใดรูปหนึ่งพัง = ทั้งการบันทึกล้มเหลว ให้ตัวเรียก rollback
+window.uploadImagesInBatches = async function (items, qId, routeHints) {
+    const urls = [];
+    for (let i = 0; i < items.length; i += window.IMG_BATCH_SIZE) {
+        const chunk = items.slice(i, i + window.IMG_BATCH_SIZE);
+        const res = await window.sendWithRetry({
+            action: 'uploadImagesBatch',
+            sessionToken: window.EDIT_SESSION.sessionToken,
+            images: chunk.map(it => ({
+                base64: it.base64,
+                questionId: qId,
+                type: it.type,
+                subject: routeHints.subject,
+                year: routeHints.year
+            }))
+        });
+        if (res.result !== 'success' || !Array.isArray(res.urls)) {
+            throw new Error(res.message || 'อัปโหลดรูปภาพล้มเหลว');
+        }
+        res.urls.forEach((u, k) => {
+            if (typeof u !== 'string' || !u) {
+                throw new Error(`อัปโหลดรูปที่ ${i + k + 1} ล้มเหลว: ${(u && u.error) || 'ไม่ทราบสาเหตุ'}`);
+            }
+            urls.push(u);
+        });
+    }
+    return urls;
+};
+
+window.getUploadRouteHints = function () {
+    const subject = new URLSearchParams(window.location.search).get('subject') || '';
+    if (!subject) return { subject: '', year: '' };
+    const row = (window.APP.allSubjectsList || []).find(s => String(s.id) === String(subject));
+    return { subject: subject.trim(), year: String((row && row.year) || '').trim() };
+};
+
 window.openEditModal = function (qOverride) {
     // Auth Guard: หากเซสชันยังไม่ถูกต้องหรือหมดอายุ ให้ตรวจสอบก่อน
     if (!window.ensureActiveSession()) return;
@@ -850,56 +925,48 @@ window.saveEditChanges = async function () {
     let savedToServer = false;
     (async () => {
         try {
-            // 3.1 ดำเนินการอัปโหลดไฟล์ภาพตัวเลือกที่ติดค้างอยู่ (Choices Upload)
+            const routeHints = window.getUploadRouteHints();
+
+            // 3.1 รวมไฟล์ที่รออัปโหลดทั้งหมด (ตัวเลือก + โจทย์ + คำอธิบาย) ย่อขนาด แล้วส่งเป็นชุดครั้งเดียว
+            // เดิมยิงทีละไฟล์เรียงแถว — แก้ข้อที่มี 6 รูปต้องรอ 6 รอบ round-trip
+            const pendingUploads = [];
+            choicesBlueprint.forEach(c => {
+                if (c.pendingUpload) pendingUploads.push({ base64: c.pendingUpload, type: 'Choice' });
+            });
+            mainImgsSnapshot.forEach(img => {
+                if (img.startsWith('data:')) pendingUploads.push({ base64: img, type: 'Main' });
+            });
+            explainMediaSnapshot.forEach(m => {
+                if (m.startsWith('data:')) pendingUploads.push({ base64: m, type: 'Explain' });
+            });
+
+            let uploadedUrls = [];
+            if (pendingUploads.length > 0) {
+                for (const item of pendingUploads) {
+                    item.base64 = await window.compressImageBase64(item.base64);
+                }
+                uploadedUrls = await window.uploadImagesInBatches(pendingUploads, qId, routeHints);
+            }
+
+            let urlCursor = 0;
+
             const finalChoices = [];
             let finalAnswer = "";
-
             for (const choice of choicesBlueprint) {
-                let val = choice.originalVal;
-                if (choice.pendingUpload) {
-                    const res = await window.sendWithRetry({
-                        action: 'uploadImage',
-                        sessionToken: window.EDIT_SESSION.sessionToken,
-                        data: { base64: choice.pendingUpload, questionId: qId, type: 'Choice' }
-                    });
-                    val = res.url;
-                }
+                const val = choice.pendingUpload ? uploadedUrls[urlCursor++] : choice.originalVal;
                 if (val && val !== "") {
                     finalChoices.push(val);
                     if (choice.isCorrect) finalAnswer = val;
                 }
             }
 
-            // 3.2 ดำเนินการอัปโหลดไฟล์รูปภาพโจทย์ (Main Images Upload)
-            const finalMainImgs = [];
-            for (let img of mainImgsSnapshot) {
-                if (img.startsWith('data:')) {
-                    const res = await window.sendWithRetry({
-                        action: 'uploadImage',
-                        sessionToken: window.EDIT_SESSION.sessionToken,
-                        data: { base64: img, questionId: qId, type: 'Main' }
-                    });
-                    finalMainImgs.push(res.url);
-                } else {
-                    finalMainImgs.push(img);
-                }
-            }
+            const finalMainImgs = mainImgsSnapshot.map(img =>
+                img.startsWith('data:') ? uploadedUrls[urlCursor++] : img
+            );
 
-            // 3.3 ดำเนินการอัปโหลดไฟล์สื่อประกอบคำอธิบาย (Explain Media Upload)
-            const finalExplainMedia = [];
-            for (let media of explainMediaSnapshot) {
-                if (media.startsWith('data:')) {
-                    const isPdf = media.includes('application/pdf');
-                    const res = await window.sendWithRetry({
-                        action: 'uploadImage',
-                        sessionToken: window.EDIT_SESSION.sessionToken,
-                        data: { base64: media, questionId: qId, type: isPdf ? 'Explain' : 'Explain' }
-                    });
-                    finalExplainMedia.push(res.url);
-                } else {
-                    finalExplainMedia.push(media);
-                }
-            }
+            const finalExplainMedia = explainMediaSnapshot.map(m =>
+                m.startsWith('data:') ? uploadedUrls[urlCursor++] : m
+            );
 
             const serializedExplain = window.serializeExplain(explainText, finalExplainMedia);
 
