@@ -525,11 +525,15 @@ $(document).on('click', '.glossary-known', function (e) {
         // หน่วง 4s กันชนกับ getStructure/getQuestions/bulk VR ตอนโหลดหน้าแรก (re-check flags ตอนหมดเวลา เผื่อผู้ใช้เปิด panel เองก่อนแล้ว)
         if (!window.APP._glossaryLoaded && !window.APP._glossaryLoading &&
             (!window.APP._glossaryLastAttempt || Date.now() - window.APP._glossaryLastAttempt > 60000)) {
+            // 10s + idle: getGlossary หนักสุดใน burst ตอนเปิดหน้า (56s ตอน GAS คิวเต็ม) — ให้คำขอหลักจบก่อน
             setTimeout(function () {
-                if (!window.APP._glossaryLoaded && !window.APP._glossaryLoading) {
-                    window.loadGlossary(new URLSearchParams(location.search).get('subject') || '');
-                }
-            }, 4000);
+                var run = function () {
+                    if (!window.APP._glossaryLoaded && !window.APP._glossaryLoading) {
+                        window.loadGlossary(new URLSearchParams(location.search).get('subject') || '');
+                    }
+                };
+                if (window.requestIdleCallback) window.requestIdleCallback(run, { timeout: 5000 }); else run();
+            }, 10000);
         }
         // mark หลัง DOM ของข้อวาดเสร็จ (100ms > renderAllMath ที่ 50ms — ให้ KaTeX เสร็จก่อน)
         setTimeout(window.markGlossaryTerms, 120);

@@ -525,9 +525,14 @@ window.startIncrementalPolling = function () {
 
     // ปรับ schedule ใหม่เมื่อ visibility เปลี่ยน (เพื่อใช้ interval ที่เหมาะสม)
     document.removeEventListener('visibilitychange', scheduleNextPoll);
+    // สลับแท็บรัวๆ = checkVersion ทุกครั้ง → throttle sync ตอนกลับมาเป็น ≤1 ครั้ง/นาที
+    var lastVisibleSyncAt = 0;
     document.addEventListener('visibilitychange', function () {
         scheduleNextPoll();
-        if (!document.hidden) window.runIncrementalSync();
+        if (!document.hidden && Date.now() - lastVisibleSyncAt > 60000) {
+            lastVisibleSyncAt = Date.now();
+            window.runIncrementalSync();
+        }
     });
 
     scheduleNextPoll();
@@ -749,6 +754,9 @@ window.renderExplainHtmlForCard = function (explainRaw) {
 // =========================================================
 
 window._syncInBackground = function (subjectParam, localVer, verKey, cacheKey, sessionKey) {
+    // bulk VR ยิงหลัง checkVersion เสร็จ (อาจ 16s+ ตอน GAS คิวเต็ม) — ระหว่างรอ showQuestion จาก cache จะยิง per-qid
+    // votes+reports ทุกข้อที่เปิด → ซ้ำเติมคิว. ตั้ง flag ไว้ก่อน; fetchAllPendingVotesReports (ด้านล่าง ถูกเรียกเสมอ) reset ใน finally
+    if (subjectParam) window._bulkPendingInFlight = true;
     (async function () {
         try {
             const resVer = await window.fetchGAS(() => `${window.APPSCRIPT_URL}?action=checkVersion&_=${Date.now()}`);
