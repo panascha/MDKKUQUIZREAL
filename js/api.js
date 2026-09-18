@@ -306,6 +306,46 @@ window.fetchSupabaseDataVersion = function () {
     });
 };
 
+// delta sync ของ poll — แทน GAS checkVersion + getChangedSince (เอาโหลดเบื้องหลังออกจาก GAS)
+//   cursor = max(updatedAt) ของ DB (data_version().questions, ISO) เก็บที่ sb_cursor_<subject>
+//   ⚠️ key ใหม่โดยเจตนา: last_sync_ เก็บ epoch ms ยุค GAS — ป้อน epoch ให้ updatedAt=gt. จะพัง/ได้ทั้งตาราง
+// คืน null = ไม่มีอะไรเปลี่ยน ; ไม่งั้น { changed: [...แถวของวิชานี้ รวมแถวที่ deletedAt ไม่ null], cursor }
+// caller ต้องเขียน cursor เองหลัง merge สำเร็จ — merge ล้ม = poll รอบหน้าดึงช่วงเดิมซ้ำ (merge ซ้ำได้ไม่เสียหาย)
+window.fetchSupabaseQuestionDelta = async function (subjectParam) {
+    var dv = await window.fetchSupabaseDataVersion();
+    if (!dv || !dv.questions) return null;
+
+    var cursor = await window.getCacheDB('sb_cursor_' + subjectParam);
+    if (!cursor) {
+        // cache มาจากยุค GAS / first run: ถอยจากเวลาโหลดล่าสุด 10 นาที (กันนาฬิกาเครื่องเพี้ยน)
+        // ไม่มี last_sync เลย ⇒ รับ cursor ปัจจุบันไปเฉยๆ ห้ามดึงจาก epoch 0 (= ทั้งฐาน ~24 MB)
+        var lastSync = Number(await window.getLastSyncTime(subjectParam)) || 0;
+        if (!lastSync) return { changed: [], cursor: dv.questions };
+        cursor = new Date(lastSync - 600000).toISOString();
+    }
+    if (cursor === dv.questions) return null;
+
+    var rows = await window.sbFetchPaged(
+        'v_questions_delta?select=*&updatedAt=gt.' + encodeURIComponent(cursor) + '&order=updatedAt,questionId'
+    );
+
+    // กรองเฉพาะวิชานี้: หมวดทับหมวดของวิชา (เกณฑ์เดียวกับ fetchSupabaseQuestionsForSubject)
+    // หรือเป็นข้อที่มีอยู่ในเครื่องแล้ว (ย้ายหมวดออก/ถูกลบ ต้องไปถึง merge ด้วย)
+    var clean = subjectParam ? String(subjectParam).trim().toUpperCase() : '';
+    var changed = rows;
+    if (clean) {
+        var catSet = new Set();
+        ((window.APP.globalStructure && window.APP.globalStructure.category) || []).forEach(function (c) {
+            if (String(c.subjectRef || '').trim().toUpperCase() === clean) catSet.add(String(c.categoryId || '').trim());
+        });
+        var have = new Set((window.APP.allQuestions || []).map(function (q) { return q.questionId; }));
+        changed = rows.filter(function (q) {
+            return have.has(q.questionId) || (q.category || []).some(function (id) { return catSet.has(id); });
+        });
+    }
+    return { changed: changed, cursor: dv.questions };
+};
+
 // เรียงตาม questionId แบบรู้จักตัวเลข: CVS_51MCQ1_2 มาก่อน CVS_51MCQ1_10
 // (เรียงแบบ lexical ล้วนจะได้ _10 ก่อน _2 ซึ่งพังลำดับข้อสอบในโหมด "ไม่สุ่ม")
 var _sbCollator = null;

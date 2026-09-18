@@ -278,9 +278,15 @@ window.mergeChangedQuestionsToCache = async function (changedQuestions, subject)
         qMap[questions[i].questionId] = i;
     }
 
-    var added = 0, updated = 0;
+    var added = 0, updated = 0, removed = {};
 
     changedQuestions.forEach(function (newQ) {
+        // แถวจาก Supabase v_questions_delta ที่ถูกลบอ่อน (deletedAt ไม่ null) ⇒ ทิ้งจาก cache ห้าม merge เป็นข้อปกติ
+        if (newQ.deletedAt) {
+            if (qMap[newQ.questionId] !== undefined) removed[newQ.questionId] = true;
+            return;
+        }
+
         // normalize category ให้เป็น array เสมอ
         if (!Array.isArray(newQ.category)) {
             newQ.category = newQ.category ? [newQ.category] : [];
@@ -302,11 +308,14 @@ window.mergeChangedQuestionsToCache = async function (changedQuestions, subject)
         }
     });
 
-    existingCache.questions = questions;
+    var removedCount = Object.keys(removed).length;
+    existingCache.questions = removedCount
+        ? questions.filter(function (q) { return !removed[q.questionId]; })
+        : questions;
     await window.setCacheDB(cacheKey, existingCache);
 
-    console.log('[Sync] Cache merged: +' + added + ' new, ~' + updated + ' updated');
-    return { added: added, updated: updated };
+    console.log('[Sync] Cache merged: +' + added + ' new, ~' + updated + ' updated, -' + removedCount + ' removed');
+    return { added: added, updated: updated, removed: removedCount };
 };
 
 /**
