@@ -991,10 +991,17 @@
                         style="grid-column: 1 / -1; margin: 0; min-height: 46px; width: 100%; font-size: 1.1rem; font-weight: 700;">
                         <i class="fas fa-chart-bar"></i> ข้อออกบ่อย (คลัสเตอร์ข้อสอบซ้ำ)
                     </button>
-                    <button id="wrong-practice-btn" class="quiz-button btn-orange" disabled
-                        style="grid-column: 1 / -1; margin: 0; min-height: 46px; width: 100%; font-size: 1.1rem; font-weight: 700;">
-                        <i class="fas fa-redo-alt"></i> ฝึกข้อที่เคยผิด (<span id="wrong-practice-count">0</span>)
-                    </button>
+                    <div style="grid-column: 1 / -1; display: flex; gap: 8px; width: 100%;">
+                        <button id="wrong-practice-btn" class="quiz-button btn-orange" disabled
+                            style="flex: 1; margin: 0; min-height: 46px; font-size: 1.1rem; font-weight: 700;">
+                            <i class="fas fa-redo-alt"></i> ฝึกข้อที่เคยผิด (<span id="wrong-practice-count">0</span>)
+                        </button>
+                        <button id="clear-wrong-history-btn" class="quiz-button" disabled
+                            style="margin: 0; min-height: 46px; width: 48px; min-width: 48px; background: #fee2e2; border: 1.5px solid #fca5a5; color: #dc2626; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer;"
+                            title="ล้างประวัติข้อที่เคยผิดของวิชานี้">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
                     <button id="pending-reports-btn" class="quiz-button" disabled
                         style="grid-column: 1 / -1; margin: 0; min-height: 46px; width: 100%; font-size: 1.1rem; font-weight: 700; background-color: #dc2626; color: white; border: none; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.15);">
                         <i class="fas fa-clipboard-check"></i> ข้อที่รอตรวจสอบ (<span id="pending-reports-count">0</span>)

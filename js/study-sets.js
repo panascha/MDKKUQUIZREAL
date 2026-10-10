@@ -105,6 +105,33 @@ window.updateWrongPracticeButton = function () {
     $('#wrong-practice-btn')
         .prop('disabled', n === 0)
         .attr('title', n === 0 ? 'ยังไม่มีข้อที่เคยตอบผิด — ตอบผิดข้อไหนระบบจะจำไว้ให้ฝึกซ้ำ' : '');
+    $('#clear-wrong-history-btn').prop('disabled', n === 0);
+};
+
+window.clearWrongHistory = async function (subj) {
+    subj = subj || window.studySubjectKey();
+    await window.ensureWrongHistory(subj);
+    const n = window.getWrongPracticeQids().length;
+    if (!n) return;
+    const res = await Swal.fire({
+        title: 'ล้างประวัติข้อที่เคยผิด?',
+        text: 'ข้อสอบที่เคยตอบผิดทั้งหมดในวิชานี้ (' + n + ' ข้อ) จะถูกรีเซ็ต',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'ล้างทั้งหมด',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#dc2626'
+    });
+    if (!res.isConfirmed) return;
+    window._wrongHistCache[subj] = {};
+    delete window._wrongHistLoad[subj];
+    try { await window.setCacheDB('wrong_history_' + subj, {}); } catch (e) { console.warn('[StudySets] clear wrong_history failed', e); }
+    window.updateWrongPracticeButton();
+    if (window.APP.filterMode === 'wrong-practice') {
+        window.APP.filterMode = 'category';
+        window.updateQuestionSet();
+    }
+    window.bgToast.fire({ icon: 'success', title: 'ล้างประวัติข้อที่เคยผิดแล้ว' });
 };
 
 window.launchWrongPractice = function () {
@@ -750,6 +777,7 @@ $(function () {
 
     // Feature B — เปิด picker เลือกข้อ/หัวข้อก่อน (launchWrongPractice ยังอยู่สำหรับฝึกทั้งหมดแบบ headless)
     $('#wrong-practice-btn').on('click', window.openWrongPicker);
+    $('#clear-wrong-history-btn').on('click', function () { window.clearWrongHistory(window.studySubjectKey()); });
     $(document).on('click', '#wrong-picker-close', function () { $('#wrong-picker-overlay').fadeOut(120); });
     $(document).on('click', '#wrong-picker-practice', window.wrongPickerPractice);
     $(document).on('click', '#wrong-picker-save', window.wrongPickerSaveSets);
