@@ -222,7 +222,7 @@
     /* Question text — serif, generous size */
     #question {
         font-family: var(--font-primary);
-        font-weight: 700;
+        font-weight: var(--font-weight-bold);
         font-size: clamp(1.2rem, 3vw, 1.6rem);
         line-height: 1.65;
         color: var(--color-text);
@@ -310,7 +310,7 @@
         padding: 12px 16px;
         font-family: var(--font-primary);
         font-size: 1.15rem;
-        font-weight: 600;
+        font-weight: var(--font-weight-medium);
         min-height: 52px;
         text-align: left;
         background: var(--color-surface-2);
@@ -355,7 +355,7 @@
         background: var(--color-primary-light);
         border-color: var(--color-primary);
         color: var(--color-primary);
-        font-weight: 600;
+        font-weight: var(--font-weight-medium);
         box-shadow: 0 0 0 3px rgba(192, 86, 33, 0.12);
     }
 
@@ -440,7 +440,7 @@
         cursor: pointer;
         font-family: var(--font-primary);
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: var(--font-weight-medium);
         transition: all 0.15s ease;
         letter-spacing: 0.01em;
     }

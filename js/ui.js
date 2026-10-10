@@ -1405,6 +1405,14 @@ $(function () {
         applyTheme(themes[currentThemeIndex]);
     });
 
+    $('#font-weight-toggle-btn').on('click', function () {
+        window.cycleFontWeight();
+    });
+    $(document).on('click', '.font-weight-opt', function () {
+        var fw = $(this).data('fw');
+        if (fw) window.setFontWeight(fw);
+    });
+
     // --- ระบบดักจับการคลิกเลือกตัวเลือก (Choices Selection) ---
     $('#choices').on("click", "button", function () {
         if (window.APP.currentQuestions[window.APP.questionIndex]?.state) return;
@@ -1726,6 +1734,25 @@ window.generateMedKeywordsForWrongAnswers = function () {
         console.error('generateMedKeywordsForWrongAnswers failed:', err);
         Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อ AI ได้ กรุณาลองใหม่', 'error');
     });
+};
+
+// Font weight controls
+window.FONT_WEIGHT_LEVELS = ['normal', 'medium', 'bold', 'heavy'];
+window.FONT_WEIGHT_LABELS = { normal: 'ปกติ (400)', medium: 'สบายตา (500)', bold: 'หนา (600)', heavy: 'หนามาก (700)' };
+
+window.setFontWeight = function (level) {
+    var html = document.documentElement;
+    window.FONT_WEIGHT_LEVELS.forEach(function (l) { html.classList.remove('fw-' + l); });
+    html.classList.add('fw-' + level);
+    localStorage.setItem('mdkku_font_weight', level);
+    window.bgToast.fire({ icon: 'success', title: 'ปรับความหนาตัวอักษรเป็น: ' + window.FONT_WEIGHT_LABELS[level] });
+};
+
+window.cycleFontWeight = function () {
+    var current = localStorage.getItem('mdkku_font_weight') || 'normal';
+    var idx = window.FONT_WEIGHT_LEVELS.indexOf(current);
+    var next = window.FONT_WEIGHT_LEVELS[(idx + 1) % window.FONT_WEIGHT_LEVELS.length];
+    window.setFontWeight(next);
 };
 
 window.renderAnnouncementsUI = function (announcements) {
