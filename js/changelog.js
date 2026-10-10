@@ -4,6 +4,14 @@
 
 window.CHANGELOG = [
     {
+        version: 'v3.32.1',
+        date: '2026-10-09',
+        new: [],
+        fixed: [
+            'แก้ไอคอน Font Awesome กลายเป็นสี่เหลี่ยม (☒) หลังอัปเดตปรับความหนาตัวอักษร — v3.32.0 CSS ไปลบ font-weight:900 ของไอคอน ทำให้ glyph หาย'
+        ]
+    },
+    {
         version: 'v3.32.0',
         date: '2026-10-09',
         new: [

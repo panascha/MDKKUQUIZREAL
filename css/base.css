@@ -78,22 +78,26 @@
         text-decoration: underline;
     }
 
-    /* KaTeX and icons: exclude from custom font weight to prevent formula/icon distortion */
-    .katex,
-    .katex *,
-    .fas,
-    .fab,
-    .far,
-    .fa,
-    [class*="fa-"] {
-        font-weight: normal !important;
+    /* Font Awesome: strict protection — must override any cascaded font-weight */
+    .fa, .fas, .fa-solid {
+        font-family: "Font Awesome 6 Free" !important;
+        font-weight: 900 !important;
+    }
+    .far, .fa-regular {
+        font-family: "Font Awesome 6 Free" !important;
+        font-weight: 400 !important;
+    }
+    .fab, .fa-brands {
+        font-family: "Font Awesome 6 Brands" !important;
+        font-weight: 400 !important;
+    }
+    /* KaTeX: exclude from custom font weight to prevent formula distortion */
+    .katex, .katex * {
+        font-family: KaTeX_Main, KaTeX_Math, serif !important;
     }
     .katex .mathbf,
     .katex .boldsymbol {
         font-weight: bold !important;
-    }
-    .fas.fa-bold {
-        font-weight: 900 !important;
     }
 
     /* =========================================
