@@ -4,7 +4,7 @@
        ========================================= */
     /* Typography */
     :root {
-        --font-primary: 'TH Sarabun New', 'Sarabun', 'Roboto', sans-serif;
+        --font-primary: 'Sarabun', 'TH Sarabun New', 'Roboto', sans-serif;
         --font-weight-body: 400;
         --font-weight-medium: 600;
         --font-weight-bold: 700;
@@ -81,25 +81,29 @@
         --zi-confirm: 10000;
     }
 
-    html.fw-normal {
+    html.fw-normal,
+    body.fw-normal {
         --font-weight-body: 400;
         --font-weight-medium: 600;
         --font-weight-bold: 700;
     }
 
-    html.fw-medium {
+    html.fw-medium,
+    body.fw-medium {
         --font-weight-body: 500;
         --font-weight-medium: 600;
         --font-weight-bold: 800;
     }
 
-    html.fw-bold {
+    html.fw-bold,
+    body.fw-bold {
         --font-weight-body: 600;
         --font-weight-medium: 700;
         --font-weight-bold: 800;
     }
 
-    html.fw-heavy {
+    html.fw-heavy,
+    body.fw-heavy {
         --font-weight-body: 700;
         --font-weight-medium: 800;
         --font-weight-bold: 900;

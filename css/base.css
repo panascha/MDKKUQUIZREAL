@@ -24,6 +24,16 @@
         margin-bottom: 50px;
     }
 
+    /* Explicitly bind the app's readable text to the font-weight toggle. */
+    #question,
+    .choice-text,
+    #quiz-explain-container,
+    #quiz-explain-container p,
+    .search-card p,
+    #modal-q-text {
+        font-weight: var(--font-weight-body) !important;
+    }
+
     .container {
         width: 82%;
         max-width: 960px;

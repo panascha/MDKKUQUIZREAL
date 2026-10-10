@@ -1741,9 +1741,13 @@ window.FONT_WEIGHT_LEVELS = ['normal', 'medium', 'bold', 'heavy'];
 window.FONT_WEIGHT_LABELS = { normal: 'ปกติ (400)', medium: 'สบายตา (500)', bold: 'หนา (600)', heavy: 'หนามาก (700)' };
 
 window.setFontWeight = function (level) {
-    var html = document.documentElement;
-    window.FONT_WEIGHT_LEVELS.forEach(function (l) { html.classList.remove('fw-' + l); });
-    html.classList.add('fw-' + level);
+    if (window.FONT_WEIGHT_LEVELS.indexOf(level) === -1) level = 'normal';
+    var elements = [document.documentElement, document.body];
+    elements.forEach(function (el) {
+        if (!el) return;
+        window.FONT_WEIGHT_LEVELS.forEach(function (l) { el.classList.remove('fw-' + l); });
+        el.classList.add('fw-' + level);
+    });
     localStorage.setItem('mdkku_font_weight', level);
     window.bgToast.fire({ icon: 'success', title: 'ปรับความหนาตัวอักษรเป็น: ' + window.FONT_WEIGHT_LABELS[level] });
 };
