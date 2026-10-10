@@ -1738,7 +1738,7 @@ window.generateMedKeywordsForWrongAnswers = function () {
 
 // Font weight controls
 window.FONT_WEIGHT_LEVELS = ['normal', 'medium', 'bold'];
-window.FONT_WEIGHT_LABELS = { normal: 'ปกติ (400)', medium: 'สบายตา (Medium)', bold: 'หนาชัด (700)' };
+window.FONT_WEIGHT_LABELS = { normal: 'ปกติ (700)', medium: 'หนา (Bold+)', bold: 'หนามาก (Heavy)' };
 
 window.setFontWeight = function (level) {
     if (window.FONT_WEIGHT_LEVELS.indexOf(level) === -1) level = 'normal';

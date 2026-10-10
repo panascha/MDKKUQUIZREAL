@@ -82,19 +82,19 @@
 
     html.fw-normal,
     body.fw-normal {
-        --font-weight-body: 400;
+        --font-weight-body: 700;
         --font-stroke-body: 0px;
     }
 
     html.fw-medium,
     body.fw-medium {
-        --font-weight-body: 400;
+        --font-weight-body: 700;
         --font-stroke-body: 0.35px;
     }
 
     html.fw-bold,
     body.fw-bold {
         --font-weight-body: 700;
-        --font-stroke-body: 0px;
+        --font-stroke-body: 0.65px;
     }
 
