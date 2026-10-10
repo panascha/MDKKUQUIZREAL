@@ -32,6 +32,7 @@
     .search-card p,
     #modal-q-text {
         font-weight: var(--font-weight-body) !important;
+        -webkit-text-stroke: var(--font-stroke-body) currentColor !important;
     }
 
     .container {
@@ -88,22 +89,29 @@
         text-decoration: underline;
     }
 
-    /* Font Awesome: strict protection — must override any cascaded font-weight */
+    /* Font Awesome: strict protection — must override any cascaded font-weight and text-stroke */
     .fa, .fas, .fa-solid {
         font-family: "Font Awesome 6 Free" !important;
         font-weight: 900 !important;
+        -webkit-text-stroke: 0 !important;
     }
     .far, .fa-regular {
         font-family: "Font Awesome 6 Free" !important;
         font-weight: 400 !important;
+        -webkit-text-stroke: 0 !important;
     }
     .fab, .fa-brands {
         font-family: "Font Awesome 6 Brands" !important;
         font-weight: 400 !important;
+        -webkit-text-stroke: 0 !important;
     }
-    /* KaTeX: exclude from custom font weight to prevent formula distortion */
+    [class*="fa-"] {
+        -webkit-text-stroke: 0 !important;
+    }
+    /* KaTeX: exclude from custom font weight and text-stroke to prevent formula distortion */
     .katex, .katex * {
         font-family: KaTeX_Main, KaTeX_Math, serif !important;
+        -webkit-text-stroke: 0 !important;
     }
     .katex .mathbf,
     .katex .boldsymbol {

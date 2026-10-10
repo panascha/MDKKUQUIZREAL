@@ -1737,8 +1737,8 @@ window.generateMedKeywordsForWrongAnswers = function () {
 };
 
 // Font weight controls
-window.FONT_WEIGHT_LEVELS = ['normal', 'medium', 'bold', 'heavy'];
-window.FONT_WEIGHT_LABELS = { normal: 'ปกติ (400)', medium: 'สบายตา (500)', bold: 'หนา (600)', heavy: 'หนามาก (700)' };
+window.FONT_WEIGHT_LEVELS = ['normal', 'medium', 'bold'];
+window.FONT_WEIGHT_LABELS = { normal: 'ปกติ (400)', medium: 'สบายตา (Medium)', bold: 'หนาชัด (700)' };
 
 window.setFontWeight = function (level) {
     if (window.FONT_WEIGHT_LEVELS.indexOf(level) === -1) level = 'normal';
