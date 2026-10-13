@@ -424,7 +424,7 @@
         var token = null;
         try { token = localStorage.getItem('mdkku_session_token'); } catch (e) { }
         if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn || !token) {
-            if (typeof window.showGoogleSignInModal === 'function') window.showGoogleSignInModal('เข้าสู่ระบบเพื่อขอคำใบ้จากเซ้น');
+            if (typeof window.showGoogleSignInModal === 'function') window.showGoogleSignInModal('เข้าสู่ระบบเพื่อขอคำใบ้จากน้องซูชิ');
             return;
         }
         var cq = curQ();
@@ -437,7 +437,7 @@
         }
         var qid = cq.questionId;
         var subject = new URLSearchParams(location.search).get('subject') || 'default';
-        var key = 'zen_hint_' + subject + '_' + qid + '_' + mode;
+        var key = 'sushi_hint_' + subject + '_' + qid + '_' + mode;
         try {
             var c = await window.getCacheDB(key);
             if (c && c.text) {
@@ -453,9 +453,9 @@
             if (!window._chatbotCatalog && typeof window.loadChatbotModelCatalog === 'function') await window.loadChatbotModelCatalog();
             var model = typeof window.pickAutoModel === 'function' ? window.pickAutoModel('quick_fact') : 'deepseek-v4-pro';
             var choices = String(cq.choices || '').split('///').join(' | ');
-            var persona = 'คุณคือ "เซ้น" (MDKKU Mascot) ผู้ชาย เป็นรุ่นพี่/เพื่อนคู่หูนักศึกษาแพทย์ มีไหวพริบ กวนนิดๆ และให้กำลังใจ พูดไทยปนศัพท์หมอ ' +
-                'ใช้คำลงท้ายสุภาพแบบผู้ชาย "ครับ" เท่านั้น ห้ามใช้ "ค่ะ" "คะ" "ค่า" เด็ดขาด เรียกตัวเองว่า "พี่" หรือ "เซ้น" ก็ได้ ' +
-                'ตัวอย่างน้ำเสียง: "เซ้นมาแล้วครับ! ลองนึกถึงเรื่อง chemical structure กับ functional group ที่คล้ายกันดูสิครับ ระวังเรื่อง cross-reactivity ไว้ให้ดีนะ พี่ใบ้แค่นี้พอก่อน เดี๋ยวเก่งเกิน!"\n';
+            var persona = 'คุณคือ "น้องซูชิ" (MDKKU Mascot) ผู้ชาย เป็นรุ่นพี่/เพื่อนคู่หูนักศึกษาแพทย์ มีไหวพริบ กวนนิดๆ และให้กำลังใจ พูดไทยปนศัพท์หมอ ' +
+                'ใช้คำลงท้ายสุภาพแบบผู้ชาย "ครับ" เท่านั้น ห้ามใช้ "ค่ะ" "คะ" "ค่า" เด็ดขาด เรียกตัวเองว่า "พี่" หรือ "ซูชิ" ก็ได้ ' +
+                'ตัวอย่างน้ำเสียง: "ซูชิมาแล้วครับ! ลองนึกถึงเรื่อง chemical structure กับ functional group ที่คล้ายกันดูสิครับ ระวังเรื่อง cross-reactivity ไว้ให้ดีนะ พี่ใบ้แค่นี้พอก่อน เดี๋ยวเก่งเกิน!"\n';
             var prompt;
             if (mode === 'pre') {
                 prompt = persona + 'ให้ใบ้เบาๆ 1-2 ประโยค ชี้กลไก/แนวคิดวินิจฉัยที่ควรนึกถึง ห้ามเฉลย ห้ามบอกชื่อโรค/ยา/ตัวอักษรตัวเลือกที่ถูก ห้ามยืนยันหรือตัดตัวเลือกใดๆ ตอบสั้นกระชับ\n' +
@@ -473,10 +473,10 @@
                 if (now && now.questionId === qid) window.showMascotBubble(window.renderMarkdownSafe(String(res.answer)), { ttl: 0, close: true });
                 else window.hideMascotBubble();
             } else {
-                window.showMascotBubble('เซ้นคิดไม่ออกตอนนี้ครับ ลองใหม่อีกทีนะ', { ttl: 5000 });
+                window.showMascotBubble('ซูชิคิดไม่ออกตอนนี้ครับ ลองใหม่อีกทีนะ', { ttl: 5000 });
             }
         } catch (e) {
-            window.showMascotBubble('เซ้นคิดไม่ออกตอนนี้ครับ ลองใหม่อีกทีนะ', { ttl: 5000 });
+            window.showMascotBubble('ซูชิคิดไม่ออกตอนนี้ครับ ลองใหม่อีกทีนะ', { ttl: 5000 });
         } finally {
             hintBusy = false;
             window.triggerMascotEmote('');
