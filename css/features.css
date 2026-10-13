@@ -1127,3 +1127,44 @@ body.chatbot-open #chatbot-fab {
     .ai-ov-open .ai-ov-sec { display: block; }
     .ai-ov-open .ai-ov-disclaimer { display: block; }
 }
+
+/* =========================================
+   Feature — ตรวจเฉลยด้วย AI (js/verify-ai.js)
+   สีการ์ดใช้ rgba โปร่งใส เพื่อให้อ่านได้ทั้งธีมสว่าง/มืด
+   ========================================= */
+#ai-verify-panel {
+    margin: 0 20px 10px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--border-radius);
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    text-align: left;
+    box-sizing: border-box;
+}
+.aiv-btn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: var(--border-radius);
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+.aiv-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.aiv-btn-sm { margin-top: 8px; padding: 5px 10px; font-size: 0.85rem; }
+.aiv-hint, .aiv-foot { margin-top: 6px; font-size: 0.8rem; color: var(--color-text-muted); }
+.aiv-status { margin-top: 8px; }
+.aiv-err { color: var(--color-wrong); }
+.aiv-result summary { cursor: pointer; font-weight: 700; margin: 8px 0; }
+.aiv-badge { padding: 8px 10px; border-radius: var(--border-radius); font-weight: 700; margin-bottom: 8px; }
+.aiv-badge-ok { background: rgba(22, 163, 74, 0.18); border: 1px solid #16a34a; }
+.aiv-badge-warn { background: rgba(217, 154, 0, 0.18); border: 1px solid #d99a00; }
+.aiv-badge-grey { background: rgba(100, 116, 139, 0.18); border: 1px solid #64748b; }
+.aiv-card { padding: 8px 10px; border-radius: var(--border-radius); margin-bottom: 8px; border-left: 4px solid; }
+.aiv-card-a { background: rgba(91, 141, 239, 0.14); border-color: #5b8def; }
+.aiv-card-b { background: rgba(142, 91, 214, 0.14); border-color: #8e5bd6; }
+.aiv-card-arb { background: rgba(217, 154, 0, 0.14); border-color: #d99a00; }
+.aiv-card-fail { background: rgba(220, 38, 38, 0.12); border-color: #dc2626; }
+.aiv-conf { font-size: 0.8rem; color: var(--color-text-muted); }
+.aiv-dist { margin: 6px 0 0 18px; padding: 0; font-size: 0.9rem; }

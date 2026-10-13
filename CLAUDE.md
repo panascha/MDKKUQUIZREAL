@@ -43,6 +43,7 @@ Single `index.html` with all HTML/modals inline. CSS is a single `css/styles.css
 | `js/grader.js` | Auto-grader: reads OMR data embedded in exported PDFs via pdf.js |
 | `js/meq.js` | MEQ hidden-choices study mode — `applyMeqModeUi()`, `revealMeqChoices()`, `updateMeqModeButtonUI()`; free-recall-first toggle, default OFF in localStorage |
 | `js/similar.js` | Client-side similar-questions engine — `buildSimilarIndex()`, `getSimilarQuestions()`, `renderSimilarPanel()`, `openSimilarCompare()` — per-question similar-list panel and category frequency comparison, zero backend |
+| `js/verify-ai.js` | Student "ตรวจเฉลยด้วย AI" panel (`#ai-verify-panel`) — `renderAiVerifyPanel()`, `runAiVerify()` (GAS `verifyQuestionStudent`, qid only, polls `pending`), `renderAiVerifyResult()`; post-answer + no-image + login gated; per-session memo `_aiVerifyMemo` |
 | `js/study-sets.js` | Wrong-answer practice + custom study sets — `ensureWrongHistory()`, `recordAnswerResult()`, `launchWrongPractice()`, `createSetFromClusters()`, `openCustomSet()` — persisted client-side |
 | `js/app-feedback.js` | In-app feature/bug reporting modal (distinct from question-content reports) — `openAppFeedbackModal()`, `submitAppFeedback()`, inline base64 image attachments |
 | `js/chatbot.js` | IntelSphere AI study-assistant chatbot panel — `loadChatbotModelCatalog()`, `sendChatbotQuery()`, `classifyQueryTask()`/`pickAutoModel()` for auto model routing, per-answer feedback rating |
