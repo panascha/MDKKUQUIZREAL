@@ -6,7 +6,7 @@
 // ── I. Engine ──────────────────────────────────────────────
 
 // cache ต่อวิชา: invalidate เมื่อ window.APP.allQuestions ถูกแทนที่ (เปลี่ยนวิชา/sync ใหม่)
-window._similarState = { source: null, count: 0, sets: [], byQid: {} };
+window._similarState = { source: null, count: 0, sets: [], byQid: {}, postings: null, idxByQid: null, hyByQid: {}, hySet: null };
 
 window.similarTokenize = function (q) {
     const text = ((q.problem || '') + ' ' + (q.choices || '')).toLowerCase();
@@ -31,9 +31,18 @@ window.buildSimilarIndex = function () {
         set.forEach(t => { if (df[t] <= cutoff) s.add(t); });
         return s;
     });
+    // posting lists: token → [index ของข้อที่มี token นั้น] (null-proto กัน token อย่าง constructor/__proto__)
+    const postings = Object.create(null);
+    st.sets.forEach((s, i) => s.forEach(t => { (postings[t] || (postings[t] = [])).push(i); }));
+    st.postings = postings;
+    const idxByQid = Object.create(null);
+    qs.forEach((x, i) => { if (!(x.questionId in idxByQid)) idxByQid[x.questionId] = i; });
+    st.idxByQid = idxByQid;
     st.source = qs;
     st.count = qs.length;
     st.byQid = {};
+    st.hyByQid = {};
+    st.hySet = null;
     return st;
 };
 
@@ -48,6 +57,7 @@ window.similarSharedCount = function (a, b) {
 // คืน [{q, score}] เรียง score มาก→น้อย, ไม่จำกัดจำนวน
 // threshold คู่: shared >= SIMILAR_MIN_SHARED และ overlap coefficient >= SIMILAR_MIN_OVERLAP
 // (absolute อย่างเดียวไม่ scale — ข้อยาวๆ ในวิชาใหญ่ match กันเองเป็นร้อยด้วยคำทั่วไป)
+// คำนวณผ่าน posting lists (inverted index) — นับ token ร่วมเฉพาะข้อที่แชร์ token จริง
 // รวมข้อซ้ำเป๊ะด้วย (นั่นแหละประเด็น — ข้อเดิมออกซ้ำคนละปีต้องขึ้นบนสุด), memoize ต่อ questionId
 window.getSimilarQuestions = function (q) {
     const st = window.buildSimilarIndex();
@@ -55,16 +65,26 @@ window.getSimilarQuestions = function (q) {
     const qid = q.questionId;
     if (st.byQid[qid]) return st.byQid[qid];
 
-    const myIdx = qs.findIndex(x => x.questionId === qid);
-    if (myIdx === -1) return [];
+    const myIdx = st.idxByQid[qid];
+    if (myIdx === undefined) return [];
     const mySet = st.sets[myIdx];
+    // นับ token ร่วมผ่าน posting lists (แทนการวนทุกข้อ) — counts[i] == similarSharedCount(mySet, sets[i])
+    const counts = new Map();
+    mySet.forEach(t => {
+        const p = st.postings[t];
+        if (!p) return;
+        for (let k = 0; k < p.length; k++) {
+            const i = p[k];
+            if (i !== myIdx) counts.set(i, (counts.get(i) || 0) + 1);
+        }
+    });
+    // เรียง index จากน้อยไปมากก่อน sort ตาม score (stable) — tie order เท่า brute-force เดิม
+    const idxs = Array.from(counts.keys()).sort((a, b) => a - b);
     const results = [];
-    for (let i = 0; i < qs.length; i++) {
-        if (i === myIdx) continue;
-        const other = st.sets[i];
-        const minSize = Math.min(mySet.size, other.size);
-        if (!minSize) continue;
-        const shared = window.similarSharedCount(mySet, other);
+    for (let k = 0; k < idxs.length; k++) {
+        const i = idxs[k];
+        const shared = counts.get(i);
+        const minSize = Math.min(mySet.size, st.sets[i].size);
         if (shared >= window.SIMILAR_MIN_SHARED && shared / minSize >= window.SIMILAR_MIN_OVERLAP) {
             results.push({ q: qs[i], score: shared });
         }
@@ -72,6 +92,59 @@ window.getSimilarQuestions = function (q) {
     results.sort((a, b) => b.score - a.score);
     st.byQid[qid] = results;
     return results;
+};
+
+// SSOT "ข้อออกบ่อย": ปีอื่นที่มีข้อคล้ายกัน (filter เดียวกับแผงข้อสอบคล้ายกัน)
+// คืน {years: [เลขปีเรียงน้อย→มาก รวมปีตัวเอง], count: years.length, twins: [{q, score}] ของปีอื่นเท่านั้น}
+window.getHighYieldInfo = function (q) {
+    const st = window.buildSimilarIndex();
+    const qid = q.questionId;
+    if (st.hyByQid[qid]) return st.hyByQid[qid];
+    const empty = { years: [], count: 0, twins: [] };
+    if (st.idxByQid[qid] === undefined) return empty;
+    const myYear = window.similarYearOf(q);
+    if (myYear === 'N/A') return (st.hyByQid[qid] = empty);
+    const twins = window.getSimilarQuestions(q).filter(s => {
+        const y = window.similarYearOf(s.q);
+        return y !== 'N/A' && y !== myYear;
+    });
+    const years = [...new Set([myYear, ...twins.map(s => window.similarYearOf(s.q))]
+        .map(y => parseInt(y, 10)).filter(Number.isFinite))].sort((a, b) => a - b);
+    return (st.hyByQid[qid] = { years, count: years.length, twins });
+};
+
+// Set ของ questionId ที่ข้อออกซ้ำ >= 2 ปี (ปีตัวเองนับด้วย)
+window.computeAllHighYield = function () {
+    const st = window.buildSimilarIndex();
+    if (st.hySet) return st.hySet;
+    const qs = window.APP.allQuestions || [];
+    const set = new Set();
+    qs.forEach(q => { if (window.getHighYieldInfo(q).count >= 2) set.add(q.questionId); });
+    st.hySet = set;
+    return set;
+};
+
+// async เป็นก้อน (กัน UI ค้างในวิชาใหญ่); ถ้า allQuestions ถูกแทนที่กลางทาง → คืนผล sync ใหม่
+window.computeAllHighYieldAsync = function (batch) {
+    const st = window.buildSimilarIndex();
+    const qs = window.APP.allQuestions || [];
+    if (st.hySet || qs.length <= 1500) return Promise.resolve(window.computeAllHighYield());
+    const size = batch || 200;
+    const set = new Set();
+    return new Promise(resolve => {
+        let i = 0;
+        const step = () => {
+            if (window.APP.allQuestions !== st.source) return resolve(window.computeAllHighYield());
+            const end = Math.min(i + size, qs.length);
+            for (; i < end; i++) {
+                if (window.getHighYieldInfo(qs[i]).count >= 2) set.add(qs[i].questionId);
+            }
+            if (i < qs.length) return setTimeout(step, 0);
+            st.hySet = set;
+            resolve(set);
+        };
+        setTimeout(step, 0);
+    });
 };
 
 // ── II. Helpers ────────────────────────────────────────────
