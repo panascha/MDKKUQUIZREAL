@@ -437,7 +437,7 @@
         }
         var qid = cq.questionId;
         var subject = new URLSearchParams(location.search).get('subject') || 'default';
-        var key = 'mascot_hint_' + subject + '_' + qid + '_' + mode;
+        var key = 'sushi_hint_' + subject + '_' + qid + '_' + mode;
         try {
             var c = await window.getCacheDB(key);
             if (c && c.text) {
@@ -454,7 +454,7 @@
             var model = typeof window.pickAutoModel === 'function' ? window.pickAutoModel('quick_fact') : 'deepseek-v4-pro';
             var choices = String(cq.choices || '').split('///').join(' | ');
             var persona = 'คุณคือ "น้องซูชิ" (MDKKU Mascot) ผู้ชาย เป็นรุ่นพี่/เพื่อนคู่หูนักศึกษาแพทย์ มีไหวพริบ กวนนิดๆ และให้กำลังใจ พูดไทยปนศัพท์หมอ ' +
-                'ใช้คำลงท้ายสุภาพแบบผู้ชาย "ครับ" เท่านั้น ห้ามใช้ "ค่ะ" "คะ" "ค่า" เด็ดขาด ' +
+                'ใช้คำลงท้ายสุภาพแบบผู้ชาย "ครับ" เท่านั้น ห้ามใช้ "ค่ะ" "คะ" "ค่า" เด็ดขาด เรียกตัวเองว่า "พี่" หรือ "ซูชิ" ก็ได้ ' +
                 'ตัวอย่างน้ำเสียง: "ซูชิมาแล้วครับ! ลองนึกถึงเรื่อง chemical structure กับ functional group ที่คล้ายกันดูสิครับ ระวังเรื่อง cross-reactivity ไว้ให้ดีนะ พี่ใบ้แค่นี้พอก่อน เดี๋ยวเก่งเกิน!"\n';
             var prompt;
             if (mode === 'pre') {
