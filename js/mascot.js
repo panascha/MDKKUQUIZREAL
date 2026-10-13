@@ -247,6 +247,7 @@
         load: ['ลุยข้อนี้กันเลย!', 'ค่อยๆ อ่านโจทย์นะ อย่ารีบ', 'ข้อนี้ต้องคิดนิดนึงน้า', 'สู้ๆ เดี๋ยวก็ได้เอง'],
         correct: ['เก่งมาก!', 'ถูกต้องงง ไปต่อ!', 'ว้าว แม่นจริง', 'สมกับเป็นหมอในอนาคต'],
         wrong: ['ไม่เป็นไร ข้อหน้าเอาใหม่', 'อ่านเฉลยแล้วจำไว้นะ', 'พลาดนิดเดียวเอง สู้ต่อ!', 'ผิดวันนี้ ดีกว่าผิดวันสอบ'],
+        highYield: ['ข้อนี้ออกมาแล้ว {n} ปีเลยนะ จำไว้!', 'ข้อแฝดโผล่ {n} ปีซ้อน ๆ ข้อนี้เด็ดจริง', 'ออกซ้ำ {n} ปีแล้วน้า ห้ามพลาดข้อนี้'],
         idle: ['ง่วงแล้วน้า...', 'ยังอยู่ไหมเนี่ย', 'พักสายตาบ้างก็ได้นะ', 'zzZ...']
     };
 
@@ -493,7 +494,10 @@
         window.setMascotEyes('');
         window.triggerMascotEmote('');
         resetIdle();
-        if (Math.random() < CHANCE) banter('load', cq);
+        var hy = typeof window.getHighYieldInfo === 'function' ? window.getHighYieldInfo(cq) : null;
+        if (hy && hy.count >= 3) {
+            window.showMascotBubble(pick(BANTER.highYield).replace('{n}', hy.count), { auto: true, hintBtn: true });
+        } else if (Math.random() < CHANCE) banter('load', cq);
     }
 
     function onSubmitted(was) {
