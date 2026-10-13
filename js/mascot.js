@@ -141,6 +141,7 @@
                 window.closeAssistiveMenu();
             }
             window.applyAssistivePos(start.x + dx, start.y + dy);
+            stretchSprite(ev);
         }
 
         function end() {
@@ -150,6 +151,7 @@
             try { trigger.releasePointerCapture(e.pointerId); } catch (err) { }
             if (!dragging) return;
             trigger.classList.remove('is-dragging');
+            clearStretch();
             swallowClick = true;
             setTimeout(function () { swallowClick = false; }, 0);
             var b = bounds();
@@ -161,6 +163,7 @@
                 setTimeout(function () { trigger.classList.remove('is-settling'); }, 250);
             }
             window.applyAssistivePos(x, p.y, snapSide);
+            if (!reducedMotion()) animateSprite('is-jelly', 500);
             savePos(clamp(x, b.minX, b.maxX), clamp(p.y, b.minY, b.maxY));
             emit('mascot:moved', { side: snapSide });
         }
@@ -182,6 +185,7 @@
         // Tap (and keyboard Enter/Space) arrive as click; a click right after a drag is swallowed.
         trigger.addEventListener('click', function () {
             if (swallowClick) return;
+            if (!reducedMotion()) animateSprite('is-hop', 450);
             window.toggleAssistiveMenu();
         });
         scrim.addEventListener('click', window.closeAssistiveMenu);
@@ -215,8 +219,357 @@
             getTriggerRect: function () { return trigger.getBoundingClientRect(); },
             openMenu: window.openAssistiveMenu,
             closeMenu: window.closeAssistiveMenu,
-            isMenuOpen: window.isAssistiveMenuOpen
+            isMenuOpen: window.isAssistiveMenuOpen,
+            setEyes: window.setMascotEyes,
+            emote: window.triggerMascotEmote,
+            say: window.showMascotBubble
         };
+        initPersonality();
+    }
+
+    /* ---------- part 3: personality ---------- */
+    var QUIET_KEY = 'mdkku_mascot_quiet';
+    var BUBBLE_COOLDOWN = 20000;
+    var BUBBLE_TTL = 4000;
+    var IDLE_MIN = 45000, IDLE_MAX = 90000;
+    var BLINK_MIN = 3000, BLINK_MAX = 6000;
+    var CHANCE = 0.25;
+    var ANIM_CLS = ['is-hop', 'is-jelly', 'is-jump', 'is-shake'];
+    var EYE_CLS = ['is-sleeping', 'is-happy', 'is-wrong'];
+
+    var quiet = false;
+    try { quiet = localStorage.getItem(QUIET_KEY) === '1'; } catch (e) { }
+    var lastBubbleAt = 0, hintBusy = false, lastQid = null;
+    var idleTimer, blinkTimer, bubbleTimer, eyeTimer, emoteTimer, animTimer, lastMove = null;
+    var bubble, emoteEl;
+
+    var BANTER = {
+        load: ['ลุยข้อนี้กันเลย!', 'ค่อยๆ อ่านโจทย์นะ อย่ารีบ', 'ข้อนี้ต้องคิดนิดนึงน้า', 'สู้ๆ เดี๋ยวก็ได้เอง'],
+        correct: ['เก่งมาก!', 'ถูกต้องงง ไปต่อ!', 'ว้าว แม่นจริง', 'สมกับเป็นหมอในอนาคต'],
+        wrong: ['ไม่เป็นไร ข้อหน้าเอาใหม่', 'อ่านเฉลยแล้วจำไว้นะ', 'พลาดนิดเดียวเอง สู้ต่อ!', 'ผิดวันนี้ ดีกว่าผิดวันสอบ'],
+        idle: ['ง่วงแล้วน้า...', 'ยังอยู่ไหมเนี่ย', 'พักสายตาบ้างก็ได้นะ', 'zzZ...']
+    };
+
+    function rand(lo, hi) { return lo + Math.random() * (hi - lo); }
+    function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+    function esc(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function spr() { return window.MASCOT && window.MASCOT.el.sprite; }
+    function curQ() { return window.APP && window.APP.current_question; }
+
+    function animateSprite(cls, ms) {
+        var s = spr();
+        if (!s) return;
+        clearTimeout(animTimer);
+        ANIM_CLS.forEach(function (c) { s.classList.remove(c); });
+        void s.offsetWidth;
+        s.classList.add(cls);
+        animTimer = setTimeout(function () { s.classList.remove(cls); }, ms);
+    }
+
+    function stretchSprite(ev) {
+        var s = spr();
+        if (!s || reducedMotion()) return;
+        var now = Date.now();
+        if (lastMove && now > lastMove.t) {
+            var dx = ev.clientX - lastMove.x, dy = ev.clientY - lastMove.y;
+            var speed = Math.sqrt(dx * dx + dy * dy) / (now - lastMove.t) * 1000; // px/s
+            var k = Math.min(0.18, speed / 3000);
+            s.style.transform = 'scale(' + (1 + k) + ',' + (1 - k) + ')';
+        }
+        lastMove = { t: now, x: ev.clientX, y: ev.clientY };
+    }
+
+    function clearStretch() {
+        lastMove = null;
+        var s = spr();
+        if (s) s.style.transform = '';
+    }
+
+    window.setMascotEyes = function (state, ms) {
+        var s = spr();
+        if (!s) return;
+        clearTimeout(eyeTimer);
+        EYE_CLS.forEach(function (c) { s.classList.remove(c); });
+        if (!state) return;
+        s.classList.add(state);
+        if (ms) eyeTimer = setTimeout(function () { s.classList.remove(state); }, ms);
+    };
+
+    window.triggerMascotEmote = function (kind) {
+        clearTimeout(emoteTimer);
+        if (trigger) trigger.classList.remove('is-thinking');
+        if (!emoteEl) return;
+        emoteEl.classList.remove('is-show');
+        var glyph = { sleep: '💤', correct: '✨', wrong: '💦', think: '❓' }[kind];
+        if (!glyph) return;
+        emoteEl.textContent = glyph;
+        void emoteEl.offsetWidth;
+        emoteEl.classList.add('is-show');
+        if (kind === 'correct') animateSprite('is-jump', 600);
+        else if (kind === 'wrong') animateSprite('is-shake', 500);
+        if (kind === 'think') {
+            if (trigger) trigger.classList.add('is-thinking');
+            return;
+        }
+        emoteTimer = setTimeout(function () { emoteEl.classList.remove('is-show'); }, 1400);
+    };
+
+    function bubbleSuppressed() {
+        if (document.body.classList.contains('sp-zen')) return true;
+        if (document.querySelector('.scratchpad-drawing')) return true;
+        return false;
+    }
+
+    window.hideMascotBubble = function () {
+        clearTimeout(bubbleTimer);
+        if (bubble) bubble.classList.remove('is-show');
+    };
+
+    window.showMascotBubble = function (html, opts) {
+        opts = opts || {};
+        if (!bubble || bubbleSuppressed()) return false;
+        if (opts.auto) {
+            if (quiet || Date.now() - lastBubbleAt < BUBBLE_COOLDOWN || window.isAssistiveMenuOpen()) return false;
+            var lh = document.getElementById('login-benefit-hint');
+            if (lh && getComputedStyle(lh).display !== 'none') return false;
+        }
+        var ttl = opts.ttl === undefined ? BUBBLE_TTL : opts.ttl;
+        bubble.innerHTML = '';
+        if (ttl === 0 && opts.close) {
+            var cb = document.createElement('button');
+            cb.type = 'button';
+            cb.className = 'mascot-bubble-close';
+            cb.setAttribute('aria-label', 'ปิด');
+            cb.textContent = '×';
+            cb.addEventListener('click', window.hideMascotBubble);
+            bubble.appendChild(cb);
+        }
+        var body = document.createElement('div');
+        body.className = 'mascot-bubble-body';
+        body.innerHTML = html;
+        bubble.appendChild(body);
+        if (opts.hintBtn) {
+            var hb = document.createElement('button');
+            hb.type = 'button';
+            hb.id = 'mascot-bubble-hint';
+            hb.textContent = hintLabel();
+            hb.addEventListener('click', function () { window.askMascotHint(); });
+            bubble.appendChild(hb);
+        }
+        bubble.classList.toggle('has-hint', !!(opts.hintBtn || opts.close));
+        bubble.classList.add('is-show');
+        clearTimeout(bubbleTimer);
+        if (ttl > 0) bubbleTimer = setTimeout(window.hideMascotBubble, ttl);
+        if (opts.auto) lastBubbleAt = Date.now();
+        return true;
+    };
+
+    function hintLabel() {
+        var cq = curQ();
+        return cq && cq.state ? '🧠 สรุปให้จำ' : '💡 ขอน้องใบ้';
+    }
+
+    function updateHintLabel() {
+        var b = document.getElementById('mascot-hint-btn');
+        if (b) b.textContent = hintLabel();
+    }
+
+    function banter(kind, cq) {
+        var line = pick(BANTER[kind]);
+        if (kind === 'load' && cq && Math.random() < 1 / 3 && Array.isArray(cq.category) && typeof window.getCategoryNameById === 'function') {
+            var name = window.getCategoryNameById(cq.category[0]);
+            if (name) line = 'ข้อนี้หมวด "' + esc(name) + '" นะ จัดไป!';
+        }
+        window.showMascotBubble(line, { auto: true, hintBtn: kind === 'load' });
+    }
+
+    function resetIdle() {
+        clearTimeout(idleTimer);
+        var s = spr();
+        if (s) s.classList.remove('is-sleeping');
+        if (document.hidden) return;
+        idleTimer = setTimeout(idleFire, rand(IDLE_MIN, IDLE_MAX));
+    }
+
+    function idleFire() {
+        window.setMascotEyes('is-sleeping');
+        window.triggerMascotEmote('sleep');
+        banter('idle');
+        idleTimer = setTimeout(idleFire, rand(IDLE_MIN, IDLE_MAX));
+    }
+
+    function scheduleBlink() {
+        clearTimeout(blinkTimer);
+        if (document.hidden) return;
+        blinkTimer = setTimeout(function () {
+            var s = spr();
+            if (s && !s.classList.contains('is-sleeping')) {
+                s.classList.add('is-blink');
+                setTimeout(function () { s.classList.remove('is-blink'); }, 120);
+            }
+            scheduleBlink();
+        }, rand(BLINK_MIN, BLINK_MAX));
+    }
+
+    function applyQuietLabel() {
+        var b = document.getElementById('mascot-mute-toggle');
+        if (b) b.innerHTML = quiet
+            ? '<i class="fas fa-comment-slash"></i> คำพูดน้อง: ปิด'
+            : '<i class="fas fa-comment"></i> คำพูดน้อง: เปิด';
+    }
+
+    window.askMascotHint = async function () {
+        var token = null;
+        try { token = localStorage.getItem('mdkku_session_token'); } catch (e) { }
+        if (!window.EDIT_SESSION || !window.EDIT_SESSION.isLoggedIn || !token) {
+            if (typeof window.showGoogleSignInModal === 'function') window.showGoogleSignInModal('เข้าสู่ระบบเพื่อขอคำใบ้จากน้องหมอไข่');
+            return;
+        }
+        var cq = curQ();
+        if (!cq || hintBusy) return;
+        var mode = cq.state ? 'post' : 'pre';
+        var problem = String(cq.problem || '');
+        if (cq.img && problem.replace(/\s+/g, '').length < 40) {
+            window.showMascotBubble('ข้อนี้ต้องสังเกตจุดสำคัญในภาพประกอบเองน้า~', { ttl: 6000 });
+            return;
+        }
+        var qid = cq.questionId;
+        var subject = new URLSearchParams(location.search).get('subject') || 'default';
+        var key = 'mascot_hint_' + subject + '_' + qid + '_' + mode;
+        try {
+            var c = await window.getCacheDB(key);
+            if (c && c.text) {
+                window.showMascotBubble(window.renderMarkdownSafe(c.text), { ttl: 0, close: true });
+                return;
+            }
+        } catch (e) { }
+
+        hintBusy = true;
+        window.triggerMascotEmote('think');
+        window.showMascotBubble('กำลังคิด…', { ttl: 0 });
+        try {
+            if (!window._chatbotCatalog && typeof window.loadChatbotModelCatalog === 'function') await window.loadChatbotModelCatalog();
+            var model = typeof window.pickAutoModel === 'function' ? window.pickAutoModel('quick_fact') : 'deepseek-v4-pro';
+            var choices = String(cq.choices || '').split('///').join(' | ');
+            var persona = 'คุณคือ "น้องหมอไข่" รุ่นพี่แพทย์ที่เป็นกันเอง พูดไทยปนศัพท์หมอ ';
+            var prompt;
+            if (mode === 'pre') {
+                prompt = persona + 'ให้ใบ้เบาๆ 1-2 ประโยค ชี้กลไก/แนวคิดวินิจฉัยที่ควรนึกถึง ห้ามเฉลย ห้ามบอกชื่อโรค/ยา/ตัวอักษรตัวเลือกที่ถูก ห้ามยืนยันหรือตัดตัวเลือกใดๆ ตอบสั้นกระชับ\n' +
+                    'โจทย์: "' + problem + '"\nตัวเลือก: "' + choices + '"\n' +
+                    'คำอธิบายประกอบ (ห้ามเอามาเฉลยตรงๆ): "' + String(cq.explain || '') + '"';
+            } else {
+                prompt = persona + 'สรุปให้จำ 1-2 ประโยค เป็น mnemonic หรือ clinical pearl สั้นกระชับ\n' +
+                    'โจทย์: "' + problem + '"\nตัวเลือก: "' + choices + '"\nเฉลย: "' + String(cq.answer || '') + '"\n' +
+                    'คำอธิบายประกอบ: "' + String(cq.explain || '') + '"';
+            }
+            var res = await window.sendWithRetry({ action: 'askAIExpert', provider: 'IntelSphere', prompt: prompt, model: model, sessionToken: token }, 2);
+            if (res && res.result === 'success' && res.answer) {
+                try { await window.setCacheDB(key, { text: String(res.answer), ts: Date.now() }); } catch (e) { }
+                var now = curQ();
+                if (now && now.questionId === qid) window.showMascotBubble(window.renderMarkdownSafe(String(res.answer)), { ttl: 0, close: true });
+                else window.hideMascotBubble();
+            } else {
+                window.showMascotBubble('น้องหมอไข่คิดไม่ออกตอนนี้ ลองใหม่อีกทีนะ', { ttl: 5000 });
+            }
+        } catch (e) {
+            window.showMascotBubble('น้องหมอไข่คิดไม่ออกตอนนี้ ลองใหม่อีกทีนะ', { ttl: 5000 });
+        } finally {
+            hintBusy = false;
+            window.triggerMascotEmote('');
+        }
+    };
+
+    function onQuestionShown() {
+        var cq = curQ();
+        if (!cq) return;
+        updateHintLabel();
+        if (cq.questionId === lastQid) return;
+        lastQid = cq.questionId;
+        window.hideMascotBubble();
+        window.setMascotEyes('');
+        window.triggerMascotEmote('');
+        resetIdle();
+        if (Math.random() < CHANCE) banter('load', cq);
+    }
+
+    function onSubmitted(was) {
+        var cq = curQ();
+        if (!cq || was || !cq.state) return;
+        var ok = cq.select === cq.answer;
+        window.setMascotEyes(ok ? 'is-happy' : 'is-wrong', 1600);
+        window.triggerMascotEmote(ok ? 'correct' : 'wrong');
+        updateHintLabel();
+        resetIdle();
+        if (Math.random() < CHANCE) banter(ok ? 'correct' : 'wrong');
+    }
+
+    function initPersonality() {
+        bubble = document.createElement('div');
+        bubble.id = 'mascot-speech-bubble';
+        bubble.setAttribute('role', 'status');
+        wrap.appendChild(bubble);
+        emoteEl = document.createElement('div');
+        emoteEl.id = 'mascot-emote';
+        emoteEl.setAttribute('aria-hidden', 'true');
+        wrap.appendChild(emoteEl);
+
+        document.addEventListener('pointerdown', function (e) {
+            resetIdle();
+            if (!bubble.classList.contains('is-show')) return;
+            var t = e.target;
+            if (bubble.contains(t) || (t.closest && t.closest('#mascot-hint-btn'))) return;
+            window.hideMascotBubble();
+        }, true);
+        document.addEventListener('keydown', resetIdle, { passive: true });
+        window.addEventListener('scroll', function (e) {
+            if (bubble.classList.contains('is-show') && !bubble.contains(e.target)) window.hideMascotBubble();
+        }, { passive: true, capture: true });
+        document.addEventListener('mascot:menu', function (e) {
+            if (e.detail && e.detail.open) window.hideMascotBubble();
+        });
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) { clearTimeout(blinkTimer); clearTimeout(idleTimer); }
+            else { scheduleBlink(); resetIdle(); }
+        });
+
+        var mute = document.getElementById('mascot-mute-toggle');
+        if (mute) mute.addEventListener('click', function () {
+            quiet = !quiet;
+            try { localStorage.setItem(QUIET_KEY, quiet ? '1' : '0'); } catch (e) { }
+            applyQuietLabel();
+            if (quiet) window.hideMascotBubble();
+        });
+        applyQuietLabel();
+        var hint = document.getElementById('mascot-hint-btn');
+        if (hint) hint.addEventListener('click', function () { window.askMascotHint(); });
+
+        updateHintLabel();
+        scheduleBlink();
+        resetIdle();
+    }
+
+    if (!window._mascotHooksInstalled2) {
+        window._mascotHooksInstalled2 = true;
+        if (typeof window.showQuestion === 'function') {
+            var origShow = window.showQuestion;
+            window.showQuestion = function () {
+                var r = origShow.apply(this, arguments);
+                try { onQuestionShown(); } catch (e) { }
+                return r;
+            };
+        }
+        if (typeof window.submitQuestion === 'function') {
+            var origSubmit = window.submitQuestion;
+            window.submitQuestion = function () {
+                var cq0 = curQ();
+                var was = !!(cq0 && cq0.state);
+                var r = origSubmit.apply(this, arguments);
+                try { onSubmitted(was); } catch (e) { }
+                return r;
+            };
+        }
     }
 
     if (!window._mascotHooksInstalled && typeof window.toggleChatbotPanel === 'function') {

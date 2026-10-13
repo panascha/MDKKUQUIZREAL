@@ -176,3 +176,170 @@ body.assistive-open #assistive-scrim {
         transition: none !important;
     }
 }
+
+/* ---- part 3: personality (transforms only on .mascot-sprite / #mascot-emote) ---- */
+.mascot-sprite {
+    animation: mascot-breathe 3.6s ease-in-out infinite;
+    transform-origin: 50% 90%;
+    will-change: transform;
+}
+
+#assistive-touch-trigger.is-dragging .mascot-sprite { animation: none; }
+
+@keyframes mascot-breathe {
+    0%, 100% { transform: scale(1, 1); }
+    50% { transform: scale(1.03, .97); }
+}
+
+@keyframes mascot-hop {
+    0%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+}
+
+@keyframes mascot-jelly {
+    0% { transform: scale(1.2, .8); }
+    50% { transform: scale(.92, 1.08); }
+    100% { transform: scale(1, 1); }
+}
+
+@keyframes mascot-jump {
+    0%, 50%, 100% { transform: translateY(0); }
+    25%, 75% { transform: translateY(-10px); }
+}
+
+@keyframes mascot-shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-3px); }
+    40%, 80% { transform: translateX(3px); }
+}
+
+@keyframes mascot-float {
+    0% { transform: translate(-50%, 6px); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: translate(-50%, -14px); opacity: 0; }
+}
+
+@keyframes mascot-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, .5); }
+    100% { box-shadow: 0 0 0 12px rgba(99, 102, 241, 0); }
+}
+
+.mascot-sprite.is-hop { animation: mascot-hop .45s ease-out; }
+.mascot-sprite.is-jelly { animation: mascot-jelly .5s ease-out; }
+.mascot-sprite.is-jump { animation: mascot-jump .6s ease-out; }
+.mascot-sprite.is-shake { animation: mascot-shake .5s ease-out; }
+
+.mascot-eye { transition: transform .06s; }
+.mascot-sprite.is-blink .mascot-eye { transform: translate(-50%, -50%) scaleY(.1); }
+.mascot-sprite.is-sleeping .mascot-eye {
+    height: 2px;
+    min-height: 2px;
+    aspect-ratio: auto;
+    border-radius: 2px;
+    width: 6%;
+}
+.mascot-sprite.is-happy .mascot-eye {
+    background: transparent;
+    border-top: 2px solid #000;
+    border-radius: 50% 50% 0 0;
+    height: 3px;
+    aspect-ratio: auto;
+    width: 6%;
+}
+.mascot-sprite.is-wrong .mascot-eye {
+    height: 2px;
+    aspect-ratio: auto;
+    width: 6%;
+}
+.mascot-sprite.is-wrong .mascot-eye-l { transform: translate(-50%, -50%) rotate(12deg); }
+.mascot-sprite.is-wrong .mascot-eye-r { transform: translate(-50%, -50%) rotate(-12deg); }
+
+#mascot-emote {
+    position: fixed;
+    left: calc(var(--at-x) + 28px);
+    top: calc(var(--at-y) - 22px);
+    transform: translateX(-50%);
+    z-index: var(--zi-assistive);
+    pointer-events: none;
+    opacity: 0;
+    font-size: 20px;
+    line-height: 1;
+}
+
+#mascot-emote.is-show {
+    opacity: 1;
+    animation: mascot-float 1.4s ease-out;
+}
+
+#assistive-touch-trigger.is-thinking { animation: mascot-pulse 1.2s ease-out infinite; }
+
+#mascot-speech-bubble {
+    position: fixed;
+    z-index: var(--zi-assistive);
+    display: none;
+    top: calc(var(--at-y) - 4px);
+    max-width: min(260px, calc(100vw - 100px));
+    max-height: 40vh;
+    overflow: auto;
+    padding: 8px 12px;
+    border-radius: 14px;
+    background: var(--color-surface, #fff);
+    color: var(--color-text, inherit);
+    box-shadow: var(--shadow-md);
+    font-size: .85rem;
+    line-height: 1.4;
+    pointer-events: none;
+}
+
+#mascot-speech-bubble.is-show { display: block; }
+#mascot-speech-bubble button { pointer-events: auto; }
+#mascot-speech-bubble.has-hint { pointer-events: auto; }
+
+.mascot-bubble-close {
+    float: right;
+    margin-left: 8px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+#mascot-bubble-hint {
+    display: block;
+    margin-top: 6px;
+    border: 0;
+    border-radius: 10px;
+    padding: 4px 10px;
+    background: rgba(99, 102, 241, .15);
+    color: inherit;
+    cursor: pointer;
+    font-size: .8rem;
+}
+
+#assistive-wrap.is-snapped-right #mascot-speech-bubble {
+    left: auto;
+    right: calc(100vw - var(--at-x) + 8px);
+}
+
+#assistive-wrap.is-snapped-left #mascot-speech-bubble {
+    left: calc(var(--at-x) + 64px);
+    right: auto;
+}
+
+body.sp-zen #mascot-speech-bubble,
+body:has(.scratchpad-drawing) #mascot-speech-bubble,
+body.assistive-open #mascot-speech-bubble {
+    display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mascot-sprite,
+    .mascot-sprite.is-hop,
+    .mascot-sprite.is-jelly,
+    .mascot-sprite.is-jump,
+    .mascot-sprite.is-shake { animation: none !important; }
+    #mascot-emote.is-show { animation: none; }
+    #assistive-touch-trigger.is-thinking { animation: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, .5); }
+}

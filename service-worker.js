@@ -3,7 +3,7 @@
 // และ cache เฉพาะไฟล์ static ของตัวเอง
 // ไม่แตะ requests ไปหา Google Apps Script (script.google.com) เด็ดขาด
 
-const CACHE_NAME = 'mdkkuquiz-v3.32.5'; // semver — bump ทุกครั้งที่ deploy JS ใหม่; ถ้ามีของใหม่ให้เพิ่ม entry ใน js/changelog.js ด้วย
+const CACHE_NAME = 'mdkkuquiz-v3.33.0'; // semver — bump ทุกครั้งที่ deploy JS ใหม่; ถ้ามีของใหม่ให้เพิ่ม entry ใน js/changelog.js ด้วย
 const STATIC_ASSETS = [
     './',
     'index.html',
@@ -20,6 +20,7 @@ const STATIC_ASSETS = [
     'css/fast-mode.css',
     'css/features.css',
     'css/scratchpad.css',
+    'css/assistive.css',
     'js/config.js',
     'js/med-keyword-skill.js',
     'js/changelog.js',
@@ -43,6 +44,7 @@ const STATIC_ASSETS = [
     'js/report.js',
     'js/app-feedback.js',
     'js/reviews-donations.js',
+    'js/mascot.js',
     'js/ui.js',
     'js/auth-edit.js',
     'js/sync.js',
@@ -50,7 +52,8 @@ const STATIC_ASSETS = [
     'js/app.js',
     'js/pdf-generator.js',
     'js/grader.js',
-    'js/th-sarabun-font.js'
+    'js/th-sarabun-font.js',
+    'icons/mascot.svg'
 ];
 
 // ติดตั้ง: cache ไฟล์ static
