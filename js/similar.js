@@ -230,7 +230,8 @@ window.renderSimilarPanel = function () {
 
 // ── IV. Preview modal (โครง markup เดียวกับ search-card ใน search.js) ──
 
-window.buildSimilarPreviewHtml = function (q) {
+window.buildSimilarPreviewHtml = function (q, opts) {
+    const drill = opts && opts.drill;
     let categoryLabel = 'Unknown';
     if (window.APP.globalStructure.category) {
         const found = window.APP.globalStructure.category.find(t =>
@@ -282,9 +283,9 @@ window.buildSimilarPreviewHtml = function (q) {
             <div class="search-card-body">
                 <div class="search-card-problem">${(q.problem || '').replace(/\n/g, '<br>')}</div>
                 ${problemImgs}
-                <ul class="search-card-choices">${choicesList}</ul>
+                ${drill ? '<div class="twin-drill-choices"></div>' : `<ul class="search-card-choices">${choicesList}</ul>`}
             </div>
-            <div class="search-card-answer">
+            ${drill ? '' : `<div class="search-card-answer">
                 <b>เฉลย:</b>
                 <div class="search-card-answer-val">${answerDisplay}</div>
             </div>
@@ -299,7 +300,7 @@ window.buildSimilarPreviewHtml = function (q) {
                 <button class="btn-search-action btn-similar-vote-q">
                     <i class="fas fa-tags"></i> แยกเลค
                 </button>
-            </div>
+            </div>`}
         </div>`;
 };
 
@@ -343,7 +344,7 @@ window.openSimilarCompare = function (startIdx) {
     window._similarCompareIdx = Math.max(0, Math.min(startIdx || 0, sims.length - 1));
 
     const $body = $('#similar-preview-body');
-    $('#similar-preview-modal').addClass('compare-wide');
+    $('#similar-preview-modal').removeClass('drill-mode').addClass('compare-wide');
     $body.html(`
         <div class="similar-compare">
             <div class="similar-compare-col">
@@ -387,6 +388,106 @@ window.renderSimilarCompareSim = function () {
     $('.similar-compare-prev').prop('disabled', idx === 0);
     $('.similar-compare-next').prop('disabled', idx === sims.length - 1);
     setTimeout(window.renderAllMath, 50);
+};
+
+// ── Twin drill: ทำข้อแฝดทีละข้อใน modal — ไม่แตะ state/คะแนน/จุดดัชนีของชุดหลัก
+// ผลลัพธ์เดียวที่บันทึกคือ recordAnswerResult(twinQid, correct) (wrong-practice history)
+
+window._twinDrill = null;
+
+window.twinChoiceList = function (q) {
+    return ((q && q.choices) || '').split('///').map(s => s.trim()).filter(Boolean);
+};
+
+window.openTwinDrill = function (idx) {
+    const cur = window.APP.current_question;
+    const sims = window._similarPanelSims || [];
+    if (!(cur && (cur.state || window.APP.isShowingAllAnswers) && Number.isInteger(idx) && sims[idx])) return;
+    const twin = sims[idx].q;
+    window._twinDrill = { idx: idx, qid: twin.questionId, picked: null, correct: null };
+
+    const done = (window.APP.currentQuestions || []).some(x => x.questionId === twin.questionId && x.state);
+    const $modal = $('#similar-preview-modal').removeClass('compare-wide').addClass('drill-mode');
+    $('#similar-preview-body').html(`
+        <div class="twin-drill-head">
+            <span>⚡ ข้อแฝด ${idx + 1} / ${sims.length}</span>
+            ${window.similarYearChip(twin)}
+            ${done ? '<span class="twin-done-badge">เคยทำแล้วในชุดหลัก</span>' : ''}
+        </div>
+        ${window.buildSimilarPreviewHtml(twin, { drill: true })}
+        <div class="twin-drill-footer">
+            <button id="twin-next-btn" class="twin-btn"${idx === sims.length - 1 ? ' disabled' : ''}>แฝดถัดไป <i class="fas fa-chevron-right"></i></button>
+            <button id="twin-compare-btn" class="twin-btn" style="display:none;">🔍 เทียบ 2 ข้อ</button>
+        </div>`);
+
+    const $card = $('#similar-preview-body .search-card');
+    window.wireSimilarCard($card, twin);
+
+    const choices = window.twinChoiceList(twin);
+    const $box = $card.find('.twin-drill-choices');
+    if (!choices.length) {
+        $box.html('<div class="twin-drill-note">ข้อนี้ไม่มีตัวเลือก</div>');
+    } else {
+        // สลับลำดับเฉพาะรอบนี้ ไม่เก็บ/ไม่แตะ APP._choiceOrder*
+        const order = choices.map((c, i) => i);
+        for (let i = order.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const t = order[i]; order[i] = order[j]; order[j] = t;
+        }
+        order.forEach((ci, pos) => {
+            const raw = choices[ci];
+            const text = raw.replace(/^[A-E]\s*[\.\)]\s*/i, '');
+            let body;
+            if (window.isUrl(raw)) body = `<img src="${window.transformUrl(raw)}" alt="">`;
+            else if (raw.startsWith('<svg')) body = `<div>${raw}</div>`;
+            else body = `<span>${text}</span>`;
+            const $btn = $(`<button type="button" class="twin-choice"><b>${String.fromCharCode(65 + pos)}</b>${body}</button>`);
+            $btn.attr('data-answer', raw);
+            $box.append($btn);
+        });
+    }
+
+    $modal.fadeIn(200);
+    setTimeout(window.renderAllMath, 50);
+};
+
+window.twinDrillPick = function (val) {
+    const d = window._twinDrill;
+    if (!d || d.picked !== null) return;
+    const sims = window._similarPanelSims || [];
+    const twin = sims[d.idx] && sims[d.idx].q;
+    if (!twin) return;
+    d.picked = val;
+    d.correct = (val === twin.answer);
+
+    const $btns = $('#similar-preview-body .twin-choice').prop('disabled', true);
+    $btns.each(function () {
+        const a = $(this).attr('data-answer');
+        if (a === twin.answer) $(this).addClass('twin-correct');
+        else if (a === val) $(this).addClass('twin-wrong');
+    });
+
+    $('#similar-preview-body .search-card').append(`
+        <div class="twin-answer-block">
+            <b>เฉลย:</b> ${window.displayAnswerContent(twin.answer)}
+            ${twin.explain ? window.renderExplainHtmlForSearchCard(twin.explain) : ''}
+        </div>`);
+    $('#twin-compare-btn').show();
+
+    if (typeof window.recordAnswerResult === 'function') {
+        Promise.resolve(window.recordAnswerResult(twin.questionId, d.correct)).catch(function () {});
+    }
+    setTimeout(window.renderAllMath, 50);
+};
+
+window.twinDrillNext = function () {
+    const d = window._twinDrill;
+    if (d && d.idx + 1 < (window._similarPanelSims || []).length) window.openTwinDrill(d.idx + 1);
+};
+
+window.closeTwinDrill = function () {
+    window._twinDrill = null;
+    $('#similar-preview-modal').removeClass('drill-mode compare-wide');
 };
 
 // ── V. Surface 2: รายงานข้อออกบ่อยราย category ─────────────────
@@ -829,7 +930,6 @@ $(function () {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.onHighYieldStampActivate(); }
     });
 
-    // ⚡ openTwinDrill มาจาก task ถัดไป (drill modal) — guard ไว้จนกว่าจะมี
     $('#similar-strip-drill').on('click', function () {
         if (typeof window.openTwinDrill === 'function') window.openTwinDrill(0);
     });
@@ -850,7 +950,18 @@ $(function () {
         }
     });
 
+    $(document).on('click', '.twin-choice', function () {
+        window.twinDrillPick($(this).attr('data-answer'));
+    });
+    $(document).on('click', '#twin-next-btn', window.twinDrillNext);
+    $(document).on('click', '#twin-compare-btn', function () {
+        const i = window._twinDrill ? window._twinDrill.idx : 0;
+        window.closeTwinDrill();
+        window.openSimilarCompare(i);
+    });
+
     $('#close-similar-preview').on('click', function () {
+        window.closeTwinDrill();
         $('#similar-preview-modal').fadeOut(150);
     });
 

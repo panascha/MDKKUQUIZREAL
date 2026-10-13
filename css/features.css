@@ -857,6 +857,74 @@ body.chatbot-open #chatbot-fab {
 .similar-compare-footer button:not(:disabled):hover { background: var(--color-surface-2); }
 .similar-compare-footer .similar-compare-pos { font-size: 0.95rem; }
 
+/* ── Twin drill ── */
+#similar-preview-modal.drill-mode { max-width: 640px; }
+.twin-drill-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--color-primary);
+}
+.twin-done-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--color-surface-2);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+}
+.twin-drill-choices { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.twin-choice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+}
+.twin-choice img { max-height: 60px; max-width: 100%; }
+.twin-choice span { min-width: 0; overflow-wrap: anywhere; }
+.twin-choice:not(:disabled):hover { background: var(--color-surface-2); }
+.twin-choice:disabled { cursor: default; }
+.twin-choice.twin-correct { background: #e6f6ea; border-color: #2e9e4f; color: #14532d; }
+.twin-choice.twin-wrong { background: #fdeaea; border-color: #d33a3a; color: #7f1d1d; }
+[data-theme="dark"] .twin-choice.twin-correct { background: #12301d; border-color: #3fb868; color: #b6f0c8; }
+[data-theme="dark"] .twin-choice.twin-wrong { background: #3a1616; border-color: #e65b5b; color: #f6c0c0; }
+.twin-drill-note { color: var(--color-text-muted); font-size: 0.9rem; }
+.twin-answer-block { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--color-border); }
+.twin-drill-footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 0;
+}
+.twin-btn {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-primary);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+}
+.twin-btn:disabled { opacity: 0.35; cursor: default; }
+
 /* ── print / Save-as-PDF: โชว์เฉพาะ overlay, กางทุกคลัสเตอร์ ── */
 @media print {
     /* overlay อยู่ใน .container (ไม่ใช่ลูกตรงของ body) — ต้องซ่อนทีละชั้นลงมา ไม่งั้น .container ถูกซ่อนทั้งก้อนพร้อม overlay → PDF ว่าง */
