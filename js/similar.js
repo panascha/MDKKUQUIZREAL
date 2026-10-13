@@ -215,34 +215,17 @@ window.renderSimilarPanel = function () {
         $panel.hide();
         return;
     }
-    // จุดประสงค์ของระบบ: เช็คว่าข้อนี้มีโอกาสออกซ้ำจากปีอื่นไหม — แสดงเฉพาะข้อคล้ายที่มาจาก "ปีอื่น" เท่านั้น
-    // ปีอ่านจาก category[0] (Default_CategoryID) ผ่าน parseQuestionMetadata; ปีเดียวกัน/ไม่ระบุปีไม่แสดง
-    const myYear = window.similarYearOf(q);
-    const sims = myYear === 'N/A' ? []
-        : window.getSimilarQuestions(q).filter(s => {
-            const y = window.similarYearOf(s.q);
-            return y !== 'N/A' && y !== myYear;
-        });
-
-    window._similarPanelSims = sims;
-    $('#similar-panel-count').text(sims.length);
-    $('#similar-panel-list').hide().empty(); // เริ่มพับทุกข้อ — list สร้าง lazy ตอนกดกาง
-    $('#similar-panel-toggle-icon').removeClass('open');
-    $panel.show();
-};
-
-window.renderSimilarPanelList = function () {
-    const sims = window._similarPanelSims || [];
-    if (!sims.length) {
-        $('#similar-panel-list').html('<p class="similar-empty">ไม่พบข้อสอบคล้ายกันจากปีอื่น</p>');
+    // action strip: แสดงเฉพาะเมื่อมีข้อแฝด (twins = ข้อคล้ายจาก "ปีอื่น" เท่านั้น, SSOT = getHighYieldInfo)
+    const twins = window.getHighYieldInfo(q).twins;
+    window._similarPanelSims = twins;
+    if (!twins.length) {
+        $panel.hide();
         return;
     }
-    const html = sims.map((s, i) => `
-        <div class="similar-item" data-sim-idx="${i}">
-            <span class="similar-badge">ตรงกัน ${s.score} คำ</span>${window.similarYearChip(s.q)}
-            <span class="similar-item-stem">${window.similarSnippet(s.q.problem, 140)}</span>
-        </div>`).join('');
-    $('#similar-panel-list').html(html);
+    const myYear = parseInt(window.similarYearOf(q), 10);
+    const otherYears = window.getHighYieldInfo(q).years.filter(y => y !== myYear);
+    $('#similar-strip-label').text('🔥 ข้อแฝด ' + twins.length + ' ข้อ จาก ปี ' + otherYears.join(', '));
+    $panel.show();
 };
 
 // ── IV. Preview modal (โครง markup เดียวกับ search-card ใน search.js) ──
@@ -349,15 +332,6 @@ window.wireSimilarCard = function ($card, q) {
 
     $card.find('.btn-similar-report-q').on('click', function () { window.openReportModal(q); });
     $card.find('.btn-similar-vote-q').on('click', function () { window.openVoteModal(q, false); });
-};
-
-window.openSimilarPreview = function (q) {
-    const $body = $('#similar-preview-body');
-    $('#similar-preview-modal').removeClass('compare-wide');
-    $body.html(window.buildSimilarPreviewHtml(q));
-    window.wireSimilarCard($body.find('.search-card'), q);
-    $('#similar-preview-modal').fadeIn(200);
-    setTimeout(window.renderAllMath, 50);
 };
 
 // เทียบข้อปัจจุบัน (ซ้าย) กับข้อคล้ายจากปีอื่น (ขวา) ในภาพเดียว — ไม่ต้องสลับหน้าต่างไปมา
@@ -855,20 +829,12 @@ $(function () {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.onHighYieldStampActivate(); }
     });
 
-    $('#similar-panel-header').on('click', function () {
-        const $list = $('#similar-panel-list');
-        if ($list.is(':visible')) {
-            $list.slideUp(150);
-            $('#similar-panel-toggle-icon').removeClass('open');
-        } else {
-            if (!$list.children().length) window.renderSimilarPanelList();
-            $list.slideDown(150);
-            $('#similar-panel-toggle-icon').addClass('open');
-        }
+    // ⚡ openTwinDrill มาจาก task ถัดไป (drill modal) — guard ไว้จนกว่าจะมี
+    $('#similar-strip-drill').on('click', function () {
+        if (typeof window.openTwinDrill === 'function') window.openTwinDrill(0);
     });
-
-    $(document).on('click', '#similar-panel-list .similar-item', function () {
-        window.openSimilarCompare($(this).data('sim-idx'));
+    $('#similar-strip-compare').on('click', function () {
+        window.openSimilarCompare(0);
     });
 
     $(document).on('click', '.similar-compare-prev', function () {

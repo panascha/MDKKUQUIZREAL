@@ -530,48 +530,33 @@ body.chatbot-open #chatbot-fab {
     background: var(--color-surface-2);
     text-align: left;
     box-sizing: border-box;
+    padding: 8px 12px;
 }
-
-#similar-panel-header {
+/* display:flex เฉพาะตอน jQuery .show() (inline display:none ยังชนะตอนซ่อน) */
+#similar-panel:not([style*="display: none"]):not([style*="display:none"]) {
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
     align-items: center;
-    padding: 10px 14px;
-    font-weight: 700;
-    color: var(--color-text);
-    cursor: pointer;
-    user-select: none;
-}
-
-#similar-panel-header > span > i { color: var(--color-primary); }
-
-#similar-panel-toggle-icon {
-    transition: transform 0.25s ease;
-    font-size: 0.85rem;
-    opacity: 0.7;
-}
-#similar-panel-toggle-icon.open { transform: rotate(180deg); }
-
-#similar-panel-list {
-    border-top: 1.5px solid var(--color-border-soft);
-    padding: 8px;
-    max-height: 340px;
-    overflow-y: auto;
-}
-
-.similar-item {
-    display: flex;
-    align-items: flex-start;
     gap: 8px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    line-height: 1.45;
 }
-.similar-item:hover { background: var(--color-surface); }
-
-.similar-item-stem { flex: 1; color: var(--color-text); }
+#similar-strip-label {
+    flex: 1 1 auto;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--color-text);
+}
+.similar-strip-btn {
+    flex-shrink: 0;
+    border: 1.5px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-radius: 16px;
+    padding: 4px 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.similar-strip-btn:hover { border-color: var(--color-primary); }
 
 .similar-badge {
     flex-shrink: 0;
