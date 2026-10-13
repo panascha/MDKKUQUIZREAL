@@ -9,7 +9,9 @@
 window._similarState = { source: null, count: 0, sets: [], byQid: {}, postings: null, idxByQid: null, hyByQid: {}, hySet: null };
 
 window.similarTokenize = function (q) {
-    const text = ((q.problem || '') + ' ' + (q.choices || '')).toLowerCase();
+    // ตัดเลขข้อนำหน้า (เช่น "12.") และ annotation [⚠️…] ของแอดมินออกก่อน — กัน false-positive
+    const problem = String(q.problem || '').replace(/^\s*\d+[.)]\s*/, '');
+    const text = (problem + ' ' + (q.choices || '')).replace(/\[⚠️?.*?\]/g, ' ').toLowerCase();
     const set = new Set();
     text.split(/[^a-z0-9ก-๙]+/).forEach(t => { if (t.length >= 2) set.add(t); });
     return set;
