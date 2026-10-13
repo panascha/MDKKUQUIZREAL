@@ -73,6 +73,7 @@
 
         /* Z-Index */
         --zi-fab: 100;
+        --zi-assistive: calc(var(--zi-fab) + 3);
         --zi-zen: 500;
         --zi-modal-card: 1000;
         --zi-report-card: 1100;

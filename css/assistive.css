@@ -1,0 +1,178 @@
+/* AssistiveTouch mascot shell (task-31 part 2).
+   #assistive-wrap is NOT positioned / z-indexed / transformed: every child is
+   position:fixed against the root stacking context, driven by --at-x/--at-y. */
+
+#assistive-wrap {
+    --at-x: 0px;
+    --at-y: 0px;
+}
+
+#assistive-touch-trigger {
+    position: fixed;
+    left: var(--at-x);
+    top: var(--at-y);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    z-index: var(--zi-assistive);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    border: 1px solid rgba(255, 255, 255, .35);
+    background: rgba(255, 255, 255, .55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--shadow-md);
+    padding: 0;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: none;
+}
+
+#assistive-touch-trigger.is-dragging {
+    cursor: grabbing;
+}
+
+#assistive-touch-trigger.is-settling {
+    transition: left .25s cubic-bezier(.34, 1.56, .64, 1), top .25s ease;
+}
+
+.mascot-sprite {
+    display: inline-block;
+    position: relative;
+    line-height: 0;
+    width: 44px;
+}
+
+.mascot-sprite img {
+    width: 100%;
+    height: auto;
+    display: block;
+    pointer-events: none;
+}
+
+.mascot-eye {
+    position: absolute;
+    width: 4.2%;
+    min-width: 3px;
+    aspect-ratio: 1;
+    background: #000;
+    border-radius: 50%;
+    top: 72.8%;
+    transform: translate(-50%, -50%);
+}
+
+.mascot-eye-l { left: 37.4%; }
+.mascot-eye-r { left: 62.6%; }
+
+#assistive-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--zi-modal-card) - 2);
+    display: none;
+    background: rgba(0, 0, 0, .25);
+}
+
+body.assistive-open #assistive-scrim {
+    display: block;
+}
+
+#assistive-menu-panel {
+    position: fixed;
+    z-index: calc(var(--zi-modal-card) - 1);
+    width: min(280px, calc(100vw - 24px));
+    padding: 12px;
+    border-radius: 16px;
+    background: var(--color-surface, #fff);
+    box-shadow: var(--shadow-lg, 0 10px 30px rgba(0, 0, 0, .25));
+    left: var(--ap-x, 12px);
+    top: var(--ap-y, 12px);
+    box-sizing: border-box;
+}
+
+#assistive-menu-panel[hidden] {
+    display: none;
+}
+
+.assistive-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.assistive-menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.assistive-menu-item label {
+    font-size: .72rem;
+    text-align: center;
+    cursor: pointer;
+}
+
+.assistive-icon-circle {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    background: var(--color-primary);
+}
+
+#assistive-menu-panel #chatbot-fab {
+    display: flex !important;
+    width: 46px;
+    height: 46px;
+    font-size: 20px;
+    box-shadow: none;
+}
+
+.assistive-menu-footer {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.assistive-mute-btn {
+    border: 1px solid rgba(128, 128, 128, .4);
+    background: transparent;
+    color: inherit;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: .72rem;
+    cursor: pointer;
+}
+
+#login-benefit-hint {
+    position: fixed;
+    right: auto;
+    top: calc(var(--at-y) + 8px);
+    z-index: var(--zi-assistive);
+}
+
+#assistive-wrap.is-snapped-right #login-benefit-hint {
+    left: auto;
+    right: calc(100vw - var(--at-x) + 6px);
+}
+
+#assistive-wrap.is-snapped-left #login-benefit-hint {
+    left: calc(var(--at-x) + 62px);
+    right: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #assistive-touch-trigger {
+        transition: none !important;
+    }
+}
