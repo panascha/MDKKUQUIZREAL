@@ -1456,7 +1456,18 @@
         </button>
         <div id="assistive-menu-panel" role="dialog" aria-label="เมนูลัด" hidden>
             <div class="assistive-menu-grid">
-                <div class="assistive-menu-item">
+                <div class="assistive-menu-item at-grp-sys">
+                    <button id="chatbot-fab" type="button" class="login-gated assistive-icon-circle" onclick="window.toggleChatbotPanel()" title="เข้าสู่ระบบด้วยบัญชี KKU เพื่อใช้ AI Study Assistant">
+                        <i class="fas fa-robot"></i>
+                    </button>
+                    <label for="chatbot-fab">AI</label>
+                </div>
+                <div class="assistive-menu-item at-grp-sys">
+                    <button id="btn-quick-refresh" class="fab assistive-icon-circle login-gated" title="ซิงค์กับคลาวด์ (ดึงข้อสอบล่าสุด + เทียบความคืบหน้า)"
+                        onclick="window.manualCloudSync()"><i class="fas fa-sync-alt"></i></button>
+                    <label for="btn-quick-refresh">ซิงค์</label>
+                </div>
+                <div class="assistive-menu-item at-grp-sys">
                     <button id="toggle-edit-mode-btn" class="fab assistive-icon-circle" title="ล็อกอินด้วยบัญชี KKU"
                         style="background: #1e293b; border: 1px solid #475569;" onclick="initiateGoogleLogin()">
                         <img src="https://www.kku.ac.th/wp-content/uploads/2022/01/1.-official-logo-2022-26-500x465.png" alt="KKU Logo"
@@ -1464,41 +1475,30 @@
                     </button>
                     <label for="toggle-edit-mode-btn">ล็อกอิน</label>
                 </div>
-                <div class="assistive-menu-item">
-                    <button id="theme-toggle-btn" class="fab assistive-icon-circle" title="เปลี่ยนธีม"><i class="fas fa-palette"></i></button>
-                    <label for="theme-toggle-btn">ธีม</label>
-                </div>
-                <div class="assistive-menu-item">
-                    <button id="font-weight-toggle-btn" class="fab assistive-icon-circle" title="ปรับความหนาตัวอักษร"><i class="fas fa-bold"></i></button>
-                    <label for="font-weight-toggle-btn">ตัวหนา</label>
-                </div>
-                <div class="assistive-menu-item">
+                <div class="assistive-menu-item at-grp-disp">
                     <button id="zoom-in-btn" class="fab assistive-icon-circle" title="ขยายหน้าจอ"><i class="fas fa-search-plus"></i></button>
                     <label for="zoom-in-btn">ซูม +</label>
                 </div>
-                <div class="assistive-menu-item">
+                <div class="assistive-menu-item at-grp-disp">
                     <button id="zoom-out-btn" class="fab assistive-icon-circle" title="ลดขนาด"><i class="fas fa-search-minus"></i></button>
                     <label for="zoom-out-btn">ซูม −</label>
                 </div>
-                <div class="assistive-menu-item">
+                <div class="assistive-menu-item at-grp-disp">
+                    <button id="font-weight-toggle-btn" class="fab assistive-icon-circle" title="ปรับความหนาตัวอักษร"><i class="fas fa-bold"></i></button>
+                    <label for="font-weight-toggle-btn">ตัวหนา</label>
+                </div>
+                <div class="assistive-menu-item at-grp-nav">
+                    <button id="scroll-to-quiz-btn" class="fab assistive-icon-circle" title="ไปส่วนคำถาม"><i class="fas fa-arrow-up"></i></button>
+                    <label for="scroll-to-quiz-btn">ขึ้นข้อสอบ</label>
+                </div>
+                <div class="assistive-menu-item at-grp-nav">
                     <button id="scroll-to-search-btn" class="fab assistive-icon-circle" title="ไปส่วนค้นหา" style="background: var(--color-primary);"><i
                             class="fas fa-search"></i></button>
                     <label for="scroll-to-search-btn">ค้นหา</label>
                 </div>
-                <div class="assistive-menu-item">
-                    <button id="scroll-to-quiz-btn" class="fab assistive-icon-circle" title="ไปส่วนคำถาม"><i class="fas fa-arrow-up"></i></button>
-                    <label for="scroll-to-quiz-btn">ขึ้นข้อสอบ</label>
-                </div>
-                <div class="assistive-menu-item">
-                    <button id="btn-quick-refresh" class="fab assistive-icon-circle login-gated" title="ซิงค์กับคลาวด์ (ดึงข้อสอบล่าสุด + เทียบความคืบหน้า)"
-                        onclick="window.manualCloudSync()"><i class="fas fa-sync-alt"></i></button>
-                    <label for="btn-quick-refresh">ซิงค์</label>
-                </div>
-                <div class="assistive-menu-item">
-                    <button id="chatbot-fab" type="button" class="login-gated assistive-icon-circle" onclick="window.toggleChatbotPanel()" title="เข้าสู่ระบบด้วยบัญชี KKU เพื่อใช้ AI Study Assistant">
-                        <i class="fas fa-robot"></i>
-                    </button>
-                    <label for="chatbot-fab">AI</label>
+                <div class="assistive-menu-item at-grp-nav">
+                    <button id="theme-toggle-btn" class="fab assistive-icon-circle" title="เปลี่ยนธีม"><i class="fas fa-palette"></i></button>
+                    <label for="theme-toggle-btn">ธีม</label>
                 </div>
             </div>
             <div class="assistive-menu-footer">

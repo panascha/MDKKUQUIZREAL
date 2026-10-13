@@ -111,6 +111,12 @@ body.assistive-open #assistive-scrim {
     padding: 4px;
 }
 
+/* แถวเมนูแยกสีตามหมวด: ระบบ & AI / ขนาด & ตัวอักษร / นำทาง & ธีม */
+.assistive-menu-item { border-radius: 12px; }
+.assistive-menu-item.at-grp-sys  { background: rgba(56, 189, 248, .15); }
+.assistive-menu-item.at-grp-disp { background: rgba(245, 158, 11, .15); }
+.assistive-menu-item.at-grp-nav  { background: rgba(168, 85, 247, .15); }
+
 .assistive-menu-item label {
     font-size: .72rem;
     text-align: center;
@@ -283,16 +289,17 @@ body.assistive-open #assistive-scrim {
     z-index: var(--zi-assistive);
     display: none;
     top: calc(var(--at-y) - 4px);
-    max-width: min(260px, calc(100vw - 100px));
+    max-width: min(320px, calc(100vw - 100px));
     max-height: 40vh;
     overflow: auto;
-    padding: 8px 12px;
+    padding: 12px 16px;
     border-radius: 14px;
     background: var(--color-surface, #fff);
     color: var(--color-text, inherit);
     box-shadow: var(--shadow-md);
-    font-size: .85rem;
-    line-height: 1.4;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    font-weight: 500;
     pointer-events: none;
 }
 
