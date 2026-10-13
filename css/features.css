@@ -584,6 +584,38 @@ body.chatbot-open #chatbot-fab {
     white-space: nowrap;
 }
 
+/* Header stamp "ออกซ้ำ N ปี" */
+.category-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+.category-header-left #categoryquestion {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.similar-hy-stamp {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+.similar-hy-stamp.hy-tier1 { color: #d97706; background: #fef3c7; }
+.similar-hy-stamp.hy-tier2 { color: #dc2626; background: #fee2e2; }
+[data-theme="dark"] .similar-hy-stamp.hy-tier1 { color: #fbbf24; background: rgba(217, 119, 6, 0.22); }
+[data-theme="dark"] .similar-hy-stamp.hy-tier2 { color: #f87171; background: rgba(220, 38, 38, 0.25); }
+#similar-panel.hy-flash { animation: hy-flash 1.2s ease-out; }
+@keyframes hy-flash {
+    0%, 60% { box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.55); }
+    100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+}
+
 .similar-year-chip {
     flex-shrink: 0;
     background: var(--color-surface);

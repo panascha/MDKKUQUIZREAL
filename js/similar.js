@@ -170,6 +170,40 @@ window.similarYearOf = function (q) {
         ? window.parseQuestionMetadata(q).year : 'N/A';
 };
 
+// ── III-a. Header stamp "ออกซ้ำ N ปี" (ปลอดภัยก่อนตอบ: ไม่เปิดเผยเฉลย) ──────
+window.renderHighYieldStamp = function () {
+    const $s = $('#similar-hy-stamp');
+    const q = window.APP.current_question;
+    if (!q || q.questionId === undefined || !window.APP.allQuestions || !window.APP.allQuestions.length) {
+        $s.hide();
+        return;
+    }
+    const hy = window.getHighYieldInfo(q);
+    if (hy.count < 2) { $s.hide(); return; }
+    const shown = hy.years.length > 4 ? hy.years.slice(-4) : hy.years;
+    const extra = hy.years.length - shown.length;
+    $s.text('🔥 ออกซ้ำ ' + hy.count + ' ปี (' + shown.join(', ') + ')' + (extra > 0 ? ' +' + extra : ''))
+        .removeClass('hy-tier1 hy-tier2')
+        .addClass(hy.count >= 3 ? 'hy-tier2' : 'hy-tier1')
+        .show();
+};
+
+window.onHighYieldStampActivate = function () {
+    const q = window.APP.current_question;
+    if (!q) return;
+    if (q.state || window.APP.isShowingAllAnswers) {
+        const el = document.getElementById('similar-panel');
+        if (!el || el.style.display === 'none') return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.remove('hy-flash');
+        void el.offsetWidth;
+        el.classList.add('hy-flash');
+        setTimeout(() => el.classList.remove('hy-flash'), 1200);
+    } else {
+        window.bgToast.fire({ icon: 'info', title: 'ตอบข้อนี้ก่อนเพื่อทำข้อแฝด' });
+    }
+};
+
 // ── III. Surface 1: แผงข้อสอบคล้ายกันใต้คำถาม ─────────────────
 
 window.renderSimilarPanel = function () {
@@ -811,11 +845,16 @@ window.similarCopyFallback = function (text, done) {
     }
     window.showQuestion = function (shouldFocus) {
         _orig.call(this, shouldFocus);
+        window.renderHighYieldStamp();
         window.renderSimilarPanel();
     };
 })();
 
 $(function () {
+    $('#similar-hy-stamp').on('click', window.onHighYieldStampActivate).on('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.onHighYieldStampActivate(); }
+    });
+
     $('#similar-panel-header').on('click', function () {
         const $list = $('#similar-panel-list');
         if ($list.is(':visible')) {
