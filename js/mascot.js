@@ -368,7 +368,7 @@
 
     function hintLabel() {
         var cq = curQ();
-        return cq && cq.state ? '🧠 สรุปให้จำ' : '💡 ขอน้องใบ้';
+        return cq && cq.state ? '🧠 สรุปให้จำ' : '💡 ขอคำใบ้';
     }
 
     function updateHintLabel() {
@@ -416,8 +416,8 @@
     function applyQuietLabel() {
         var b = document.getElementById('mascot-mute-toggle');
         if (b) b.innerHTML = quiet
-            ? '<i class="fas fa-comment-slash"></i> คำพูดน้อง: ปิด'
-            : '<i class="fas fa-comment"></i> คำพูดน้อง: เปิด';
+            ? '<i class="fas fa-comment-slash"></i> คำพูด: ปิด'
+            : '<i class="fas fa-comment"></i> คำพูด: เปิด';
     }
 
     window.askMascotHint = async function () {
