@@ -926,6 +926,26 @@ window.similarCopyFallback = function (text, done) {
 })();
 
 $(function () {
+    // Cram filter: ติ๊ก → โหลด (chunked) → นับ N → สร้างชุดใหม่; เอาติ๊กออก → สร้างชุดใหม่ทันที
+    $('#filter-high-yield').on('change', function () {
+        const $cb = $(this), $lb = $('#filter-high-yield-label');
+        const base = '🔥 เฉพาะข้อออกซ้ำ (≥2 ปี)';
+        if (!this.checked) { $lb.text(base); window.updateQuestionSet(); return; }
+        $cb.prop('disabled', true);
+        $lb.text(base + ' · กำลังคำนวณ…');
+        window.computeAllHighYieldAsync().then(set => {
+            $cb.prop('disabled', false);
+            if (set.size === 0) {
+                $cb.prop('checked', false);
+                $lb.text(base);
+                window.bgToast.fire({ icon: 'info', title: 'ชุดนี้ไม่มีข้อออกซ้ำ' });
+                return;
+            }
+            $lb.text(base + ' · ' + set.size + ' ข้อ');
+            window.updateQuestionSet();
+        });
+    });
+
     $('#similar-hy-stamp').on('click', window.onHighYieldStampActivate).on('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.onHighYieldStampActivate(); }
     });

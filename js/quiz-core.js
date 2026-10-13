@@ -619,6 +619,19 @@ window.updateQuestionSet = function (shouldSort = true, shouldShow = true) {
         }
     }
 
+    // Cram filter (similar.js): AND กับผลของทั้งสองโหมด; ว่าง → toast + ติ๊กออก + คงชุดเดิมไว้
+    if ($('#filter-high-yield').is(':checked') && typeof window.computeAllHighYield === 'function') {
+        const hy = window.computeAllHighYield();
+        const hyFiltered = window.APP.currentQuestions.filter(q => hy.has(q.questionId));
+        if (hyFiltered.length > 0) {
+            window.APP.currentQuestions = hyFiltered;
+        } else {
+            $('#filter-high-yield').prop('checked', false);
+            $('#filter-high-yield-label').text('🔥 เฉพาะข้อออกซ้ำ (≥2 ปี)');
+            window.bgToast.fire({ icon: 'info', title: 'ชุดนี้ไม่มีข้อออกซ้ำ' });
+        }
+    }
+
     window.APP.score = 0;
     window.APP.currentQuestions.forEach(q => {
         if (previouslyAnswered[q.questionId]) {
