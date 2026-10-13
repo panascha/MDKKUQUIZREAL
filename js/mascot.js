@@ -234,7 +234,7 @@
     var IDLE_MIN = 45000, IDLE_MAX = 90000;
     var BLINK_MIN = 3000, BLINK_MAX = 6000;
     var CHANCE = 0.25;
-    var ANIM_CLS = ['is-hop', 'is-jelly', 'is-jump', 'is-shake'];
+    var ANIM_CLS = ['is-hop', 'is-jelly', 'is-jump', 'is-hit'];
     var EYE_CLS = ['is-sleeping', 'is-happy', 'is-wrong'];
 
     var quiet = false;
@@ -302,13 +302,13 @@
         if (trigger) trigger.classList.remove('is-thinking');
         if (!emoteEl) return;
         emoteEl.classList.remove('is-show');
-        var glyph = { sleep: '💤', correct: '✨', wrong: '💦', think: '❓' }[kind];
+        var glyph = { sleep: '💤', correct: '✨', wrong: '💥', think: '❓' }[kind];
         if (!glyph) return;
         emoteEl.textContent = glyph;
         void emoteEl.offsetWidth;
         emoteEl.classList.add('is-show');
         if (kind === 'correct') animateSprite('is-jump', 600);
-        else if (kind === 'wrong') animateSprite('is-shake', 500);
+        else if (kind === 'wrong') animateSprite('is-hit', 550);
         if (kind === 'think') {
             if (trigger) trigger.classList.add('is-thinking');
             return;

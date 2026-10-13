@@ -207,10 +207,15 @@ body.assistive-open #assistive-scrim {
     25%, 75% { transform: translateY(-10px); }
 }
 
-@keyframes mascot-shake {
-    0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-3px); }
-    40%, 80% { transform: translateX(3px); }
+/* wrong answer = taking damage: knockback flinch + red flash fading out */
+@keyframes mascot-hit {
+    0% { transform: translateX(0); filter: drop-shadow(0 0 10px rgba(239, 68, 68, .9)); }
+    12% { transform: translateX(6px) rotate(8deg) scale(.9, 1.08); }
+    28% { transform: translateX(-4px) rotate(-6deg); filter: drop-shadow(0 0 8px rgba(239, 68, 68, .7)); }
+    44% { transform: translateX(3px) rotate(4deg); }
+    60% { transform: translateX(-2px) rotate(-2deg); filter: drop-shadow(0 0 3px rgba(239, 68, 68, .3)); }
+    78% { transform: translateX(1px); filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0)); }
+    100% { transform: translateX(0); filter: none; }
 }
 
 @keyframes mascot-float {
@@ -227,7 +232,7 @@ body.assistive-open #assistive-scrim {
 .mascot-sprite.is-hop { animation: mascot-hop .45s ease-out; }
 .mascot-sprite.is-jelly { animation: mascot-jelly .5s ease-out; }
 .mascot-sprite.is-jump { animation: mascot-jump .6s ease-out; }
-.mascot-sprite.is-shake { animation: mascot-shake .5s ease-out; }
+.mascot-sprite.is-hit { animation: mascot-hit .55s ease-out; }
 
 .mascot-eye { transition: transform .06s; }
 .mascot-sprite.is-blink .mascot-eye { transform: translate(-50%, -50%) scaleY(.1); }
@@ -339,7 +344,7 @@ body.assistive-open #mascot-speech-bubble {
     .mascot-sprite.is-hop,
     .mascot-sprite.is-jelly,
     .mascot-sprite.is-jump,
-    .mascot-sprite.is-shake { animation: none !important; }
+    .mascot-sprite.is-hit { animation: none !important; }
     #mascot-emote.is-show { animation: none; }
     #assistive-touch-trigger.is-thinking { animation: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, .5); }
 }
