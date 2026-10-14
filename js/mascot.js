@@ -298,7 +298,8 @@
     try { quiet = localStorage.getItem(QUIET_KEY) === '1'; } catch (e) { }
     var lastBubbleAt = 0, hintBusy = false, lastQid = null;
     var idleTimer, blinkTimer, bubbleTimer, eyeTimer, emoteTimer, animTimer, lastMove = null;
-    var bubble, emoteEl;
+    var bubble, emoteEl, quickNav, quickTimer;
+    var QUICK_TTL = 10000;
 
     var BANTER = {
         load: ['ลุยข้อนี้กันเลย!', 'ค่อยๆ อ่านโจทย์นะ อย่ารีบ', 'ข้อนี้ต้องคิดนิดนึงน้า', 'สู้ๆ เดี๋ยวก็ได้เอง'],
@@ -421,6 +422,27 @@
         clearTimeout(bubbleTimer);
         if (ttl > 0) bubbleTimer = setTimeout(window.hideMascotBubble, ttl);
         if (opts.auto) lastBubbleAt = Date.now();
+        return true;
+    };
+
+    /* ---------- post-answer quick-nav strip (v3.36.5) ---------- */
+    window.hideMascotQuickNav = function () {
+        clearTimeout(quickTimer);
+        if (quickNav) quickNav.classList.remove('is-show');
+    };
+
+    window.showMascotQuickNav = function () {
+        if (!quickNav || bubbleSuppressed()) return false;
+        if (document.body.classList.contains('chatbot-open') || window.isAssistiveMenuOpen()) return false;
+        window.hideMascotBubble(); // strip ใช้ที่ข้างตัวมาสคอตแทน bubble
+        quickNav.classList.add('is-show');
+        // แนวตั้ง: จัดกึ่งกลางตัวมาสคอต แล้วหนีบไม่ให้หลุดจอ (ซ้าย/ขวาใช้ is-snapped-* ใน CSS)
+        var r = window.MASCOT.getTriggerRect();
+        var h = quickNav.offsetHeight;
+        var top = Math.max(8, Math.min(window.innerHeight - h - 8, r.top + r.height / 2 - h / 2));
+        quickNav.style.top = top + 'px';
+        clearTimeout(quickTimer);
+        quickTimer = setTimeout(window.hideMascotQuickNav, QUICK_TTL);
         return true;
     };
 
@@ -548,6 +570,7 @@
         if (cq.questionId === lastQid) return;
         lastQid = cq.questionId;
         window.hideMascotBubble();
+        window.hideMascotQuickNav(); // เปลี่ยนข้อไม่ว่าทางไหน (ปุ่ม/index panel/คีย์บอร์ด) → ซ่อน strip
         window.setMascotEyes('');
         window.triggerMascotEmote('');
         resetIdle();
@@ -566,6 +589,7 @@
         updateHintLabel();
         resetIdle();
         if (Math.random() < CHANCE) banter(ok ? 'correct' : 'wrong');
+        window.showMascotQuickNav();
     }
 
     function initPersonality() {
@@ -577,6 +601,59 @@
         emoteEl.id = 'mascot-emote';
         emoteEl.setAttribute('aria-hidden', 'true');
         wrap.appendChild(emoteEl);
+
+        quickNav = document.createElement('div');
+        quickNav.className = 'mascot-quick-actions';
+        quickNav.setAttribute('role', 'group');
+        quickNav.setAttribute('aria-label', 'ทางลัดหลังตอบ');
+        [
+            ['mqa-explain', '📖 ดูคำอธิบาย'],
+            ['mqa-prev', '← ข้อก่อนหน้า'],
+            ['mqa-next', 'ข้อถัดไป →']
+        ].forEach(function (d) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'mqa-pill ' + d[0];
+            b.textContent = d[1];
+            quickNav.appendChild(b);
+        });
+        var qx = document.createElement('button');
+        qx.type = 'button';
+        qx.className = 'mqa-close';
+        qx.setAttribute('aria-label', 'ปิด');
+        qx.textContent = '×';
+        quickNav.appendChild(qx);
+        quickNav.addEventListener('click', function (e) {
+            var b = e.target.closest && e.target.closest('button');
+            if (!b) return;
+            if (b.classList.contains('mqa-explain')) {
+                var ex = document.getElementById('quiz-explain-container');
+                if (ex) ex.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
+            } else if (b.classList.contains('mqa-prev') || b.classList.contains('mqa-next')) {
+                window.hideMascotQuickNav();
+                var nav = document.getElementById(b.classList.contains('mqa-prev') ? 'prev-question' : 'next-question');
+                if (nav) nav.click();
+            } else {
+                window.hideMascotQuickNav();
+            }
+        });
+        wrap.appendChild(quickNav);
+
+        // แตะที่ว่างนอก strip (และนอกตัวมาสคอต) → ปิด
+        document.addEventListener('pointerdown', function (e) {
+            if (!quickNav.classList.contains('is-show')) return;
+            var t = e.target;
+            if (quickNav.contains(t) || (trigger && trigger.contains(t))) return;
+            window.hideMascotQuickNav();
+        }, true);
+
+        // Screening reveal: ปุ่มเปิดโหมดเฉลยล่วงหน้า (handler jQuery ใน ui.js รันก่อน → รอ tick เดียวแล้วเช็คสถานะ)
+        document.addEventListener('click', function (e) {
+            if (!(e.target.closest && e.target.closest('#show-all-answers-btn'))) return;
+            setTimeout(function () {
+                if (window.APP && window.APP.isShowingAllAnswers) window.showMascotQuickNav();
+            }, 0);
+        });
 
         document.addEventListener('pointerdown', function (e) {
             resetIdle();
@@ -590,7 +667,7 @@
             if (bubble.classList.contains('is-show') && !bubble.contains(e.target)) window.hideMascotBubble();
         }, { passive: true, capture: true });
         document.addEventListener('mascot:menu', function (e) {
-            if (e.detail && e.detail.open) window.hideMascotBubble();
+            if (e.detail && e.detail.open) { window.hideMascotBubble(); window.hideMascotQuickNav(); }
         });
         document.addEventListener('visibilitychange', function () {
             if (document.hidden) { clearTimeout(blinkTimer); clearTimeout(idleTimer); }
@@ -633,6 +710,16 @@
                 return r;
             };
         }
+    }
+
+    // MEQ reveal: revealMeqChoices (ปุ่มและ Enter/space เรียกผ่านฟังก์ชันนี้)
+    if (typeof window.revealMeqChoices === 'function') {
+        var origReveal = window.revealMeqChoices;
+        window.revealMeqChoices = function () {
+            var r = origReveal.apply(this, arguments);
+            try { window.showMascotQuickNav(); } catch (e) { }
+            return r;
+        };
     }
 
     if (!window._mascotHooksInstalled && typeof window.toggleChatbotPanel === 'function') {

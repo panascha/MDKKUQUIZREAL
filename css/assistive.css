@@ -347,6 +347,65 @@ body.assistive-open #mascot-speech-bubble {
     display: none !important;
 }
 
+/* ---- Post-answer quick-nav pills (v3.36.5): ติดข้างน้องซูชิหลังส่งคำตอบ/เฉลย ---- */
+.mascot-quick-actions {
+    position: fixed;
+    z-index: var(--zi-assistive);
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-top: 10px; /* เว้นที่ให้ปุ่ม × */
+}
+.mascot-quick-actions.is-show { display: flex; }
+#assistive-wrap.is-snapped-right .mascot-quick-actions {
+    left: auto;
+    right: calc(100vw - var(--at-x) + 8px);
+}
+#assistive-wrap.is-snapped-left .mascot-quick-actions {
+    left: calc(var(--at-x) + 64px);
+    right: auto;
+}
+.mascot-quick-actions .mqa-pill {
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 21px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-md);
+    color: var(--color-text);
+    font-size: .95rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.mascot-quick-actions .mqa-pill:active { transform: scale(.97); }
+.mascot-quick-actions .mqa-close {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: .8rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+body.sp-zen .mascot-quick-actions,
+body:has(.scratchpad-drawing) .mascot-quick-actions,
+body.assistive-open .mascot-quick-actions {
+    display: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .mascot-sprite,
     .mascot-sprite.is-hop,
@@ -380,21 +439,22 @@ body.assistive-open #mascot-speech-bubble {
 }
 #assistive-drop-zones.zones-active .drop-zone { opacity: 1; }
 #assistive-drop-zones .drop-zone-top {
-    top: calc(16px + env(safe-area-inset-top));
+    top: 32vh; /* v3.36.5: ลงมาโซนนิ้วโป้งเอื้อมถึง (30-35vh) */
     left: 50%;
     transform: translateX(-50%);
     width: min(340px, 86vw);
     height: 62px;
 }
 #assistive-drop-zones .drop-zone-bottom {
-    bottom: calc(16px + env(safe-area-inset-bottom));
+    top: 68vh; /* v3.36.5: ขึ้นมาโซน 65-70vh */
     left: 50%;
     transform: translateX(-50%);
     width: min(340px, 86vw);
     height: 62px;
 }
 #assistive-drop-zones .drop-zone-bottom-right {
-    bottom: calc(96px + env(safe-area-inset-bottom));
+    /* v3.36.5: ใต้โซนล่าง (68vh + 62px + 12px) ไม่ให้ทับกัน; min() กันหลุดจอล่าง */
+    top: min(calc(68vh + 74px), calc(100vh - 100px - env(safe-area-inset-bottom)));
     right: calc(84px + env(safe-area-inset-right));
     width: 88px;
     height: 88px;
