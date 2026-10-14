@@ -498,6 +498,8 @@ window.renderAccordionUI = function (data) {
     const groups = {};
     data.category.forEach(cat => {
         var key = cat.accordionGroup || 'Uncategorized';
+        // ซ่อนกลุ่ม/หมวดที่ระบบสกัดอัตโนมัติ (Extracted) — ไม่ให้โผล่ในรายการหัวข้อ
+        if (key.includes('(Extracted)') || String(cat.categoryId || '').endsWith('_Extracted')) return;
         // แยก "by AI" ตาม discipline — สร้าง accordionGroup เสมือน (เช่น "GI_by AI_ANATOMY")
         if (key.toUpperCase().includes("BY AI")) {
             var disc = window.extractDisciplineFromCategory(cat.categoryId);
