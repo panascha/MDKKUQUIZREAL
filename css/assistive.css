@@ -416,6 +416,11 @@ body.assistive-open #mascot-speech-bubble {
 #assistive-drop-zones .drop-zone-bottom.is-hovered { transform: translateX(-50%) scale(1.04); }
 #assistive-drop-zones .drop-zone-bottom-right.is-hovered { transform: scale(1.04); }
 
+/* chatbot เปิดอยู่ → ซ่อนน้องซูชิทั้งก้อน (trigger, bubble, emote, menu, scrim) */
+body.chatbot-open #assistive-wrap {
+    display: none !important;
+}
+
 body.sp-zen #assistive-drop-zones,
 body.chatbot-open #assistive-drop-zones,
 body:has(.scratchpad-drawing) #assistive-drop-zones {
