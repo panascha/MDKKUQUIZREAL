@@ -355,3 +355,65 @@ body.assistive-open #mascot-speech-bubble {
     #mascot-emote.is-show { animation: none; }
     #assistive-touch-trigger.is-thinking { animation: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, .5); }
 }
+
+/* ---- Drag-to-action drop zones (v3.36.2): visible only while mascot is dragged ---- */
+#assistive-drop-zones .drop-zone {
+    position: fixed;
+    z-index: calc(var(--zi-assistive) - 1);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s, transform .15s;
+    background: rgba(15, 23, 42, .75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1.5px dashed rgba(255, 255, 255, .35);
+    border-radius: 16px;
+    color: #fff;
+    font-size: .95rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#assistive-drop-zones.zones-active .drop-zone { opacity: 1; }
+#assistive-drop-zones .drop-zone-top {
+    top: calc(16px + env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(280px, 75vw);
+    height: 50px;
+}
+#assistive-drop-zones .drop-zone-bottom {
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(280px, 75vw);
+    height: 50px;
+}
+#assistive-drop-zones .drop-zone-bottom-right {
+    bottom: calc(96px + env(safe-area-inset-bottom));
+    right: calc(84px + env(safe-area-inset-right));
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    text-align: center;
+}
+#assistive-drop-zones .drop-zone.is-hovered {
+    border: 1.5px solid #38bdf8;
+    box-shadow: 0 0 16px rgba(56, 189, 248, .6);
+}
+#assistive-drop-zones .drop-zone-top.is-hovered,
+#assistive-drop-zones .drop-zone-bottom.is-hovered { transform: translateX(-50%) scale(1.04); }
+#assistive-drop-zones .drop-zone-bottom-right.is-hovered { transform: scale(1.04); }
+
+body.sp-zen #assistive-drop-zones,
+body:has(.scratchpad-drawing) #assistive-drop-zones {
+    display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #assistive-drop-zones .drop-zone { transition: none; }
+    #assistive-drop-zones .drop-zone-top.is-hovered,
+    #assistive-drop-zones .drop-zone-bottom.is-hovered { transform: translateX(-50%); }
+    #assistive-drop-zones .drop-zone-bottom-right.is-hovered { transform: none; }
+}

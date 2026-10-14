@@ -11,7 +11,7 @@
     var SIZE = 56;
     var KEEP_OPEN = ['zoom-in-btn', 'zoom-out-btn', 'font-weight-toggle-btn', 'mascot-mute-toggle'];
 
-    var wrap, trigger, panel, scrim;
+    var wrap, trigger, panel, scrim, zonesEl;
     var side = 'right';
     var swallowClick = false;
     var insetCache = null;
@@ -139,17 +139,28 @@
                 dragging = true;
                 trigger.classList.add('is-dragging');
                 window.closeAssistiveMenu();
+                if (zonesEl && !bubbleSuppressed()) {
+                    zonesEl.classList.add('zones-active');
+                    zonesOn = true;
+                }
             }
             window.applyAssistivePos(start.x + dx, start.y + dy);
             stretchSprite(ev);
+            if (zonesOn) hoverZone(ev.clientX, ev.clientY);
         }
 
-        function end() {
+        function end(ev) {
             trigger.removeEventListener('pointermove', move);
             trigger.removeEventListener('pointerup', end);
             trigger.removeEventListener('pointercancel', end);
             try { trigger.releasePointerCapture(e.pointerId); } catch (err) { }
             if (!dragging) return;
+            var dropAction = zonesOn && ev && ev.type === 'pointerup' ? hoverAction : null;
+            if (zonesOn) {
+                zonesEl.classList.remove('zones-active');
+                setHovered(null);
+                window.setMascotEyes(null);
+            }
             trigger.classList.remove('is-dragging');
             clearStretch();
             swallowClick = true;
@@ -166,6 +177,39 @@
             if (!reducedMotion()) animateSprite('is-jelly', 500);
             savePos(clamp(x, b.minX, b.maxX), clamp(p.y, b.minY, b.maxY));
             emit('mascot:moved', { side: snapSide });
+            if (dropAction) runDropAction(dropAction);
+        }
+
+        var zonesOn = false;
+        var hoverAction = null;
+
+        function setHovered(action) {
+            hoverAction = action;
+            var zs = zonesEl ? zonesEl.querySelectorAll('.drop-zone') : [];
+            for (var i = 0; i < zs.length; i++) {
+                zs[i].classList.toggle('is-hovered', !!action && zs[i].getAttribute('data-action') === action);
+            }
+        }
+
+        // Hit-test the pointer point (mascot centre is clamped by bounds, pointer is not).
+        function hoverZone(px, py) {
+            var zs = zonesEl.querySelectorAll('.drop-zone');
+            var hit = null;
+            for (var i = 0; i < zs.length; i++) {
+                var r = zs[i].getBoundingClientRect();
+                if (px >= r.left && px <= r.right && py >= r.top && py <= r.bottom) {
+                    hit = zs[i].getAttribute('data-action');
+                    break;
+                }
+            }
+            if (hit === hoverAction) return;
+            setHovered(hit);
+            if (hit) {
+                if (navigator.vibrate) { try { navigator.vibrate(10); } catch (err) { } }
+                window.setMascotEyes('is-happy');
+            } else {
+                window.setMascotEyes(null);
+            }
         }
 
         trigger.addEventListener('pointermove', move);
@@ -173,7 +217,20 @@
         trigger.addEventListener('pointercancel', end);
     }
 
+    function runDropAction(action) {
+        try {
+            if (action === 'quiz' || action === 'search') {
+                var btn = document.getElementById(action === 'quiz' ? 'scroll-to-quiz-btn' : 'scroll-to-search-btn');
+                if (btn) btn.click();
+            } else if (action === 'ai') {
+                if (window.toggleChatbotPanel) window.toggleChatbotPanel(true);
+            }
+            window.triggerMascotEmote('correct');
+        } catch (err) { }
+    }
+
     function init() {
+        zonesEl = document.getElementById('assistive-drop-zones');
         wrap = document.getElementById('assistive-wrap');
         trigger = document.getElementById('assistive-touch-trigger');
         panel = document.getElementById('assistive-menu-panel');
