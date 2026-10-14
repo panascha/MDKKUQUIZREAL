@@ -194,11 +194,19 @@ body.chatbot-open #chatbot-fab {
     }
 }
 
-/* Tablet + desktop: Gemini-style docked side panel (content reflows, no scrim).
+/* Mid widths 768-991: side drawer as overlay + scrim, quiz geometry untouched */
+@media (min-width: 768px) and (max-width: 991px) {
+    .chatbot-drawer {
+        width: var(--chatbot-dock-w);
+        box-shadow: -4px 0 18px rgba(0, 0, 0, 0.10);
+    }
+}
+
+/* Desktop (>=992): Gemini-style docked side panel (content reflows, no scrim).
    Gutter via body padding-right: the panel is position:fixed (viewport-anchored,
    ignores body padding), so the centered .container re-centers in the shrunken
    content area and the fixed panel fills the right gutter — no overflow at any width. */
-@media (min-width: 768px) {
+@media (min-width: 992px) {
     .chatbot-drawer {
         width: var(--chatbot-dock-w);
         box-shadow: -4px 0 18px rgba(0, 0, 0, 0.10);

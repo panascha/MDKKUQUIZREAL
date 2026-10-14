@@ -360,9 +360,9 @@
         if (trigger) trigger.classList.remove('is-thinking');
         if (!emoteEl) return;
         emoteEl.classList.remove('is-show');
-        var glyph = { sleep: '💤', correct: '✨', wrong: '💥', think: '❓' }[kind];
+        var glyph = { sleep: 'fa-moon', correct: 'fa-star', wrong: 'fa-bolt', think: 'fa-question' }[kind];
         if (!glyph) return;
-        emoteEl.textContent = glyph;
+        emoteEl.innerHTML = '<i class="fas ' + glyph + '"></i>';
         void emoteEl.offsetWidth;
         emoteEl.classList.add('is-show');
         if (kind === 'correct') animateSprite('is-jump', 600);
