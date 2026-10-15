@@ -606,23 +606,30 @@
         quickNav.className = 'mascot-quick-actions';
         quickNav.setAttribute('role', 'group');
         quickNav.setAttribute('aria-label', 'ทางลัดหลังตอบ');
+        function qRow(cls) {
+            var r = document.createElement('div');
+            r.className = 'mqa-row ' + cls;
+            quickNav.appendChild(r);
+            return r;
+        }
+        var rowTop = qRow('mqa-row-top'), rowNav = qRow('mqa-row-nav');
         [
-            ['mqa-explain', '📖 ดูคำอธิบาย'],
-            ['mqa-prev', '← ข้อก่อนหน้า'],
-            ['mqa-next', 'ข้อถัดไป →']
+            [rowTop, 'mqa-explain', '📖 ดูคำอธิบาย'],
+            [rowNav, 'mqa-prev', '← ก่อนหน้า'],
+            [rowNav, 'mqa-next', 'ข้อถัดไป →']
         ].forEach(function (d) {
             var b = document.createElement('button');
             b.type = 'button';
-            b.className = 'mqa-pill ' + d[0];
-            b.textContent = d[1];
-            quickNav.appendChild(b);
+            b.className = 'mqa-pill ' + d[1];
+            b.textContent = d[2];
+            d[0].appendChild(b);
         });
         var qx = document.createElement('button');
         qx.type = 'button';
         qx.className = 'mqa-close';
         qx.setAttribute('aria-label', 'ปิด');
         qx.textContent = '×';
-        quickNav.appendChild(qx);
+        rowTop.appendChild(qx);
         quickNav.addEventListener('click', function (e) {
             var b = e.target.closest && e.target.closest('button');
             if (!b) return;

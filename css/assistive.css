@@ -347,15 +347,20 @@ body.assistive-open #mascot-speech-bubble {
     display: none !important;
 }
 
-/* ---- Post-answer quick-nav pills (v3.36.5): ติดข้างน้องซูชิหลังส่งคำตอบ/เฉลย ---- */
+/* ---- Post-answer quick-nav capsule (v3.36.6): frosted glass 2 แถว ติดข้างน้องซูชิ ---- */
 .mascot-quick-actions {
     position: fixed;
     z-index: var(--zi-assistive);
     display: none;
     flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    padding-top: 10px; /* เว้นที่ให้ปุ่ม × */
+    gap: 4px;
+    padding: 6px;
+    border-radius: 20px;
+    border: 1px solid var(--color-border);
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-md);
 }
 .mascot-quick-actions.is-show { display: flex; }
 #assistive-wrap.is-snapped-right .mascot-quick-actions {
@@ -366,39 +371,48 @@ body.assistive-open #mascot-speech-bubble {
     left: calc(var(--at-x) + 64px);
     right: auto;
 }
+.mascot-quick-actions .mqa-row {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+}
+.mascot-quick-actions .mqa-row-nav .mqa-pill { flex: 1 1 0; }
 .mascot-quick-actions .mqa-pill {
-    min-height: 42px;
-    padding: 0 16px;
-    border-radius: 21px;
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    background: color-mix(in srgb, var(--color-surface) 78%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: var(--shadow-md);
-    color: var(--color-text);
-    font-size: .95rem;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 14px;
+    border: 0;
+    background: rgba(255, 255, 255, 0.12);
+    color: #f8fafc;
+    font-size: .88rem;
     font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
     touch-action: manipulation;
 }
+.mascot-quick-actions .mqa-row-top .mqa-explain { flex: 1 1 auto; }
+.mascot-quick-actions .mqa-pill.mqa-next {
+    background: var(--color-primary, #3b82f6);
+    color: #fff;
+    flex-grow: 1.4;
+}
 .mascot-quick-actions .mqa-pill:active { transform: scale(.97); }
 .mascot-quick-actions .mqa-close {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 22px;
-    height: 22px;
+    flex: 0 0 28px;
+    width: 28px;
+    min-height: 36px;
     padding: 0;
-    border-radius: 50%;
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    color: var(--color-text);
-    font-size: .8rem;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    color: rgba(248, 250, 252, 0.6);
+    font-size: 1rem;
     line-height: 1;
     cursor: pointer;
+    touch-action: manipulation;
 }
+
+#quiz-explain-container { scroll-margin-top: 80px; }
 
 body.sp-zen .mascot-quick-actions,
 body:has(.scratchpad-drawing) .mascot-quick-actions,
