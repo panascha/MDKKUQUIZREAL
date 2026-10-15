@@ -28,8 +28,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: none;
+    transition: opacity .3s ease, transform .3s ease;
 }
+
+/* v3.36.7: ghost & tuck ตอนดูคำอธิบาย — ตำแหน่งใช้ left/top จึงใช้ transform ได้ไม่ชนกับ drag */
+#assistive-touch-trigger.is-ghost { opacity: .25; transform: translateX(60%); }
+#assistive-wrap.is-snapped-left #assistive-touch-trigger.is-ghost { transform: translateX(-60%); }
 
 #assistive-touch-trigger.is-dragging {
     cursor: grabbing;

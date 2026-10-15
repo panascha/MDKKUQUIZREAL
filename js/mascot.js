@@ -425,6 +425,22 @@
         return true;
     };
 
+    /* ---------- ghost & tuck ตอนดูคำอธิบาย (v3.36.7) ---------- */
+    var ghostHoldUntil = 0;
+    function setMascotGhost(on) {
+        if (trigger) trigger.classList.toggle('is-ghost', !!on);
+    }
+    function syncGhostToExplain() {
+        if (!trigger || Date.now() < ghostHoldUntil) return;
+        var ex = document.getElementById('quiz-explain-container');
+        var inView = false;
+        if (ex && ex.offsetHeight > 0) {
+            var r = ex.getBoundingClientRect();
+            inView = r.top < window.innerHeight * 0.6 && r.bottom > 0;
+        }
+        setMascotGhost(inView);
+    }
+
     /* ---------- post-answer quick-nav strip (v3.36.5) ---------- */
     window.hideMascotQuickNav = function () {
         clearTimeout(quickTimer);
@@ -570,6 +586,7 @@
         if (cq.questionId === lastQid) return;
         lastQid = cq.questionId;
         window.hideMascotBubble();
+        setMascotGhost(false);
         window.hideMascotQuickNav(); // เปลี่ยนข้อไม่ว่าทางไหน (ปุ่ม/index panel/คีย์บอร์ด) → ซ่อน strip
         window.setMascotEyes('');
         window.triggerMascotEmote('');
@@ -635,6 +652,9 @@
             if (!b) return;
             if (b.classList.contains('mqa-explain')) {
                 var ex = document.getElementById('quiz-explain-container');
+                window.hideMascotQuickNav();
+                setMascotGhost(true);
+                ghostHoldUntil = Date.now() + 1200; // กัน scroll handler ปลุกกลางทางตอน smooth scroll
                 if (ex) ex.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
             } else if (b.classList.contains('mqa-prev') || b.classList.contains('mqa-next')) {
                 window.hideMascotQuickNav();
@@ -670,6 +690,13 @@
             window.hideMascotBubble();
         }, true);
         document.addEventListener('keydown', resetIdle, { passive: true });
+        var ghostRaf = 0;
+        window.addEventListener('scroll', function () {
+            if (ghostRaf) return;
+            ghostRaf = requestAnimationFrame(function () { ghostRaf = 0; syncGhostToExplain(); });
+        }, { passive: true, capture: true });
+        trigger.addEventListener('pointerdown', function () { setMascotGhost(false); ghostHoldUntil = 0; });
+        trigger.addEventListener('pointerenter', function () { setMascotGhost(false); });
         window.addEventListener('scroll', function (e) {
             if (bubble.classList.contains('is-show') && !bubble.contains(e.target)) window.hideMascotBubble();
         }, { passive: true, capture: true });
