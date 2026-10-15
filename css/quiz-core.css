@@ -295,6 +295,13 @@
         z-index: 10;
     }
 
+    /* สูตร KaTeX แบบ display ยาวเกินจอ — เลื่อนในกล่องตัวเอง ไม่ดันทั้งหน้ากว้าง */
+    .katex-display {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
     /* Choices — full width, clear visual hierarchy */
     #choices {
         display: flex;
