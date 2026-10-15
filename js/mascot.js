@@ -7,6 +7,7 @@
 
     var POS_KEY = 'mdkku_assistive_pos';
     var DRAG_PX = 6;
+    var NAV_DRAG_PX = 60; // min sideways drag before prev/next zone can arm
     var PAD = 12;
     var SIZE = 56;
     var KEEP_OPEN = ['zoom-in-btn', 'zoom-out-btn', 'font-weight-toggle-btn', 'mascot-mute-toggle'];
@@ -198,7 +199,10 @@
             for (var i = 0; i < zs.length; i++) {
                 var r = zs[i].getBoundingClientRect();
                 if (px >= r.left && px <= r.right && py >= r.top && py <= r.bottom) {
-                    hit = zs[i].getAttribute('data-action');
+                    var act = zs[i].getAttribute('data-action');
+                    // prev/next sit at screen edges where the mascot rests: require pointer >= NAV_DRAG_PX from drag start (any direction, so both zones stay reachable from either edge)
+                    if ((act === 'prev' || act === 'next') && Math.sqrt((px - sx) * (px - sx) + (py - sy) * (py - sy)) < NAV_DRAG_PX) continue;
+                    hit = act;
                     break;
                 }
             }
@@ -222,6 +226,9 @@
             if (action === 'quiz' || action === 'search') {
                 var btn = document.getElementById(action === 'quiz' ? 'scroll-to-quiz-btn' : 'scroll-to-search-btn');
                 if (btn) btn.click();
+            } else if (action === 'prev' || action === 'next') {
+                var nav = document.getElementById(action === 'prev' ? 'prev-question' : 'next-question');
+                if (nav) nav.click();
             } else if (action === 'ai') {
                 if (window.toggleChatbotPanel) window.toggleChatbotPanel(true);
             }

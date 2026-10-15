@@ -470,6 +470,17 @@ body.assistive-open .mascot-quick-actions {
     width: min(340px, 86vw);
     height: 62px;
 }
+#assistive-drop-zones .drop-zone-left,
+#assistive-drop-zones .drop-zone-right {
+    top: 50vh; /* v3.36.8: กลางจอ โซนนิ้วโป้ง — ลากซ้าย/ขวา = ข้อก่อนหน้า/ถัดไป */
+    transform: translateY(-50%);
+    height: 56px;
+    padding: 0 14px;
+    white-space: nowrap;
+    border-radius: 999px;
+}
+#assistive-drop-zones .drop-zone-left { left: calc(12px + env(safe-area-inset-left)); }
+#assistive-drop-zones .drop-zone-right { right: calc(12px + env(safe-area-inset-right)); }
 #assistive-drop-zones .drop-zone-bottom-right {
     /* v3.36.5: ใต้โซนล่าง (68vh + 62px + 12px) ไม่ให้ทับกัน; min() กันหลุดจอล่าง */
     top: min(calc(68vh + 74px), calc(100vh - 100px - env(safe-area-inset-bottom)));
@@ -493,6 +504,8 @@ body.assistive-open .mascot-quick-actions {
 #assistive-drop-zones .drop-zone-top.is-hovered,
 #assistive-drop-zones .drop-zone-bottom.is-hovered { transform: translateX(-50%) scale(1.04); }
 #assistive-drop-zones .drop-zone-bottom-right.is-hovered { transform: scale(1.04); }
+#assistive-drop-zones .drop-zone-left.is-hovered,
+#assistive-drop-zones .drop-zone-right.is-hovered { transform: translateY(-50%) scale(1.04); }
 
 /* chatbot เปิดอยู่ → ซ่อนน้องซูชิทั้งก้อน (trigger, bubble, emote, menu, scrim) */
 body.chatbot-open #assistive-wrap {
@@ -510,4 +523,6 @@ body:has(.scratchpad-drawing) #assistive-drop-zones {
     #assistive-drop-zones .drop-zone-top.is-hovered,
     #assistive-drop-zones .drop-zone-bottom.is-hovered { transform: translateX(-50%); }
     #assistive-drop-zones .drop-zone-bottom-right.is-hovered { transform: none; }
+    #assistive-drop-zones .drop-zone-left.is-hovered,
+    #assistive-drop-zones .drop-zone-right.is-hovered { transform: translateY(-50%); }
 }
