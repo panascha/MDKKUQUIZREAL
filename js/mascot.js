@@ -514,6 +514,22 @@
         return true;
     };
 
+    /* ---------- pre-answer floating submit pill (v3.37.1) ---------- */
+    var submitPill = null;
+    window.hideMascotSubmit = function () {
+        if (submitPill) submitPill.classList.remove('is-show');
+    };
+    window.syncMascotSubmit = function () {
+        if (!submitPill) return;
+        var cq = curQ();
+        var picked = document.querySelector('#choices button.selected');
+        if (!cq || cq.state || !picked) { window.hideMascotSubmit(); return; }
+        submitPill.classList.add('is-show');
+        var r = window.MASCOT.getTriggerRect();
+        var h = submitPill.offsetHeight;
+        submitPill.style.top = Math.max(8, Math.min(window.innerHeight - h - 8, r.top + r.height / 2 - h / 2)) + 'px';
+    };
+
     function hintLabel() {
         var cq = curQ();
         return cq && cq.state ? '🧠 สรุปให้จำ' : '💡 ขอคำใบ้';
@@ -650,6 +666,7 @@
         if (set !== lastSet) { lastSet = set; streak = 0; }
         window.hideMascotBubble();
         setMascotGhost(false);
+        window.hideMascotSubmit();
         window.hideMascotQuickNav(); // เปลี่ยนข้อไม่ว่าทางไหน (ปุ่ม/index panel/คีย์บอร์ด) → ซ่อน strip
         window.setMascotEyes('');
         window.triggerMascotEmote('');
@@ -662,6 +679,7 @@
     }
 
     function onSubmitted(was) {
+        window.hideMascotSubmit();
         var cq = curQ();
         if (!cq || was || !cq.state) return;
         var ok = cq.select === cq.answer;
@@ -744,6 +762,23 @@
             }
         });
         wrap.appendChild(quickNav);
+
+        submitPill = document.createElement('button');
+        submitPill.type = 'button';
+        submitPill.id = 'mascot-submit-btn';
+        submitPill.className = 'mascot-submit-pill';
+        submitPill.innerHTML = '<i class="fas fa-check"></i> ส่งคำตอบ';
+        submitPill.addEventListener('click', function () {
+            var sb = document.getElementById('submit-btn');
+            window.hideMascotSubmit();
+            if (sb) sb.click();
+        });
+        wrap.appendChild(submitPill);
+        // เลือก/ยกเลิกตัวเลือก: handler jQuery ใน quiz-core รันก่อน → รอ tick เดียวแล้วเช็คสถานะ
+        document.addEventListener('click', function (e) {
+            if (!(e.target.closest && e.target.closest('#choices button'))) return;
+            setTimeout(window.syncMascotSubmit, 0);
+        });
 
         // แตะที่ว่างนอก strip (และนอกตัวมาสคอต) → ปิด
         document.addEventListener('pointerdown', function (e) {

@@ -588,6 +588,45 @@ body.assistive-open #mascot-speech-bubble {
     touch-action: manipulation;
 }
 
+/* ---- Pre-answer floating submit pill (v3.37.1) ---- */
+.mascot-submit-pill {
+    position: fixed;
+    z-index: var(--zi-assistive);
+    display: none;
+    align-items: center;
+    gap: 6px;
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(16, 185, 129, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #fff;
+    font-size: .95rem;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.mascot-submit-pill.is-show { display: inline-flex; }
+.mascot-submit-pill:active { transform: scale(.97); }
+#assistive-wrap.is-snapped-right .mascot-submit-pill {
+    left: auto;
+    right: calc(100vw - var(--at-x) + 8px);
+}
+#assistive-wrap.is-snapped-left .mascot-submit-pill {
+    left: calc(var(--at-x) + 64px);
+    right: auto;
+}
+body.sp-zen .mascot-submit-pill,
+body:has(.scratchpad-drawing) .mascot-submit-pill,
+body.assistive-open .mascot-submit-pill,
+body.chatbot-open .mascot-submit-pill {
+    display: none !important;
+}
+
 #quiz-explain-container { scroll-margin-top: 80px; }
 
 body.sp-zen .mascot-quick-actions,
@@ -663,9 +702,10 @@ body.assistive-open .mascot-quick-actions {
     padding: 0 14px;
     white-space: nowrap;
     border-radius: 999px;
+    box-shadow: var(--shadow-md); /* v3.37.1: การ์ดลอย เว้นระยะจากขอบจอ */
 }
-#assistive-drop-zones .drop-zone-left { left: calc(12px + env(safe-area-inset-left)); }
-#assistive-drop-zones .drop-zone-right { right: calc(12px + env(safe-area-inset-right)); }
+#assistive-drop-zones .drop-zone-left { left: calc(28px + env(safe-area-inset-left)); }
+#assistive-drop-zones .drop-zone-right { right: calc(28px + env(safe-area-inset-right)); }
 #assistive-drop-zones .drop-zone-bottom-right {
     /* v3.36.5: ใต้โซนล่าง (68vh + 62px + 12px) ไม่ให้ทับกัน; min() กันหลุดจอล่าง */
     top: min(calc(68vh + 74px), calc(100vh - 100px - env(safe-area-inset-bottom)));
