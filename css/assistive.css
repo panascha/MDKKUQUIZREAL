@@ -289,6 +289,178 @@ body.assistive-open #assistive-scrim {
 
 #assistive-touch-trigger.is-thinking { animation: mascot-pulse 1.2s ease-out infinite; }
 
+/* ---- anime easter eggs (v3.37.0): animation lives on ::before/::after + static filter, never on the sprite
+   (except is-afk-belly, idle only) so emote animations (jump/hit) are not overridden ---- */
+.mascot-sprite { isolation: isolate; }
+.mascot-sprite::before,
+.mascot-sprite::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* A: golden aura */
+@keyframes mascot-aura {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); }
+    15% { opacity: .95; }
+    100% { opacity: 0; transform: translate(-50%, -62%) scale(1.5); }
+}
+@keyframes mascot-spark {
+    0% { opacity: 0; transform: translate(-50%, -30%); }
+    30% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -120%); }
+}
+.mascot-sprite.is-aura,
+.mascot-sprite.is-aura-max { filter: drop-shadow(0 0 6px rgba(255, 214, 10, .9)) brightness(1.08); }
+.mascot-sprite.is-aura::before,
+.mascot-sprite.is-aura-max::before {
+    width: 64px;
+    height: 78px;
+    border-radius: 50% 50% 45% 45%;
+    background: radial-gradient(ellipse at 50% 70%, rgba(255, 214, 10, .85), rgba(255, 160, 0, .35) 55%, transparent 72%);
+    filter: blur(2px);
+    z-index: -1;
+    animation: mascot-aura 1.6s ease-out 1;
+}
+.mascot-sprite.is-aura-max::before { box-shadow: 0 0 18px 6px rgba(255, 214, 10, .55); animation-duration: 2.4s; }
+.mascot-sprite.is-aura::after,
+.mascot-sprite.is-aura-max::after {
+    content: "✦ ✧";
+    letter-spacing: 10px;
+    font-size: 12px;
+    color: #ffd60a;
+    animation: mascot-spark 1.2s ease-out 1;
+}
+.mascot-sprite.is-aura-max::after { animation-iteration-count: 2; }
+
+/* B: menacing glyphs (system CJK font) */
+@keyframes mascot-menace {
+    0% { opacity: 0; transform: translate(-50%, -20%) rotate(-8deg) scale(.8); }
+    20% { opacity: 1; }
+    50% { transform: translate(-48%, -90%) rotate(-5deg); }
+    100% { opacity: 0; transform: translate(-52%, -150%) rotate(-9deg) scale(1.15); }
+}
+.mascot-sprite.is-menace { filter: drop-shadow(0 0 5px rgba(124, 58, 237, .8)); }
+.mascot-sprite.is-menace::after {
+    content: "ゴ ゴ ゴ";
+    font-family: system-ui, 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    font-weight: 900;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #7c3aed;
+    text-shadow: 0 0 6px rgba(124, 58, 237, .7);
+    animation: mascot-menace 2.2s ease-out 1;
+}
+
+/* C: gadget beam */
+@keyframes mascot-beam {
+    0% { opacity: 0; transform: translate(-50%, -100%) scaleY(0); }
+    30% { opacity: 1; transform: translate(-50%, -100%) scaleY(1); }
+    100% { opacity: 0; transform: translate(-50%, -100%) scaleY(1.1); }
+}
+.mascot-sprite.is-beam::before {
+    width: 34px;
+    height: 46px;
+    background: linear-gradient(to top, rgba(125, 211, 252, .9), rgba(255, 255, 255, 0));
+    clip-path: polygon(40% 100%, 60% 100%, 100% 0, 0 0);
+    transform-origin: 50% 100%;
+    animation: mascot-beam .9s ease-out 1;
+}
+.mascot-sprite.is-beam::after {
+    content: "✨";
+    font-size: 14px;
+    animation: mascot-float .9s ease-out 1;
+}
+
+/* D: wrong answer slash + freeze */
+@keyframes mascot-slash {
+    0% { opacity: 1; transform: translate(-50%, -50%) rotate(-35deg) scaleX(0); }
+    15% { transform: translate(-50%, -50%) rotate(-35deg) scaleX(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -50%) rotate(-35deg) scaleX(1); }
+}
+.mascot-sprite.is-slash::after {
+    width: 56px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #ef4444, transparent);
+    animation: mascot-slash .9s ease-out 1;
+}
+.mascot-sprite.is-freeze { filter: grayscale(1) contrast(1.2); transition: filter .15s; }
+
+/* idle scenes */
+@keyframes mascot-snot {
+    0%, 100% { opacity: .9; transform: translate(8px, 2px) scale(.3); }
+    50% { opacity: 1; transform: translate(9px, 0) scale(1.6); }
+}
+@keyframes mascot-snot-pop {
+    0% { opacity: 1; transform: translate(9px, 0) scale(1.6); }
+    100% { opacity: 0; transform: translate(9px, 0) scale(2.4); }
+}
+.mascot-sprite.is-afk-snot-bubble::after {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(186, 230, 253, .85);
+    border: 1px solid rgba(14, 116, 144, .5);
+    animation: mascot-snot 3.2s ease-in-out infinite;
+}
+.mascot-sprite.is-snot-pop::after {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(186, 230, 253, .85);
+    border: 1px solid rgba(14, 116, 144, .5);
+    animation: mascot-snot-pop .25s ease-out 1 forwards;
+}
+
+@keyframes mascot-stone-glyph {
+    0%, 100% { opacity: 0; transform: translate(-50%, -40%) rotate(-8deg); }
+    50% { opacity: .55; transform: translate(-50%, -110%) rotate(-6deg); }
+}
+@keyframes mascot-stone-crack {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+.mascot-sprite.is-afk-stone,
+.mascot-sprite.is-stone-crack { filter: grayscale(1) contrast(1.3) brightness(.85); }
+.mascot-sprite.is-stone-crack { transition: filter .25s; }
+.mascot-sprite.is-afk-stone::after {
+    content: "ゴ ゴ";
+    font-family: system-ui, 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: #7c3aed;
+    animation: mascot-stone-glyph 5s ease-in-out infinite;
+}
+.mascot-sprite.is-stone-crack::before {
+    width: 40px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #fff, transparent);
+    transform: translate(-50%, -50%) rotate(-35deg);
+    animation: mascot-stone-crack .25s ease-out 1 forwards;
+}
+
+@keyframes mascot-belly {
+    0%, 100% { transform: scale(1, 1); }
+    50% { transform: scale(1.1, .92); }
+}
+.mascot-sprite.is-afk-belly { animation: mascot-belly 3s ease-in-out infinite; }
+.mascot-sprite.is-afk-belly::after {
+    content: "Z z Z";
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-primary);
+    animation: mascot-float 2.4s ease-out infinite;
+}
+
+#assistive-touch-trigger.is-dragging .mascot-sprite::before,
+#assistive-touch-trigger.is-dragging .mascot-sprite::after { display: none; }
+
 #mascot-speech-bubble {
     position: fixed;
     z-index: var(--zi-assistive);
@@ -429,7 +601,20 @@ body.assistive-open .mascot-quick-actions {
     .mascot-sprite.is-hop,
     .mascot-sprite.is-jelly,
     .mascot-sprite.is-jump,
-    .mascot-sprite.is-hit { animation: none !important; }
+    .mascot-sprite.is-hit,
+    .mascot-sprite.is-afk-belly { animation: none !important; }
+    .mascot-sprite.is-aura,
+    .mascot-sprite.is-aura-max,
+    .mascot-sprite.is-menace,
+    .mascot-sprite.is-beam,
+    .mascot-sprite.is-slash,
+    .mascot-sprite.is-freeze,
+    .mascot-sprite.is-afk-snot-bubble,
+    .mascot-sprite.is-afk-stone,
+    .mascot-sprite.is-snot-pop,
+    .mascot-sprite.is-stone-crack { animation: none !important; filter: none !important; }
+    .mascot-sprite::before,
+    .mascot-sprite::after { display: none !important; }
     #mascot-emote.is-show { animation: none; }
     #assistive-touch-trigger.is-thinking { animation: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, .5); }
 }

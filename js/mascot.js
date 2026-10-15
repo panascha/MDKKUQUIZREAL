@@ -139,6 +139,7 @@
                 if (Math.sqrt(dx * dx + dy * dy) <= DRAG_PX) return;
                 dragging = true;
                 trigger.classList.add('is-dragging');
+                clearEgg();
                 window.closeAssistiveMenu();
                 if (zonesEl && !bubbleSuppressed()) {
                     zonesEl.classList.add('zones-active');
@@ -308,6 +309,12 @@
     var bubble, emoteEl, quickNav, quickTimer;
     var QUICK_TTL = 10000;
 
+    // anime easter eggs: kept off ANIM_CLS so animateSprite() never strips them
+    var EGG_CLS = ['is-aura', 'is-aura-max', 'is-menace', 'is-beam', 'is-slash', 'is-freeze'];
+    var AFK_CLS = ['is-afk-snot-bubble', 'is-afk-stone', 'is-afk-belly', 'is-snot-pop', 'is-stone-crack'];
+    var EGG_COOLDOWN = 15000;
+    var streak = 0, lastSet = null, afkKind = null, lastEggAt = 0, eggTimer, wakeTimer;
+
     var BANTER = {
         load: ['ลุยข้อนี้กันเลย!', 'ค่อยๆ อ่านโจทย์นะ อย่ารีบ', 'ข้อนี้ต้องคิดนิดนึงน้า', 'สู้ๆ เดี๋ยวก็ได้เอง'],
         correct: ['เก่งมาก!', 'ถูกต้องงง ไปต่อ!', 'ว้าว แม่นจริง', 'สมกับเป็นหมอในอนาคต'],
@@ -332,6 +339,44 @@
         void s.offsetWidth;
         s.classList.add(cls);
         animTimer = setTimeout(function () { s.classList.remove(cls); }, ms);
+    }
+
+    function eggBlocked() {
+        return quiet || reducedMotion() || document.hidden || window.isAssistiveMenuOpen() || bubbleSuppressed() ||
+            trigger.classList.contains('is-dragging') || trigger.classList.contains('is-ghost');
+    }
+    function eggAllowed() { return !eggBlocked() && Date.now() - lastEggAt >= EGG_COOLDOWN; }
+
+    function clearEgg() {
+        clearTimeout(eggTimer);
+        clearTimeout(wakeTimer);
+        afkKind = null;
+        var s = spr();
+        if (!s) return;
+        EGG_CLS.concat(AFK_CLS).forEach(function (c) { s.classList.remove(c); });
+    }
+
+    function playEgg(cls, ms) {
+        var s = spr();
+        if (!s) return;
+        clearTimeout(eggTimer);
+        EGG_CLS.forEach(function (c) { s.classList.remove(c); });
+        void s.offsetWidth;
+        s.classList.add(cls);
+        lastEggAt = Date.now();
+        eggTimer = setTimeout(function () { s.classList.remove(cls); }, ms);
+    }
+
+    function wakeUp() {
+        var s = spr(), kind = afkKind;
+        clearEgg();
+        if (!s) return;
+        var wake = kind === 'is-afk-snot-bubble' ? 'is-snot-pop' : kind === 'is-afk-stone' ? 'is-stone-crack' : null;
+        if (wake) {
+            s.classList.add(wake);
+            wakeTimer = setTimeout(function () { s.classList.remove(wake); }, 250);
+        }
+        animateSprite('is-jelly', 250);
     }
 
     function stretchSprite(ev) {
@@ -492,13 +537,21 @@
         clearTimeout(idleTimer);
         var s = spr();
         if (s) s.classList.remove('is-sleeping');
+        if (afkKind) wakeUp();
         if (document.hidden) return;
         idleTimer = setTimeout(idleFire, rand(IDLE_MIN, IDLE_MAX));
     }
 
+    var AFK_POOL = ['is-afk-snot-bubble', 'is-afk-stone', 'is-afk-belly'];
+
     function idleFire() {
         window.setMascotEyes('is-sleeping');
         window.triggerMascotEmote('sleep');
+        var s = spr();
+        if (s && !afkKind && !eggBlocked()) {
+            afkKind = pick(AFK_POOL);
+            s.classList.add(afkKind);
+        }
         banter('idle');
         idleTimer = setTimeout(idleFire, rand(IDLE_MIN, IDLE_MAX));
     }
@@ -532,6 +585,7 @@
         }
         var cq = curQ();
         if (!cq || hintBusy) return;
+        if (Math.random() < 0.25 && eggAllowed()) playEgg('is-beam', 900);
         var mode = cq.state ? 'post' : 'pre';
         var problem = String(cq.problem || '');
         if (cq.img && problem.replace(/\s+/g, '').length < 40) {
@@ -592,6 +646,8 @@
         updateHintLabel();
         if (cq.questionId === lastQid) return;
         lastQid = cq.questionId;
+        var set = window.APP && window.APP.currentQuestions;
+        if (set !== lastSet) { lastSet = set; streak = 0; }
         window.hideMascotBubble();
         setMascotGhost(false);
         window.hideMascotQuickNav(); // เปลี่ยนข้อไม่ว่าทางไหน (ปุ่ม/index panel/คีย์บอร์ด) → ซ่อน strip
@@ -601,6 +657,7 @@
         var hy = typeof window.getHighYieldInfo === 'function' ? window.getHighYieldInfo(cq) : null;
         if (hy && hy.count >= 3) {
             window.showMascotBubble(pick(BANTER.highYield).replace('{n}', hy.count), { auto: true, hintBtn: true });
+            if (Math.random() < 0.4 && eggAllowed()) playEgg('is-menace', 2200);
         } else if (Math.random() < CHANCE) banter('load', cq);
     }
 
@@ -612,6 +669,21 @@
         window.triggerMascotEmote(ok ? 'correct' : 'wrong');
         updateHintLabel();
         resetIdle();
+        var prev = streak;
+        streak = ok ? streak + 1 : 0;
+        if (ok) {
+            if ((streak === 3 || (streak >= 5 && streak % 5 === 0)) && !eggBlocked()) {
+                playEgg(streak >= 5 ? 'is-aura-max' : 'is-aura', streak >= 5 ? 2400 : 1600);
+            }
+        } else if (eggAllowed() && Math.random() < (prev >= 3 ? 0.6 : 0.12)) {
+            playEgg('is-slash', 900);
+            var s = spr();
+            if (s) {
+                s.classList.add('is-freeze');
+                setTimeout(function () { s.classList.remove('is-freeze'); }, 900);
+            }
+            window.showMascotBubble('To be continued…', { auto: true, ttl: 2200 });
+        }
         if (Math.random() < CHANCE) banter(ok ? 'correct' : 'wrong');
         window.showMascotQuickNav();
     }
@@ -708,10 +780,10 @@
             if (bubble.classList.contains('is-show') && !bubble.contains(e.target)) window.hideMascotBubble();
         }, { passive: true, capture: true });
         document.addEventListener('mascot:menu', function (e) {
-            if (e.detail && e.detail.open) { window.hideMascotBubble(); window.hideMascotQuickNav(); }
+            if (e.detail && e.detail.open) { window.hideMascotBubble(); window.hideMascotQuickNav(); clearEgg(); }
         });
         document.addEventListener('visibilitychange', function () {
-            if (document.hidden) { clearTimeout(blinkTimer); clearTimeout(idleTimer); }
+            if (document.hidden) { clearTimeout(blinkTimer); clearTimeout(idleTimer); clearEgg(); }
             else { scheduleBlink(); resetIdle(); }
         });
 
