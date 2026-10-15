@@ -300,6 +300,7 @@
         max-width: 100%;
         overflow-x: auto;
         overflow-y: hidden;
+        padding: 0.5em 0; /* กัน overflow-y: hidden ตัดหัว/ท้ายสูตรสูง (∑ มี limit, เศษส่วนซ้อน) 5–8px */
     }
 
     /* Choices — full width, clear visual hierarchy */
