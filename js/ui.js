@@ -502,7 +502,7 @@ window.renderAccordionUI = function (data) {
             const rots = categories.filter(c => /_ROT/i.test(c.categoryId));
             if (rots.length >= 2) {
                 const n = rots.reduce((s, c) => s + (categoryStats[c.categoryId] ? categoryStats[c.categoryId].total : 0), 0);
-                rotPill = `<div class="rot-all-wrap"><button type="button" class="rot-all-pill">⚡ เลือกทุก Rotate (${n} ข้อ)</button></div>`;
+                rotPill = `<div class="rot-all-wrap"><button type="button" class="rot-all-pill">☑️ เลือกทั้งหมด (${n} ข้อ)</button></div>`;
             }
         }
         return `
