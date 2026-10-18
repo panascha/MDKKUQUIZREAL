@@ -21,12 +21,15 @@ window.isLectureCategory = function (catId) {
     return false;
 };
 
-// สกัดชนิดข้อสอบจากชื่อกลุ่ม เช่น "51LAB" -> LAB, "FMT1"/"FMT" -> FMT, "MCQ2" -> MCQ
+// ตัด "elective" ออกก่อนเช็ค "LEC" (ELECTIVE มี LEC เป็นสตริงย่อย)
+window.stripElective = function (s) { return String(s == null ? '' : s).replace(/elective/gi, ''); };
+
+// สกัดชนิดข้อสอบจากชื่อกลุ่ม เช่น "51LAB" -> LAB, "FMT1"/"FMT" -> FMT, "MCQ2" -> MCQ, "49MCQFIN" -> MCQFIN
 // ตัวจำแนกกลางที่ใช้ร่วมกัน (vote.js) — renderAccordionUI มีสำเนา local ของตัวเองอยู่ (ไม่แตะ)
 window.extractExamType = function (groupName) {
     const clean = String(groupName || '').toUpperCase();
-    if (clean.includes("LEC") || clean.includes("BY AI") || clean.includes("(EXTRACTED)")) return null;
-    const m = clean.match(/(?:^|[\s_])\d*(MCQ|FMT|LAB|QUIZ|OSCE|MEQ)\d*(?=$|[\s_)])/);
+    if (window.stripElective(clean).includes("LEC") || clean.includes("BY AI") || clean.includes("(EXTRACTED)")) return null;
+    const m = clean.match(/(?:^|[\s_])\d*(MCQ(?:MID|FIN)|MCQ|FMT|LAB|QUIZ|OSCE|MEQ)\d*(?=$|[\s_)])/);
     return m ? m[1] : null;
 };
 
@@ -188,7 +191,7 @@ window.parseQuestionMetadata = function (q) {
         }
         if (bestCat) {
             const parts = bestCat.split('_');
-            topic = parts[parts.length - 1];
+            topic = (parts.length >= 4 && parts[1] && window.extractExamType(parts[1])) ? parts.slice(2).join('_') : parts[parts.length - 1];
             // ถ้า topic นี้มาจากหมวดหมู่ที่ AI จัดกลุ่มไว้ ให้ติดป้าย "(by AI)"
             if (/by ai/i.test(bestCat) && !topic.includes('(by AI)')) {
                 topic = topic + ' (by AI)';
@@ -474,7 +477,17 @@ window.renderAccordionUI = function (data) {
         `;
     }
 
-    function buildAccordion(groupName, categories, isExcludedGroup) {
+    // หัวข้อ accordion คลินิก — "MED4 รุ่น 49 MCQ" → "รุ่น 49 (2024)" (ปี = batch+1972+(ชั้นปี-1)); ไม่ใช่รูปแบบนี้คืน null
+    function clinicHeader(groupName) {
+        const m = String(groupName).match(/^(\S+) รุ่น (\d{2}) MCQ(?:MID|FIN)?$/);
+        if (!m) return null;
+        const batch = +m[2];
+        const subj = (data.subjects || []).find(s => s.subjectId === m[1]);
+        const yr = subj ? String(subj.year) : '';
+        return /^[456]$/.test(yr) ? `รุ่น ${batch} (${batch + 1972 + (+yr - 1)})` : `รุ่น ${batch}`;
+    }
+
+    function buildAccordion(groupName, categories, isExcludedGroup, displayOverride) {
         const helperText = !isExcludedGroup ? " (คำถามที่แยกเลคแล้ว/คำถามทั้งหมด)" : "";
         const btns = categories.map(c => buildCategoryButton(c, isExcludedGroup)).join('');
         // แปลงชื่อกลุ่มภายในให้สวยขึ้น — "GI_by AI_ANATOMY" → "GI by AI (ANATOMY)"
@@ -482,6 +495,7 @@ window.renderAccordionUI = function (data) {
         if (/by AI_/i.test(groupName)) {
             displayName = groupName.replace(/_?by AI_/i, ' by AI (') + ')';
         }
+        if (typeof displayOverride === 'string') displayName = displayOverride;
         return `
             <details class="accordion-group">
                 <summary class="accordion-header">
@@ -516,8 +530,8 @@ window.renderAccordionUI = function (data) {
     // ต้องมีขอบเขตคำ (ต้นสตริง/ช่องว่าง/ขีดล่าง) กัน token ไปโผล่กลางคำอย่าง "CLINICAL"/"Uncategorized"
     function extractExamType(groupName) {
         const clean = String(groupName || '').toUpperCase();
-        if (clean.includes("LEC") || clean.includes("BY AI") || clean.includes("(EXTRACTED)")) return null;
-        const m = clean.match(/(?:^|[\s_])\d*(MCQ|FMT|LAB|QUIZ|OSCE|MEQ)\d*(?=$|[\s_)])/);
+        if (window.stripElective(clean).includes("LEC") || clean.includes("BY AI") || clean.includes("(EXTRACTED)")) return null;
+        const m = clean.match(/(?:^|[\s_])\d*(MCQ(?:MID|FIN)|MCQ|FMT|LAB|QUIZ|OSCE|MEQ)\d*(?=$|[\s_)])/);
         return m ? m[1] : null;
     }
 
@@ -525,11 +539,11 @@ window.renderAccordionUI = function (data) {
     const standaloneAccordions = [];
 
     Object.entries(groups).forEach(([groupName, categories]) => {
-        const isExcluded = groupName.includes("LEC") ||
+        const isExcluded = window.stripElective(groupName).includes("LEC") ||
             groupName.includes("by AI") ||
             groupName.includes("(Extracted)") ||
             categories.some(c => c.categoryName.includes("MODULE")) ||
-            categories.some(c => c.categoryName.includes("COMMED"));
+            categories.some(c => c.categoryName.includes("COMMED") && !/^COMMED[45]_\d/.test(c.categoryName));
 
         const firstCat = categories[0];
         const subjectId = firstCat ? (firstCat.subjectRef || '') : '';
@@ -538,9 +552,11 @@ window.renderAccordionUI = function (data) {
         // เช็คกลุ่มข้อสอบก่อนเสมอ — กัน LAB/QUIZ ถูกดูดเข้า Lecture ผ่าน isLectureCategory
         // ที่เป็น true เพราะมีข้อถูกแยกเลคเชอร์ไปแล้ว
         if (examType) {
-            const key = `${subjectId}|${examType}`;
+            const tier = examType === 'MCQMID' ? 'MID' : examType === 'MCQFIN' ? 'FIN' : '';
+            const key = tier ? `${subjectId}|MCQ|${tier}` : `${subjectId}|${examType}`;
+            const label = tier === 'MID' ? `${subjectId} Midblock` : tier === 'FIN' ? `${subjectId} Final` : `${subjectId} ${examType}`;
             if (!superGroups[key]) superGroups[key] = {
-                label: `${subjectId} ${examType}`,
+                label,
                 variant: 'mcq',
                 subjectId,
                 isExcluded,
@@ -548,7 +564,7 @@ window.renderAccordionUI = function (data) {
             };
             superGroups[key].accordions.push({ groupName, categories, isExcluded });
         } else if (
-            (groupName.toUpperCase().includes("LEC") ||
+            (window.stripElective(groupName).toUpperCase().includes("LEC") ||
                 categories.some(c => isLectureCategory(c.categoryId))) &&
             !groupName.toUpperCase().includes("BY AI")
         ) {
@@ -583,13 +599,14 @@ window.renderAccordionUI = function (data) {
     Object.values(superGroups).forEach(sg => {
         if (sg.accordions.length === 1) {
             const { groupName, categories, isExcluded } = sg.accordions[0];
-            $container.append(buildAccordion(groupName, categories, isExcluded));
+            const ch = clinicHeader(groupName);
+            $container.append(buildAccordion(groupName, categories, isExcluded, ch ? `${sg.label} ${ch}` : undefined));
             return;
         }
 
         const innerHtml = sg.accordions
             .map(({ groupName, categories, isExcluded }) =>
-                buildAccordion(groupName, categories, isExcluded))
+                buildAccordion(groupName, categories, isExcluded, clinicHeader(groupName) || undefined))
             .join('');
 
         const icon = sg.variant === 'lec'
