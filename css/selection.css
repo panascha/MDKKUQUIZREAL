@@ -391,6 +391,28 @@
         color: white;
     }
 
+    .rot-all-wrap {
+        padding: 8px 0 4px;
+    }
+
+    .rot-all-pill {
+        padding: 6px 14px;
+        border: 1.5px solid var(--color-primary);
+        border-radius: 16px;
+        background: var(--color-surface-2);
+        color: var(--color-text);
+        font-family: var(--font-primary);
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .rot-all-pill:hover {
+        background: var(--color-primary);
+        color: white;
+    }
+
     .limit-preset-hint {
         font-size: 0.82rem;
         color: var(--color-text-muted);

@@ -496,12 +496,21 @@ window.renderAccordionUI = function (data) {
             displayName = groupName.replace(/_?by AI_/i, ' by AI (') + ')';
         }
         if (typeof displayOverride === 'string') displayName = displayOverride;
+        // accordion คลินิก (มี displayOverride) ที่มี ≥2 rotation → ปุ่ม "เลือกทุก Rotate" ติ๊ก/ล้างทั้งกลุ่มในคลิกเดียว
+        let rotPill = '';
+        if (typeof displayOverride === 'string') {
+            const rots = categories.filter(c => /_ROT/i.test(c.categoryId));
+            if (rots.length >= 2) {
+                const n = rots.reduce((s, c) => s + (categoryStats[c.categoryId] ? categoryStats[c.categoryId].total : 0), 0);
+                rotPill = `<div class="rot-all-wrap"><button type="button" class="rot-all-pill">⚡ เลือกทุก Rotate (${n} ข้อ)</button></div>`;
+            }
+        }
         return `
             <details class="accordion-group">
                 <summary class="accordion-header">
                     ${displayName} <span style="font-size: 0.85rem; font-weight: normal; margin-left: 5px; color: var(--color-text-muted);">${helperText}</span>
                     <span class="selected-count-badge">0</span>
-                </summary>
+                </summary>${rotPill}
                 <div class="button-grid">
                     ${btns}
                 </div>
@@ -742,6 +751,16 @@ window.bindCategoryLimitHandlers = function () {
         if (raw === 'all') { window.applyLimitPreset(null); return; }
         // ส่ง raw string ไปให้ setCategoryLimit จัดการ (%/number)
         window.applyLimitPreset(raw);
+    });
+
+    // ปุ่ม "เลือกทุก Rotate" — ครบแล้วกดอีกครั้ง = ล้างทั้งกลุ่ม; change เดียวพอ (handler อ่านทุกกล่องเอง)
+    $area.on('click', '.rot-all-pill', function () {
+        const $boxes = $(this).closest('.accordion-group').find('input[name="category"]').filter(function () {
+            return /_ROT/i.test(this.value);
+        });
+        const allOn = $boxes.length > 0 && $boxes.filter(':checked').length === $boxes.length;
+        $boxes.prop('checked', !allOn);
+        $boxes.first().trigger('change');
     });
 
     $area.on('click', '.lim-btn', function () {
