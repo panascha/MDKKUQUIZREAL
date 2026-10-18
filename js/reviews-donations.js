@@ -232,7 +232,7 @@ window.openWriteReviewModal = function () {
     $sel.empty().append('<option value="">-- เลือกวิชา --</option>');
     var subjects = (window.APP && window.APP.allSubjectsList) || [];
     subjects.forEach(function (s) {
-        var yl = s.year ? ('[ปี ' + s.year + '] ') : '';
+        var yl = s.year ? ('[' + (window.yearDisplayLabel ? window.yearDisplayLabel(s.year) : 'ปี ' + s.year) + '] ') : '';
         $sel.append($('<option></option>').attr('value', s.id).text(yl + s.id + ' - ' + s.name));
     });
     var cur = String($('#subject-select').val() || '').trim();

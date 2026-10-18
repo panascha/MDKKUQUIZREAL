@@ -49,7 +49,7 @@ window.updateSubjectUI = function (subjectParam) {
     if (subjectParam) {
         const subjObj = window.APP.globalStructure.subjects.find(s => s.subjectId === subjectParam);
         const subjectName = subjObj?.subjectName || subjectParam;
-        const yearLabel = subjObj?.year ? `[ปี ${subjObj.year}] ` : '';
+        const yearLabel = subjObj?.year ? `[${window.yearDisplayLabel(subjObj.year)}] ` : '';
         $('.selection-container h2').html(`✅ เลือกหัวข้อ (วิชา: <span style="color:var(--color-primary)">${yearLabel}${subjectName}</span>)`);
     }
 };
@@ -82,6 +82,15 @@ window.getSubjectPopularityCounts = function () {
     catch (e) { return {}; }
 };
 
+// ปีตัวเลขขึ้นก่อน (น้อย→มาก) ปีที่ไม่ใช่ตัวเลข (เช่น NL) ไว้ท้ายสุด
+window.yearSortKey = function (y) {
+    const n = Number(y);
+    return (y === '' || y == null) ? 0 : (isNaN(n) ? Infinity : n);
+};
+window.yearDisplayLabel = function (y) {
+    return String(y) === 'NL' ? 'NL & Compre' : `ปี ${y}`;
+};
+
 window.sortSubjectsByPopularity = function (list) {
     if (!Array.isArray(list)) return list;
     const counts = window.getSubjectPopularityCounts();
@@ -89,8 +98,8 @@ window.sortSubjectsByPopularity = function (list) {
         const ca = counts[a.id] || 0;
         const cb = counts[b.id] || 0;
         if (cb !== ca) return cb - ca;                    // ใช้บ่อยสุดขึ้นก่อน
-        const ya = Number(a.year || 0), yb = Number(b.year || 0);
-        if (ya !== yb) return ya - yb;                    // เสมอกัน → ปีน้อยก่อน
+        const ya = window.yearSortKey(a.year), yb = window.yearSortKey(b.year);
+        if (ya !== yb) return ya < yb ? -1 : 1;                  // เสมอกัน → ปีน้อยก่อน
         return String(a.id || '').localeCompare(String(b.id || ''));
     });
 };
@@ -151,11 +160,18 @@ window.populateSubjectSelector = async function (subjectParam) {
         window.APP.allSubjectsList = window.sortSubjectsByPopularity(window.APP.allSubjectsList);
     }
     window.filterSubjectOptions(currentYear, subjectParam);
+    if ($yearSelect.length) $yearSelect.val(currentYear); // NL option ถูกเติมใน filterSubjectOptions
 };
 
 window.filterSubjectOptions = function (selectedYear, activeSubjectId) {
     const $select = $('#subject-select');
     const allSubjects = window.APP.allSubjectsList;
+
+    // ปีที่ไม่ใช่ตัวเลข (NL) ไม่มีใน HTML คงที่ → เติมท้ายสุดของ #year-select เมื่อมีวิชาปีนั้น
+    const $yearSel = $('#year-select');
+    if ($yearSel.length && allSubjects && allSubjects.some(s => String(s.year) === 'NL') && !$yearSel.find('option[value="NL"]').length) {
+        $yearSel.append(`<option value="NL">${window.yearDisplayLabel('NL')}</option>`);
+    }
 
     if ($select.length && allSubjects) {
         $select.empty().append('<option value="">-- แสดงทั้งหมด (All Subjects) --</option>');
@@ -164,7 +180,7 @@ window.filterSubjectOptions = function (selectedYear, activeSubjectId) {
                 return;
             }
             const selected = (String(s.id) === String(activeSubjectId)) ? 'selected' : '';
-            const yearLabel = s.year ? `[ปี ${s.year}] ` : '';
+            const yearLabel = s.year ? `[${window.yearDisplayLabel(s.year)}] ` : '';
             $select.append(`<option value="${s.id}" ${selected}>${yearLabel}${s.id} - ${s.name}</option>`);
         });
         // อัปเดต badge รีวิวตามวิชาที่เลือก (ครอบทั้ง initial load + เปลี่ยนชั้นปี — change event ไม่ยิงตอน set ด้วยโค้ด)
@@ -216,7 +232,7 @@ window.showSubjectPickerModal = async function () {
                 $list.empty();
                 subjects.forEach(s => {
                     if (year && String(s.year) !== String(year)) return;
-                    const yearLabel = s.year ? `[ปี ${s.year}] ` : '';
+                    const yearLabel = s.year ? `[${window.yearDisplayLabel(s.year)}] ` : '';
                     $list.append(
                         $('<button type="button"></button>')
                             .css({
@@ -236,8 +252,8 @@ window.showSubjectPickerModal = async function () {
             };
 
             const years = [...new Set(subjects.map(s => s.year).filter(Boolean))]
-                .sort((a, b) => Number(a) - Number(b));
-            years.forEach(y => $('#sp-year-filter').append(`<option value="${y}">ปี ${y}</option>`));
+                .sort((a, b) => { const ka = window.yearSortKey(a), kb = window.yearSortKey(b); return ka === kb ? 0 : (ka < kb ? -1 : 1); });
+            years.forEach(y => $('#sp-year-filter').append(`<option value="${y}">${window.yearDisplayLabel(y)}</option>`));
             $('#sp-year-filter').on('change', function () { renderList($(this).val()); });
             renderList('');
         }
