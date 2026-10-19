@@ -202,4 +202,48 @@ window.renderMarkdownSafe = function (mdText) {
     return html;
 };
 
+// โจทย์ (problem): พฤติกรรมเดิมทุกอย่าง (raw HTML ไม่ escape + \n -> <br>) ยกเว้นเมื่อมีแถวคั่น markdown |---|
+// -> บล็อกตารางที่ถูกต้องกลายเป็น <table> (เซลล์ถูก escape; คงเฉพาะ b/i/u/sup/sub/br ไม่มี attribute)
+// ไม่ผ่าน renderMarkdownSafe (กัน "15." กลายเป็น <ol>)
+window.renderProblemHtml = function (problem) {
+    var text = String(problem == null ? '' : problem);
+    var plain = function (t) { return t.replace(/\n/g, '<br>'); };
+    var SEP = /^[ \t]*\|?[ \t]*:?-{3,}:?[ \t]*(\|[ \t]*:?-{3,}:?[ \t]*)+\|?[ \t]*\r?$/;
+    if (!/^[ \t]*\|?[ \t]*:?-{3,}:?[ \t]*(\|[ \t]*:?-{3,}:?[ \t]*)+\|?[ \t]*\r?$/m.test(text)) return plain(text);
+    var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+    var cellHtml = function (s) { return esc(s).replace(/&lt;(\/?)(b|i|u|sup|sub|br)&gt;/gi, '<$1$2>'); };
+    var cells = function (l) {
+        var t = l.trim().replace(/^\|/, '').replace(/\|$/, '');
+        return t.replace(/\\\|/g, '\u0001').split('|').map(function (c) { return c.replace(/\u0001/g, '|').trim(); });
+    };
+    var lines = text.split('\n');
+    var parts = [], buf = [], i = 0;
+    var flush = function () { if (buf.length) { parts.push(plain(buf.join('\n'))); buf = []; } };
+    while (i < lines.length) {
+        if (lines[i].indexOf('|') !== -1 && !SEP.test(lines[i]) && i + 1 < lines.length && SEP.test(lines[i + 1])) {
+            var head = cells(lines[i]), n = head.length, rows = [], j = i + 2, ok = cells(lines[i + 1]).length === n;
+            while (ok && j < lines.length && lines[j].indexOf('|') !== -1 && lines[j].trim() !== '') {
+                var c = cells(lines[j]);
+                if (c.length > n) ok = false; else rows.push(c);
+                j++;
+            }
+            if (ok) {
+                flush();
+                var html = '<div class="md-table-wrap"><table class="md-table"><tr>' + head.map(function (h) { return '<th>' + cellHtml(h) + '</th>'; }).join('') + '</tr>';
+                rows.forEach(function (c) {
+                    while (c.length < n) c.push('');
+                    html += '<tr>' + c.map(function (x) { return '<td>' + cellHtml(x) + '</td>'; }).join('') + '</tr>';
+                });
+                parts.push(html + '</table></div>');
+                i = j;
+                continue;
+            }
+        }
+        buf.push(lines[i]);
+        i++;
+    }
+    flush();
+    return parts.join('');
+};
+
 // จำแนกประเภทคำถามนิสิต (keyword heuristic ไทย/อังกฤษ) → ใช้เลือกโมเดลอัตโนมัติ

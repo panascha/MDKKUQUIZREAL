@@ -155,7 +155,7 @@ window.showQuestion = function (shouldFocus = true) {
     });
     $('#categoryquestion').html(categoryName ? `หัวข้อ: <b>${categoryName}</b>` : "หัวข้อ: <b>ไม่ระบุหัวข้อ</b>");
     $('#btn-copy-question-ai').show();
-    $('#question').html(window.APP.current_question.problem ? window.APP.current_question.problem.replace(/\n/g, '<br>') : "");
+    $('#question').html(window.APP.current_question.problem ? (window.renderProblemHtml ? window.renderProblemHtml(window.APP.current_question.problem) : window.APP.current_question.problem.replace(/\n/g, '<br>')) : "");
 
     window.APP.currentImageArray = window.APP.current_question.img ?
         (window.APP.current_question.img.includes('///') ? window.APP.current_question.img.split('///') : [window.APP.current_question.img])
