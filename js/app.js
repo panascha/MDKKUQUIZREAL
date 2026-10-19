@@ -85,10 +85,14 @@ window.getSubjectPopularityCounts = function () {
 // ปีตัวเลขขึ้นก่อน (น้อย→มาก) ปีที่ไม่ใช่ตัวเลข (เช่น NL) ไว้ท้ายสุด
 window.yearSortKey = function (y) {
     const n = Number(y);
-    return (y === '' || y == null) ? 0 : (isNaN(n) ? Infinity : n);
+    if (y === '' || y == null) return 0;
+    if (String(y) === '123') return Infinity; // KKUDQ (Year = "123") อยู่ท้ายสุด ต่อจาก NL
+    return isNaN(n) ? Number.MAX_SAFE_INTEGER : n;
 };
 window.yearDisplayLabel = function (y) {
-    return String(y) === 'NL' ? 'NL & Compre' : `ปี ${y}`;
+    if (String(y) === 'NL') return 'NL & Compre';
+    if (String(y) === '123') return 'KKUDQ';
+    return `ปี ${y}`;
 };
 
 window.sortSubjectsByPopularity = function (list) {
@@ -167,10 +171,12 @@ window.filterSubjectOptions = function (selectedYear, activeSubjectId) {
     const $select = $('#subject-select');
     const allSubjects = window.APP.allSubjectsList;
 
-    // ปีที่ไม่ใช่ตัวเลข (NL) ไม่มีใน HTML คงที่ → เติมท้ายสุดของ #year-select เมื่อมีวิชาปีนั้น
+    // ปีที่ไม่ใช่ตัวเลข (NL) ไม่มีใน HTML คงที่ → เติมก่อน KKUDQ (หรือท้ายสุด) ของ #year-select เมื่อมีวิชาปีนั้น
     const $yearSel = $('#year-select');
     if ($yearSel.length && allSubjects && allSubjects.some(s => String(s.year) === 'NL') && !$yearSel.find('option[value="NL"]').length) {
-        $yearSel.append(`<option value="NL">${window.yearDisplayLabel('NL')}</option>`);
+        const $nlOpt = $(`<option value="NL">${window.yearDisplayLabel('NL')}</option>`);
+        const $kkudq = $yearSel.find('option[value="123"]');
+        if ($kkudq.length) $kkudq.before($nlOpt); else $yearSel.append($nlOpt);
     }
 
     if ($select.length && allSubjects) {
