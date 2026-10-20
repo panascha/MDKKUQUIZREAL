@@ -1193,6 +1193,8 @@
                     <i class="fas fa-copy"></i> คัดลอกคำถาม
                 </button>
             </div>
+            <!-- ลิงก์ PDF ต้นฉบับ Drive สโมฯ (quiz-core.js renderSourcePdfLinks) — ซ่อนถ้าชุดนี้ไม่มีใน SOURCE_PDF_MAP -->
+            <div id="source-pdf-links" class="source-pdf-links" style="display: none;"></div>
             <!-- Glossary onboarding hint (English, dismissible ครั้งเดียว — glossary.js ควบคุม show/hide ผ่าน localStorage) -->
             <div id="glossary-tap-hint" style="display:none;">
                 <i class="fas fa-language"></i>
@@ -1609,6 +1611,7 @@
     <script src="js/pdf-generator.js"></script>
     <script src="js/grader.js"></script>
     <!-- Modular quiz JS — order: core → render → chatbot → study-aids → glossary → study-aids-hy → study-panel -->
+    <script src="js/source-pdf-map.js"></script>
     <script src="js/quiz-core.js"></script>
     <script src="js/quiz-render.js"></script>
     <script src="js/chatbot.js"></script>

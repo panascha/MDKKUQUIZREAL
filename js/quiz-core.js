@@ -104,6 +104,23 @@ window.applyQuestionPatchLocally = function (qId, patch) {
     });
 };
 
+// ลิงก์ PDF ต้นฉบับ (Drive สโมฯ) ของชุดข้อสอบ — map ตาม category[0] จาก js/source-pdf-map.js (generated)
+// ไม่มี entry (ข้อแต่งเอง / AI / ปี 1-3 ที่ยังไม่ได้ map) → ซ่อนทั้งแถว
+window.renderSourcePdfLinks = function (q) {
+    const $box = $('#source-pdf-links').empty().hide();
+    const catId = q && Array.isArray(q.category) ? q.category[0] : (q && q.category);
+    const entry = catId && window.SOURCE_PDF_MAP ? window.SOURCE_PDF_MAP[catId] : null;
+    if (!entry) return;
+    const pill = (f, label) => $('<a class="source-pdf-pill" target="_blank" rel="noopener"></a>')
+        .attr('href', `https://drive.google.com/file/d/${encodeURIComponent(f.driveId)}/view`)
+        .attr('title', f.fileName)
+        .text(label + ' ↗');
+    const many = (files, label) => files.forEach((f, i) => $box.append(pill(f, files.length > 1 ? `${label} ${i + 1}` : label)));
+    many(entry.exam || [], '📄 ข้อสอบต้นฉบับ');
+    many(entry.key || [], '🔑 เฉลยต้นฉบับ');
+    if ($box.children().length) $box.css('display', 'flex');
+};
+
 window.showQuestion = function (shouldFocus = true) {
     if (!window.APP.currentQuestions.length) return;
 
@@ -154,6 +171,7 @@ window.showQuestion = function (shouldFocus = true) {
         }
     });
     $('#categoryquestion').html(categoryName ? `หัวข้อ: <b>${categoryName}</b>` : "หัวข้อ: <b>ไม่ระบุหัวข้อ</b>");
+    window.renderSourcePdfLinks(window.APP.current_question);
     $('#btn-copy-question-ai').show();
     $('#question').html(window.APP.current_question.problem ? (window.renderProblemHtml ? window.renderProblemHtml(window.APP.current_question.problem) : window.APP.current_question.problem.replace(/\n/g, '<br>')) : "");
 
