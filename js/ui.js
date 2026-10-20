@@ -10,6 +10,36 @@ window.getCategoryNameById = function (categoryId) {
     return found ? found.categoryName : categoryId;
 };
 
+// ชื่อหมวดสำหรับแสดงผลเท่านั้น (ไม่แตะ categoryId / getCategoryNameById) — context 'button' = ปุ่มใต้หัวข้อ, 'full' = หัวคำถาม/chip
+// parse จาก catId เฉพาะเมื่อไม่มีชื่อที่แอดมินตั้งไว้ (rawName ว่าง/เท่า catId); ไม่เข้ารูปแบบ → คืน rawName || catId เดิม
+window.formatCategoryDisplayName = function (catId, rawName, opts) {
+    const full = !(opts && opts.context === 'button');
+    const DISC = /^(ANA|ANATOMY|PHYSIO|BIOCHEM|MICRO|PARASITO|PATHO|PHARM|RADIO|CLINICAL)_/i;
+    const TYPE = { MCQ: 'MCQ', FMT: 'Formative', LAB: 'LAB กริ๊ง', QUIZ: 'Quiz', OSCE: 'OSCE', MEQ: 'MEQ' };
+    const j = a => a.filter(Boolean).join(' • ');
+    const id = String(catId == null ? '' : catId);
+    const raw = rawName == null ? '' : String(rawName);
+    let m;
+    if (raw && raw !== id) {
+        const n = raw.replace(/^[A-Z]+\d?_by AI_/, '').replace(/ by AI$/, '').replace(DISC, '');
+        return full ? j([id.split('_')[0], /_by AI_/.test(id) ? 'AI' : '', n]) : n;
+    }
+    if ((m = id.match(/^(NL[12])_(\d{4})R(\d)$/))) return full ? j([m[1], `ปี ${m[2]} รอบ ${m[3]}`]) : `ปี ${m[2]} รอบ ${m[3]}`;
+    if ((m = id.match(/^([A-Z]+\d)_(\d{2})MCQ(MID|FIN)?_ROT([A-Z]+\d*)$/))) {
+        const tier = m[3] === 'MID' ? 'Midblock' : m[3] === 'FIN' ? 'Final' : '';
+        return full ? j([m[1], `รุ่น ${m[2]}`, tier, `Rotate ${m[4]}`]) : `Rotate ${m[4]}`;
+    }
+    if ((m = id.match(/^([A-Z]+\d?)_(\d{2})(MCQ|FMT|LAB|QUIZ|OSCE|MEQ)(\d*)(?:_(.+))?$/))) {
+        const t = TYPE[m[3]] + (m[4] ? ' ' + m[4] : '');
+        return full ? j([m[1], `รุ่น ${m[2]}`, t, m[5]]) : j([`รุ่น ${m[2]}`, m[5]]);
+    }
+    if ((m = id.match(/^([A-Z]+\d?)_by AI_(.+?)(?: by AI)?$/))) {
+        const n = m[2].replace(DISC, '');
+        return full ? j([m[1], 'AI', n]) : n;
+    }
+    return raw || id;
+};
+
 // ตรวจว่า categoryId เป็นหมวดเลคเชอร์/สาขาวิชา (มี token สาขาในส่วนใดส่วนหนึ่งของรหัส)
 // ตัวจำแนกกลางที่ใช้ร่วมกัน — renderAccordionUI มีสำเนา local ของตัวเองอยู่ (ไม่แตะ)
 window.isLectureCategory = function (catId) {
@@ -447,15 +477,7 @@ window.renderAccordionUI = function (data) {
     function buildCategoryButton(category, isExcludedGroup) {
         const stats = categoryStats[category.categoryId] || { total: 0, split: 0 };
         const colorClass = getCategoryColorClass(category.categoryId);
-        let displayCount;
-        let badgeStyle = "";
-        if (isExcludedGroup) {
-            displayCount = `(${stats.total})`;
-        } else {
-            const isComplete = stats.split >= stats.total && stats.total > 0;
-            badgeStyle = isComplete ? "color: #16a34a;" : "color: #dc2626; font-weight: 800;";
-            displayCount = `(${stats.split}/${stats.total})`;
-        }
+        const displayCount = `(${stats.total} ข้อ)`; // อัปเดตสดเป็น "(20 / 80 ข้อ)" โดย syncCategoryLimitUI เมื่อมี stepper cap
         const catId = category.categoryId;
         const poolSize = stats.total;
         const limitVal = window.getCategoryLimit(catId, poolSize); // อ่านจาก SSOT กัน state หายตอนรีเรนเดอร์
@@ -464,7 +486,7 @@ window.renderAccordionUI = function (data) {
             <div class="category-item" data-cat-id="${catId}">
                 <label class="category-label">
                     <input type="checkbox" name="category" id="cat-${catId}" data-category-id="${catId}" value="${catId}" style="display: none;">
-                    <span class="toggle-button ${colorClass}">${category.categoryName} <span style="${badgeStyle}">${displayCount}</span></span>
+                    <span class="toggle-button ${colorClass}">${window.formatCategoryDisplayName(catId, category.categoryName, { context: 'button' })} <span class="cat-count" data-total="${poolSize}">${displayCount}</span></span>
                 </label>
                 <div class="limit-stepper" data-cat-id="${catId}" data-max="${poolSize}" style="display: none;">
                     <button type="button" class="lim-btn" data-act="dec" title="ลดจำนวนข้อ">−</button>
@@ -601,16 +623,24 @@ window.renderAccordionUI = function (data) {
         }
     });
 
-    standaloneAccordions.forEach(({ groupName, categories, isExcluded }) => {
-        $container.append(buildAccordion(groupName, categories, isExcluded));
-    });
+    // แท็บ: 📄 ข้อสอบเก่า (mcq + standalone) / 📖 เลกเชอร์ / 🤖 AI — แท็บว่างซ่อน, เหลือแท็บเดียว = ไม่แสดงแถบแท็บ (เรนเดอร์แบบเดิม)
+    const TAB_DEFS = [
+        { id: 'mcq', variant: 'mcq', label: '📄 ข้อสอบเก่า' },
+        { id: 'lec', variant: 'lec', label: '📖 เลกเชอร์' },
+        { id: 'ai', variant: 'ai', label: '🤖 AI' }
+    ];
+    const sgList = Object.values(superGroups);
+    const nonEmptyTabs = TAB_DEFS.filter(t =>
+        sgList.some(sg => sg.variant === t.variant) || (t.id === 'mcq' && standaloneAccordions.length > 0));
+    const useTabs = nonEmptyTabs.length > 1;
 
-    Object.values(superGroups).forEach(sg => {
-        if (sg.accordions.length === 1) {
-            const { groupName, categories, isExcluded } = sg.accordions[0];
-            const ch = clinicHeader(groupName);
-            $container.append(buildAccordion(groupName, categories, isExcluded, ch ? `${sg.label} ${ch}` : undefined));
-            return;
+    // dropWrapper = แท็บ 📖/🤖 ไม่ต้องมีกล่อง wrapper (ชื่อแท็บบอกอยู่แล้ว) → render accordion ตรงๆ
+    function renderSuperGroup(sg, dropWrapper) {
+        if (sg.accordions.length === 1 || dropWrapper) {
+            return sg.accordions.map(({ groupName, categories, isExcluded }) => {
+                const ch = sg.accordions.length === 1 ? clinicHeader(groupName) : null;
+                return buildAccordion(groupName, categories, isExcluded, ch ? `${sg.label} ${ch}` : undefined);
+            }).join('');
         }
 
         const innerHtml = sg.accordions
@@ -626,7 +656,7 @@ window.renderAccordionUI = function (data) {
 
         const headerClass = sg.variant === 'lec' ? 'lec-header' : (sg.variant === 'ai' ? 'ai-header' : 'mcq-header');
 
-        const html = `
+        return `
             <div class="super-group">
                 <div class="super-group-header ${headerClass}" onclick="window.toggleSuperGroup(this)">
                     ${icon}
@@ -639,8 +669,41 @@ window.renderAccordionUI = function (data) {
                 </div>
             </div>
         `;
-        $container.append(html);
-    });
+    }
+
+    const standaloneHtml = standaloneAccordions
+        .map(({ groupName, categories, isExcluded }) => buildAccordion(groupName, categories, isExcluded)).join('');
+
+    if (!useTabs) {
+        $container.append(standaloneHtml + sgList.map(sg => renderSuperGroup(sg, false)).join(''));
+    } else {
+        // standalone ไปท้ายแท็บ 📄
+        const activeId = nonEmptyTabs.some(t => t.id === window.APP.currentActiveTab) ? window.APP.currentActiveTab : nonEmptyTabs[0].id;
+        window.APP.currentActiveTab = activeId;
+
+        const tabBar = nonEmptyTabs.map(t => `
+            <button type="button" class="sel-tab sel-tab-${t.variant}${t.id === activeId ? ' active' : ''}" data-tab="${t.id}" role="tab">
+                ${t.label} <span class="sel-tab-badge" style="display: none;">0</span>
+            </button>`).join('');
+        $('#category-limit-presets').before(`<div class="sel-tabs" role="tablist">${tabBar}</div>`);
+
+        nonEmptyTabs.forEach(t => {
+            const inner = sgList.filter(sg => sg.variant === t.variant)
+                .map(sg => renderSuperGroup(sg, t.id !== 'mcq')).join('') + (t.id === 'mcq' ? standaloneHtml : '');
+            $container.append(`
+                <div class="sel-tab-panel${t.id === activeId ? ' active' : ''}" data-tab="${t.id}" role="tabpanel">
+                    <div class="sel-tab-tools"><button type="button" class="sel-tab-toggle">เลือกทั้งหมดในแท็บนี้</button></div>
+                    ${inner}
+                </div>`);
+        });
+    }
+
+    // แถบสรุปจำนวนข้อ (sticky) — ข้อความ/การซ่อนอัปเดตโดย updateSelectionBar
+    $container.append(`
+        <div id="selection-sticky-bar" class="sel-sticky-bar" style="display: none;">
+            <span class="sel-sticky-text"></span>
+            <button type="button" class="sel-sticky-cta">เริ่มทำข้อสอบ ➔</button>
+        </div>`);
 
     // คืนค่า Checked ให้กับ Checkboxes ที่เพิ่งสร้างใหม่
     checkedIds.forEach(catId => {
@@ -711,6 +774,13 @@ window.syncCategoryLimitUI = function () {
         const isChecked = $item.find('input[name="category"]').prop('checked');
 
         $stepper.toggle(!!isChecked);
+
+        // badge นับข้อ: "(80 ข้อ)" / stepper cap ต่ำกว่า pool → "(20 / 80 ข้อ)"
+        const $count = $item.find('.cat-count');
+        const total = parseInt($count.attr('data-total'), 10) || 0;
+        const cap = isChecked ? window.getCategoryLimit($item.attr('data-cat-id'), total) : total;
+        $count.text(cap < total ? `(${cap} / ${total} ข้อ)` : `(${total} ข้อ)`);
+
         if (!isChecked) return;
 
         const catId = $item.attr('data-cat-id');
@@ -763,6 +833,66 @@ window.bindCategoryLimitHandlers = function () {
         $boxes.first().trigger('change');
     });
 
+    // แท็บ: สลับ panel เท่านั้น — checkbox ยังอยู่ใน DOM จึงเลือกข้ามแท็บได้
+    $area.on('click', '.sel-tab', function () {
+        const id = $(this).attr('data-tab');
+        window.APP.currentActiveTab = id;
+        $area.find('.sel-tab').removeClass('active').filter(this).addClass('active');
+        $area.find('.sel-tab-panel').removeClass('active').filter(`[data-tab="${id}"]`).addClass('active');
+        window.updateSuperGroupBadges(); // sync ป้ายปุ่ม toggle ของแท็บ
+    });
+
+    // เลือกทั้งหมด/ล้างเฉพาะแท็บนี้ — ไม่แตะ categoryLimits/stepper/preset; change เดียวพอ
+    $area.on('click', '.sel-tab-toggle', function () {
+        const $panel = $(this).closest('.sel-tab-panel');
+        const $boxes = $panel.find('input[name="category"]');
+        if ($boxes.length === 0) return;
+        const allOn = $boxes.filter(':checked').length === $boxes.length;
+        if (!allOn) {
+            $boxes.prop('checked', true);
+            $boxes.first().trigger('change');
+            return;
+        }
+
+        // ล้าง: นับข้อที่ตอบแล้วซึ่งจะไม่มีหมวดที่เลือกเหลืออยู่ (แท็บอื่น) คลุมแล้ว
+        const remaining = new Set($('input[name="category"]:checked').not($boxes).map(function () { return this.value; }).get());
+        let lost = 0;
+        if (remaining.size > 0) {
+            (window.APP.currentQuestions || []).forEach(q => {
+                if (!q.state) return;
+                const cats = Array.isArray(q.category) ? q.category : [q.category];
+                if (!cats.some(c => remaining.has(c))) lost++;
+            });
+        }
+        const doClear = () => {
+            $boxes.prop('checked', false);
+            $boxes.first().trigger('change');
+        };
+        if (lost === 0) { doClear(); return; }
+        Swal.fire({
+            title: 'ล้างหัวข้อในแท็บนี้?',
+            text: `จะมี ${lost} ข้อที่ทำไปแล้วหลุดออกจากชุดข้อสอบปัจจุบัน`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'ล้าง',
+            cancelButtonText: 'ยกเลิก'
+        }).then(r => { if (r.isConfirmed) doClear(); });
+    });
+
+    $area.on('click', '.sel-sticky-cta', function () {
+        const qc = document.getElementById('quiz-container');
+        if (qc) qc.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // ซ่อนแถบ sticky ขณะ #quiz-container อยู่ในจอ
+    const qcEl = document.getElementById('quiz-container');
+    if (qcEl && typeof IntersectionObserver === 'function') {
+        new IntersectionObserver(entries => {
+            window._quizInView = entries[entries.length - 1].isIntersecting;
+            $('#selection-sticky-bar').toggleClass('is-hidden', window._quizInView);
+        }).observe(qcEl);
+    }
+
     $area.on('click', '.lim-btn', function () {
         const $stepper = $(this).closest('.limit-stepper');
         const catId = $stepper.attr('data-cat-id');
@@ -813,6 +943,27 @@ window.updateSuperGroupBadges = function () {
             $badge.hide();
         }
     });
+
+    // แท็บ: badge = จำนวนหัวข้อที่ติ๊กในแท็บ + ป้ายปุ่มเลือก/ล้างทั้งแท็บ (ไม่มีแท็บ = ไม่ทำอะไร)
+    $('.sel-tab-panel').each(function () {
+        const $panel = $(this);
+        const $boxes = $panel.find('input[name="category"]');
+        const n = $boxes.filter(':checked').length;
+        const $tabBadge = $(`.sel-tab[data-tab="${$panel.attr('data-tab')}"] .sel-tab-badge`);
+        if (n > 0) { $tabBadge.text(n).show(); } else { $tabBadge.hide(); }
+        $panel.find('.sel-tab-toggle').text(n > 0 && n === $boxes.length ? 'ล้างที่เลือกในแท็บนี้' : 'เลือกทั้งหมดในแท็บนี้');
+    });
+};
+
+// แถบสรุปล่างจอ — M = currentQuestions จริง (หลังตัดซ้ำ + cap stepper); ซ่อนนอกโหมด category
+window.updateSelectionBar = function () {
+    const $bar = $('#selection-sticky-bar');
+    if ($bar.length === 0) return;
+    if (window.APP.filterMode !== "category") { $bar.hide(); return; }
+    const n = $('input[type="checkbox"][name="category"]:checked').length;
+    const m = (window.APP.currentQuestions || []).length;
+    $bar.find('.sel-sticky-text').text(n > 0 ? `เลือกแล้ว ${n} หมวด (${m} ข้อ)` : `ทุกข้อในวิชา (${m} ข้อ)`);
+    $bar.toggleClass('is-hidden', !!window._quizInView).show();
 };
 
 window.updateSelectedCategoryStatus = function () {
@@ -829,7 +980,7 @@ window.updateSelectedCategoryStatus = function () {
             selected.each(function () {
                 const categoryId = $(this).data('category-id');
                 const categoryObj = window.APP.globalStructure.category.find(c => c.categoryId === categoryId);
-                const labelName = categoryObj ? categoryObj.categoryName : categoryId;
+                const labelName = window.formatCategoryDisplayName(categoryId, categoryObj ? categoryObj.categoryName : categoryId);
 
                 $status.append(`
                     <button class="status-category-button" title="คลิกเพื่อเอาออก" 
@@ -962,6 +1113,7 @@ window.updateSelectedCategoryStatus = function () {
         }
     }
 
+    window.updateSelectionBar();
     window.updateProgressHeader();
 };
 

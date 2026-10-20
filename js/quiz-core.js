@@ -167,7 +167,7 @@ window.showQuestion = function (shouldFocus = true) {
     window.APP.current_question.category.forEach(catId => {
         const catObj = window.APP.globalStructure.category.find(c => c.categoryId === catId);
         if (catObj) {
-            categoryName += (categoryName ? "<br>" : "") + (window.APP.current_question.category.indexOf(catId) + 1) + ". " + catObj.categoryName;
+            categoryName += (categoryName ? "<br>" : "") + (window.APP.current_question.category.indexOf(catId) + 1) + ". " + window.formatCategoryDisplayName(catId, catObj.categoryName);
         }
     });
     $('#categoryquestion').html(categoryName ? `หัวข้อ: <b>${categoryName}</b>` : "หัวข้อ: <b>ไม่ระบุหัวข้อ</b>");
