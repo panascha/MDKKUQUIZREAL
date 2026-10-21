@@ -201,6 +201,9 @@
 /* ===== category rows / count badge ===== */
 .toggle-button { min-height: 44px; }
 .cat-count { font-weight: 600; font-size: 0.9em; margin-left: 4px; color: var(--color-text-muted); }
+/* ปุ่มหัวข้อ: จำนวนข้อขึ้นบรรทัดใต้ชื่อ — วางข้างกันแล้วชื่อโดนบีบ (ไม่แตะ attr-chip ที่ใช้ .toggle-button ร่วม) */
+.category-item .toggle-button { flex-direction: column; }
+.category-item .cat-count { display: block; margin-left: 0; line-height: 1.2; }
 
 /* ===== sticky count bar ===== */
 .sel-sticky-bar {

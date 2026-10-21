@@ -24,7 +24,7 @@ window.formatCategoryDisplayName = function (catId, rawName, opts) {
         const n = raw.replace(/^[A-Z]+\d?_by AI_/, '').replace(/ by AI$/, '').replace(DISC, '');
         return full ? j([id.split('_')[0], /_by AI_/.test(id) ? 'AI' : '', n]) : n;
     }
-    if ((m = id.match(/^(NL[12])_(\d{4})R(\d)$/))) return full ? j([m[1], `ปี ${m[2]} รอบ ${m[3]}`]) : `ปี ${m[2]} รอบ ${m[3]}`;
+    if ((m = id.match(/^(NL[12])_(\d{4})R(\d)$/))) return full ? j([m[1], `ปี ${m[2]} รอบ ${m[3]}`]) : `รอบ ${m[3]}`; // ปุ่มอยู่ใต้ accordion "ปี YYYY" แล้ว
     if ((m = id.match(/^([A-Z]+\d)_(\d{2})MCQ(MID|FIN)?_ROT([A-Z]+\d*)$/))) {
         const tier = m[3] === 'MID' ? 'Midblock' : m[3] === 'FIN' ? 'Final' : '';
         return full ? j([m[1], `รุ่น ${m[2]}`, tier, `Rotate ${m[4]}`]) : `Rotate ${m[4]}`;
@@ -543,6 +543,8 @@ window.renderAccordionUI = function (data) {
 
     // หัวข้อ accordion คลินิก — "MED4 รุ่น 49 MCQ" → "รุ่น 49 (2024)" (ปี = batch+1972+(ชั้นปี-1)); ไม่ใช่รูปแบบนี้คืน null
     function clinicHeader(groupName) {
+        const nl = String(groupName).match(/^NL[12] MCQ (\d{4})$/); // กลุ่มเสมือนรายปีของ NL — "NL2 MCQ 2020" → "ปี 2020"
+        if (nl) return `ปี ${nl[1]}`;
         const m = String(groupName).match(/^(\S+) รุ่น (\d{2}) MCQ(?:MID|FIN)?$/);
         if (!m) return null;
         const batch = +m[2];
@@ -550,8 +552,6 @@ window.renderAccordionUI = function (data) {
         const yr = subj ? String(subj.year) : '';
         return /^[456]$/.test(yr) ? `รุ่น ${batch} (${batch + 1972 + (+yr - 1)})` : `รุ่น ${batch}`;
     }
-
-    const NL_ROUND_RE = /^NL[12]_\d{4}R\d+$/i; // NL1/NL2 ปี+รอบ — เช่น NL2_2009R1
 
     function buildAccordion(groupName, categories, isExcludedGroup, displayOverride) {
         const helperText = !isExcludedGroup ? " (คำถามที่แยกเลคแล้ว/คำถามทั้งหมด)" : "";
@@ -562,16 +562,11 @@ window.renderAccordionUI = function (data) {
             displayName = groupName.replace(/_?by AI_/i, ' by AI (') + ')';
         }
         if (typeof displayOverride === 'string') displayName = displayOverride;
-        // accordion คลินิก (มี displayOverride) ที่มี ≥2 rotation → ปุ่ม "เลือกทุก Rotate" ติ๊ก/ล้างทั้งกลุ่มในคลิกเดียว
-        // NL2 MCQ (ปี/รอบ, ไม่มี displayOverride) ได้ปุ่มเดียวกันผ่าน NL_ROUND_RE
+        // ทุก accordion → ปุ่ม "เลือกทั้งหมด" ติ๊ก/ล้างทุกหัวข้อในกลุ่มในคลิกเดียว
         let rotPill = '';
-        const pillRe = typeof displayOverride === 'string' ? /_ROT/i : NL_ROUND_RE;
-        {
-            const rots = categories.filter(c => pillRe.test(c.categoryId));
-            if (rots.length >= 2) {
-                const n = rots.reduce((s, c) => s + (categoryStats[c.categoryId] ? categoryStats[c.categoryId].total : 0), 0);
-                rotPill = `<div class="rot-all-wrap"><button type="button" class="rot-all-pill">☑️ เลือกทั้งหมด (${n} ข้อ)</button></div>`;
-            }
+        if (categories.length) {
+            const n = categories.reduce((s, c) => s + (categoryStats[c.categoryId] ? categoryStats[c.categoryId].total : 0), 0);
+            rotPill = `<div class="rot-all-wrap"><button type="button" class="rot-all-pill"><i class="fas fa-square-check"></i> เลือกทั้งหมด (${n} ข้อ)</button></div>`;
         }
         return `
             <details class="accordion-group">
@@ -598,6 +593,9 @@ window.renderAccordionUI = function (data) {
                 key = key + '_' + disc;
             }
         }
+        // NL ปี/รอบ → แยก accordion เสมือนรายปี ("NL2 MCQ" + "2020") ยังเข้า super-group NL2 MCQ ผ่าน extractExamType
+        var nlYear = String(cat.categoryId || '').match(/^NL[12]_(\d{4})R\d+$/i);
+        if (nlYear) key = key + ' ' + nlYear[1];
         if (!groups[key]) groups[key] = [];
         groups[key].push(cat);
     });
@@ -862,11 +860,9 @@ window.bindCategoryLimitHandlers = function () {
         window.applyLimitPreset(raw);
     });
 
-    // ปุ่ม "เลือกทุก Rotate" — ครบแล้วกดอีกครั้ง = ล้างทั้งกลุ่ม; change เดียวพอ (handler อ่านทุกกล่องเอง)
+    // ปุ่ม "เลือกทั้งหมด" ของ accordion — ครบแล้วกดอีกครั้ง = ล้างทั้งกลุ่ม; change เดียวพอ (handler อ่านทุกกล่องเอง)
     $area.on('click', '.rot-all-pill', function () {
-        const $boxes = $(this).closest('.accordion-group').find('input[name="category"]').filter(function () {
-            return /_ROT/i.test(this.value) || /^NL[12]_\d{4}R\d+$/i.test(this.value);
-        });
+        const $boxes = $(this).closest('.accordion-group').find('input[name="category"]');
         const allOn = $boxes.length > 0 && $boxes.filter(':checked').length === $boxes.length;
         $boxes.prop('checked', !allOn);
         $boxes.first().trigger('change');
