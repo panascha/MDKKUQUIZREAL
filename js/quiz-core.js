@@ -109,7 +109,16 @@ window.applyQuestionPatchLocally = function (qId, patch) {
 window.renderSourcePdfLinks = function (q) {
     const $box = $('#source-pdf-links').empty().hide();
     const catId = q && Array.isArray(q.category) ? q.category[0] : (q && q.category);
-    const entry = catId && window.SOURCE_PDF_MAP ? window.SOURCE_PDF_MAP[catId] : null;
+    // D10: ใช้ DB (globalStructure) ต่อ category ถ้า exam หรือ key ฝั่ง DB ไม่ว่าง ไม่งั้นใช้ SOURCE_PDF_MAP ทั้ง entry
+    const cats = window.APP && window.APP.globalStructure && window.APP.globalStructure.category;
+    const catObj = catId && Array.isArray(cats) ? cats.find(c => c.categoryId === catId) : null;
+    const ids = v => String(v || '').split('///').map(s => s.trim()).filter(Boolean).map(driveId => ({ driveId, fileName: 'ไฟล์ต้นฉบับ' }));
+    let entry = null;
+    if (catObj && (catObj.sourceExamDriveId || catObj.sourceKeyDriveId)) {
+        entry = { exam: ids(catObj.sourceExamDriveId), key: ids(catObj.sourceKeyDriveId) };
+    } else if (catId && window.SOURCE_PDF_MAP) {
+        entry = window.SOURCE_PDF_MAP[catId];
+    }
     if (!entry) return;
     const pill = (f, label) => $('<a class="source-pdf-pill" target="_blank" rel="noopener"></a>')
         .attr('href', `https://drive.google.com/file/d/${encodeURIComponent(f.driveId)}/view`)

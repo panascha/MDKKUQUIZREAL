@@ -482,7 +482,9 @@ window.fetchSupabaseStructure = async function (subjectParam) {
                 categoryId: c.CategoryID,
                 subjectRef: c.SubjectRef,
                 accordionGroup: c.AccordionGroup,
-                categoryName: c.CategoryName
+                categoryName: c.CategoryName,
+                sourceExamDriveId: c.SourceExamDriveID || '',
+                sourceKeyDriveId: c.SourceKeyDriveID || ''
             };
         }),
         // ประกาศใช้ชื่อคอลัมน์ PascalCase เหมือน GAS ทุกตัว (Id/Text/Type/Active/Order) จึงไม่ต้อง map
