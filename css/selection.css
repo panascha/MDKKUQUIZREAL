@@ -571,3 +571,86 @@
         color: var(--color-text-muted);
         white-space: nowrap;
     }
+
+    /* ===== Attribute filter UI (v3.40.0) ===== */
+    .attr-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        text-align: left;
+        background: var(--color-surface-2);
+        padding: 18px;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--color-border);
+        box-sizing: border-box;
+        width: 100%;
+    }
+
+    .attr-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .attr-summary {
+        font-weight: 700;
+        color: var(--color-text);
+    }
+
+    .attr-clear-btn {
+        min-height: 44px;
+        background: #78716C;
+        color: white;
+        border: none;
+        padding: 3px 14px;
+        border-radius: 14px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .attr-clear-btn:hover {
+        background: #57534E;
+    }
+
+    .attr-h {
+        margin: 0 0 10px;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--color-primary);
+        border-left: 4px solid var(--color-primary);
+        padding-left: 8px;
+    }
+
+    .attr-chip-count {
+        font-weight: 600;
+        font-size: 0.9em;
+        margin-left: 4px;
+        color: var(--color-text-muted);
+    }
+
+    .attr-chip-zero .toggle-button {
+        opacity: 0.45;
+    }
+
+    .attr-chip-zero input:checked + .toggle-button {
+        opacity: 1;
+    }
+
+    .attr-topic-details > summary {
+        cursor: pointer;
+        min-height: 44px;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    #attr-topic-grid {
+        max-height: 250px;
+        overflow-y: auto;
+        padding: 5px;
+        border: 1px solid var(--color-border-soft);
+        border-radius: 6px;
+        background: var(--color-surface);
+    }

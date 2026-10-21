@@ -967,6 +967,12 @@
             <!-- หน้าจอแสดงการกรองคุณสมบัติแยกตามปี, กลุ่มข้อสอบ และรายวิชาย่อย (Attribute Selection Panel) -->
             <div id="attribute-filter-area" style="display: none; width: 100%; box-sizing: border-box;"></div>
 
+            <!-- แถบสรุปจำนวนข้อ (sticky) ใช้ร่วมโหมด category + attribute — ข้อความ/การซ่อนอัปเดตโดย updateSelectionBar -->
+            <div id="selection-sticky-bar" class="sel-sticky-bar" style="display: none;">
+                <span class="sel-sticky-text"></span>
+                <button type="button" class="sel-sticky-cta">เริ่มทำข้อสอบ ➔</button>
+            </div>
+
             <!-- สไตล์ชีตเฉพาะสำหรับอนิเมชันลูกศรของกล่องพับควบคุมเพิ่มเติม -->
             <style>
                 details[open] summary .fa-chevron-down {

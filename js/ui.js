@@ -105,10 +105,7 @@ window.getSelectedCategoryNames = function () {
             .filter(t => $(`input[data-category-id="${t.categoryId}"]`).is(':checked'))
             .map(t => t.categoryName);
     } else {
-        const selectedYears = $('input[type="checkbox"][name="filter-year"]:checked').map(function () { return "ปี " + this.value; }).get();
-        const selectedGroups = $('input[type="checkbox"][name="filter-examgroup"]:checked').map(function () { return this.value; }).get();
-        const selectedSuffixes = $('input[type="checkbox"][name="filter-suffix"]:checked').map(function () { return this.value; }).get();
-        return [...selectedYears, ...selectedGroups, ...selectedSuffixes];
+        return window.getAttrSelectionLabels();
     }
 };
 
@@ -232,146 +229,190 @@ window.parseQuestionMetadata = function (q) {
     return { year, examGroup, suffix, topic };
 };
 
+// ===== Attribute filter UI (v3.40.0) — label เป็นแค่การแสดงผล; value/id/name ของ checkbox ยังเป็น raw เหมือนเดิม =====
+window.escapeAttrHtml = function (s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+};
+
+// ระดับของวิชาปัจจุบัน -> ใช้เลือกแหล่งข้อมูล Section 3 และสูตรปี
+window.getAttrTierInfo = function () {
+    const id = new URLSearchParams(location.search).get('subject') || '';
+    const subj = ((window.APP.globalStructure || {}).subjects || []).find(s => s.subjectId === id);
+    if (!subj) return { tier: 'other', subjectYear: 0 };
+    const y = String(subj.year);
+    if (/^NL\d/i.test(id)) return { tier: 'nl', subjectYear: 0 };
+    if (id === 'KKUDQ' || y === '123') return { tier: 'kkudq', subjectYear: 0 };
+    if (/^[123]$/.test(y)) return { tier: 'pre', subjectYear: Number(y) };
+    if (/^[456]$/.test(y)) return { tier: 'clinic', subjectYear: Number(y) };
+    return { tier: 'other', subjectYear: 0 };
+};
+
+window.isJunkAttrTopic = function (raw) {
+    return /^(\d+|xx)?(MCQ(MID|FIN)?|FMT|LAB|QUIZ|MOCK|OSCE|MEQ)\d*$/i.test(raw) || /^SET\d+$/i.test(raw) || /^\d{4}R\d$/.test(raw) || raw === 'N/A';
+};
+
+window.formatAttrLabel = function (dim, raw, ctx) {
+    raw = String(raw);
+    if (raw === '') return '';
+    ctx = ctx || window.getAttrTierInfo();
+    let m;
+    if (dim === 'year') {
+        if (/^\d{2}$/.test(raw)) {
+            return (ctx.tier === 'clinic' && ctx.subjectYear >= 4 && ctx.subjectYear <= 6)
+                ? `รุ่น ${raw} (${Number(raw) + 1972 + (ctx.subjectYear - 1)})` : `รุ่น ${raw}`;
+        }
+        return /^\d{4}$/.test(raw) ? `ปี ${raw}` : raw;
+    }
+    if (dim === 'examgroup') {
+        const map = { 'by AI': '🤖 AI Mock', MCQFIN: 'MCQ Final', MCQMID: 'MCQ Midterm', MOCK: 'Mock', LAB: 'Lab', QUIZ: 'Quiz' };
+        if (map[raw]) return map[raw];
+        if ((m = raw.match(/^xxMCQ(\d+)$/))) return `MCQ ${m[1]} (ไม่ระบุรุ่น)`;
+        if ((m = raw.match(/^MODULE0*(\d+)$/))) return `Module ${m[1]}`;
+        if ((m = raw.match(/^R(\d+)$/))) return `Round ${m[1]}`;
+        if ((m = raw.match(/^(MCQ|FMT)(\d+)$/))) return `${m[1]} ${m[2]}`;
+        return raw;
+    }
+    if (dim === 'suffix') {
+        const map = { ANA: 'Anatomy', PHYSIO: 'Physiology', BIOCHEM: 'Biochemistry', PATHO: 'Pathology', PHARM: 'Pharmacology', MICRO: 'Microbiology', PARASITO: 'Parasitology', RADIO: 'Radiology', CLINICAL: 'Clinical / Diagnosis', LEC: 'Lecture', SPEC: 'Specialty', REHAB: 'Rehabilitation' };
+        return map[raw] || raw;
+    }
+    if (dim === 'topic') {
+        if (raw === 'ROTABCDE') return 'Rotate All (A-E)';
+        if ((m = raw.match(/^ROT([A-EX]+)(\d?)(?:_([A-Za-z0-9]+))?$/))) {
+            return `Rotate ${m[1].split('').join('+')}${m[2]}${m[3] ? ` (${m[3]})` : ''}`;
+        }
+        if (ctx.tier === 'nl') {
+            const nlMap = { IM: 'Internal Medicine', PED: 'Pediatrics', OBGYN: 'OB-GYN', SURG: 'Surgery', PSYCH: 'Psychiatry', ER: 'Emergency Medicine', PREVMED: 'Preventive Medicine', ORTHO: 'Orthopedics', FORENSIC: 'Forensic Medicine', EYE: 'Ophthalmology', ENT: 'ENT', ETHICS: 'Medical Ethics' };
+            return nlMap[raw] || raw;
+        }
+    }
+    return raw;
+};
+
+window.getAttrSuffixColorClass = function (suffix) {
+    const s = suffix.toUpperCase();
+    if (s.includes("RADIO") || s.includes("CLINICAL")) return "cat-clinical";
+    if (s.includes("ANATOMY") || s.includes("ANA")) return "cat-anatomy";
+    if (s.includes("PARASITO") || s.includes("MICRO")) return "cat-micro";
+    if (s.includes("PATHO")) return "cat-patho";
+    if (s.includes("PHYSIO") || s.includes("BIOCHEM")) return "cat-physio";
+    if (s.includes("PHARM")) return "cat-pharm";
+    return "cat-non";
+};
+
+// อ่านค่าที่ติ๊กอยู่จาก DOM
+window.getAttrSelected = function () {
+    const read = n => $(`input[type="checkbox"][name="filter-${n}"]:checked`).map(function () { return this.value; }).get();
+    return { year: read('year'), examgroup: read('examgroup'), suffix: read('suffix'), topic: read('topic') };
+};
+
+// label ของตัวกรองที่เลือก (ลำดับ: ปี, กลุ่ม, วิชา, หัวข้อ) — selected/ctx ไม่ส่งมา = อ่านจาก DOM
+window.getAttrSelectionLabels = function (selected, ctx) {
+    selected = selected || window.getAttrSelected();
+    ctx = ctx || window.getAttrTierInfo();
+    return ['year', 'examgroup', 'suffix', 'topic'].reduce((acc, d) => acc.concat(selected[d].map(v => window.formatAttrLabel(d, v, ctx))), []);
+};
+
+window.joinAttrLabels = function (labels) {
+    return labels.slice(0, 3).join(' · ') + (labels.length > 3 ? ` +${labels.length - 3}` : '');
+};
+
+// Faceted count: จำนวนของ chip (d,v) = ข้อที่มีค่า v ใน d และผ่านตัวเลือกของมิติ "อื่น" ทั้งหมด (ไม่นับการเลือกของมิติตัวเอง)
+window.computeAttributeFacets = function (questions, selected) {
+    const KEYS = { year: 'year', examgroup: 'examGroup', suffix: 'suffix', topic: 'topic' };
+    const dims = Object.keys(KEYS);
+    const counts = {};
+    dims.forEach(d => { counts[d] = new Map(); });
+    let matchCount = 0;
+    const valid = (d, v) => v !== 'N/A' && !(d === 'year' && v === '');
+    questions.forEach(q => {
+        const meta = window.parseQuestionMetadata(q);
+        dims.forEach(d => { if (valid(d, meta[KEYS[d]]) && !counts[d].has(meta[KEYS[d]])) counts[d].set(meta[KEYS[d]], 0); });
+        const bad = dims.filter(d => selected[d].length && !selected[d].includes(meta[KEYS[d]]));
+        const bump = d => { const v = meta[KEYS[d]]; if (counts[d].has(v)) counts[d].set(v, counts[d].get(v) + 1); };
+        if (bad.length === 0) { matchCount++; dims.forEach(bump); }
+        else if (bad.length === 1) bump(bad[0]);
+    });
+    const lists = {};
+    dims.forEach(d => {
+        selected[d].forEach(v => { if (!counts[d].has(v)) counts[d].set(v, 0); }); // เลือกอยู่แต่ไม่มีข้อ -> ยังแสดง (count 0)
+        lists[d] = Array.from(counts[d], ([raw, count]) => ({ raw, count }));
+    });
+    return { lists, matchCount };
+};
+
+window.buildAttributeFilterHTML = function (facets, selected, ctx, opts) {
+    const esc = window.escapeAttrHtml;
+    const L = facets.lists;
+    const nat = (a, b) => a.localeCompare(b, undefined, { numeric: true });
+    const chip = (dim, it, cls) => {
+        const checked = selected[dim].includes(it.raw);
+        const raw = esc(it.raw);
+        return `<label class="category-label attr-chip${it.count === 0 && !checked ? ' attr-chip-zero' : ''}"><input type="checkbox" name="filter-${dim}" id="filter-${dim}-${raw}" value="${raw}"${checked ? ' checked' : ''} style="display: none;"><span class="toggle-button ${cls}"><span class="attr-chip-label">${esc(window.formatAttrLabel(dim, it.raw, ctx))}</span> <span class="attr-chip-count">${it.count}</span></span></label>`;
+    };
+    const chips = (dim, list, colorFn) => list.map(it => chip(dim, it, colorFn ? colorFn(it.raw) : 'cat-non')).join('');
+
+    const years = L.year.slice().sort((a, b) => {
+        const na = Number(a.raw), nb = Number(b.raw);
+        if (isNaN(na) || isNaN(nb)) return isNaN(na) - isNaN(nb) || nat(a.raw, b.raw);
+        return na - nb;
+    });
+    const groups = L.examgroup.slice().sort((a, b) => ((a.raw === 'by AI') - (b.raw === 'by AI')) || nat(a.raw, b.raw));
+    const keepTopic = it => !window.isJunkAttrTopic(it.raw) || selected.topic.includes(it.raw);
+
+    let discDim, discList, discTitle;
+    if (ctx.tier === 'pre') {
+        discDim = 'suffix'; discTitle = 'รายวิชา (Discipline)';
+        discList = L.suffix.slice().sort((a, b) => ((a.raw === 'CLINICAL') - (b.raw === 'CLINICAL')) || window.formatAttrLabel('suffix', a.raw, ctx).localeCompare(window.formatAttrLabel('suffix', b.raw, ctx)));
+    } else {
+        discDim = 'topic';
+        discTitle = ctx.tier === 'clinic' ? 'Rotation' : ctx.tier === 'nl' ? 'สาขา (Specialty)' : 'หัวข้อ (Topic)';
+        discList = L.topic.filter(keepTopic).sort((a, b) => nat(a.raw, b.raw));
+    }
+    const discShown = discList.length > 1 || selected[discDim].length > 0;
+
+    let detailsHtml = '';
+    if (ctx.tier === 'pre') {
+        const tl = L.topic.filter(it => keepTopic(it) && (it.count > 0 || selected.topic.includes(it.raw))).sort((a, b) => nat(a.raw, b.raw));
+        if (tl.length) {
+            const open = opts && opts.topicOpen || selected.topic.length > 0;
+            detailsHtml = `<details class="attr-topic-details" id="attr-topic-details"${open ? ' open' : ''}><summary>🔎 หัวข้อย่อย (Topic) · ${tl.length}</summary><div class="button-grid" id="attr-topic-grid">${chips('topic', tl)}</div></details>`;
+        }
+    }
+
+    const labels = window.getAttrSelectionLabels(selected, ctx);
+    const summary = labels.length
+        ? `กำลังกรอง: ${window.joinAttrLabels(labels)} (${facets.matchCount} ข้อ)`
+        : `ทุกข้อในวิชา (${facets.matchCount} ข้อ)`;
+    const section = (id, title, gridId, list, dim, colorFn) => list.length || selected[dim].length
+        ? `<section class="attr-section" id="${id}"><h4 class="attr-h">${title}</h4><div class="button-grid" id="${gridId}">${chips(dim, list, colorFn)}</div></section>` : '';
+
+    return `<div class="filter-group-container attr-panel">`
+        + `<div class="attr-toolbar"><span class="attr-summary" id="attr-summary">${esc(summary)}</span><button type="button" class="attr-clear-btn" onclick="window.clearAllAttributeFilters()">ล้างตัวกรอง</button></div>`
+        + section('attr-section-year', '📅 ปี / รุ่นข้อสอบ (Exam Year / Cohort)', 'attr-year-grid', years, 'year')
+        + section('attr-section-examgroup', '📝 ประเภทข้อสอบ (Exam Format / Type)', 'attr-group-grid', groups, 'examgroup')
+        + (discShown ? section('attr-section-disc', `🩺 ${discTitle}`, 'attr-disc-grid', discList, discDim, discDim === 'suffix' ? window.getAttrSuffixColorClass : null) : '')
+        + detailsHtml
+        + `</div>`;
+};
+
 window.renderAttributeFilterUI = function () {
     const $container = $('#attribute-filter-area');
     if (!$container.length) return;
 
-    // 1. ดึงสถานะการเลือกปัจจุบันไว้ก่อน เพื่อนำไปติ๊กซ้ำหลังจากเขียน HTML ใหม่ (Cascading States)
-    const selectedYears = $('input[type="checkbox"][name="filter-year"]:checked').map(function () { return this.value; }).get();
-    const selectedGroups = $('input[type="checkbox"][name="filter-examgroup"]:checked').map(function () { return this.value; }).get();
-    const selectedSuffixes = $('input[type="checkbox"][name="filter-suffix"]:checked').map(function () { return this.value; }).get();
-    const selectedTopics = $('input[type="checkbox"][name="filter-topic"]:checked').map(function () { return this.value; }).get();
+    // อ่านสถานะที่ติ๊กอยู่จาก DOM ก่อนเขียน HTML ใหม่ แล้วให้ builder ติ๊กซ้ำให้
+    const selected = window.getAttrSelected();
+    const topicOpen = $('#attr-topic-details').prop('open');
+    const ctx = window.getAttrTierInfo();
+    const facets = window.computeAttributeFacets(window.APP.allQuestions || [], selected);
 
-    // ตัวตรวจสอบเงื่อนไขความสอดคล้อง (Faceted Search Helpers)
-    const matchYear = (meta, selected) => selected.length === 0 || selected.includes(meta.year);
-    const matchGroup = (meta, selected) => selected.length === 0 || selected.includes(meta.examGroup);
-    const matchSuffix = (meta, selected) => selected.length === 0 || selected.includes(meta.suffix);
-    const matchTopic = (meta, selected) => selected.length === 0 || selected.includes(meta.topic);
+    $container.html(window.buildAttributeFilterHTML(facets, selected, ctx, { topicOpen }));
 
-    const availableYears = new Set();
-    const availableGroups = new Set();
-    const availableSuffixes = new Set();
-    const availableTopics = new Set();
-    const topicToSuffix = {}; // ตารางจับคู่ Topic Name -> Suffix เพื่อทำไฮไลต์สี
-
-    // 2. คำนวณหา Facet และสร้างโครงสร้างจับคู่ความสัมพันธ์ของวิชากับหัวข้อย่อย
-    // 2. คำนวณหา Facet และสร้างโครงสร้างจับคู่ความสัมพันธ์ของวิชากับหัวข้อย่อย
-    window.APP.allQuestions.forEach(q => {
-        const meta = window.parseQuestionMetadata(q);
-
-        if (meta.topic !== "N/A" && meta.suffix !== "N/A") {
-            topicToSuffix[meta.topic] = meta.suffix;
-        }
-
-        // ปรับระบบเป็น Strict Top-Down เพื่อป้องกันปุ่มระดับบนหายระหว่างเลือก
-        // 1. ปีข้อสอบ (Year) จะแสดงตัวเลือกทั้งหมดเสมอ ไม่ถูกกรองจากตัวเลือกระดับล่าง
-        if (meta.year !== "N/A" && meta.year !== "") {
-            availableYears.add(meta.year);
-        }
-        // 2. กลุ่มข้อสอบ (Exam Group) จะกรองตาม ปีข้อสอบ (Year) ที่เลือกเท่านั้น
-        if (matchYear(meta, selectedYears)) {
-            if (meta.examGroup !== "N/A") availableGroups.add(meta.examGroup);
-        }
-        // 3. หมวดวิชาเฉพาะทาง (Suffix) จะกรองตาม ปีข้อสอบ + กลุ่มข้อสอบ ที่เลือกเท่านั้น
-        if (matchYear(meta, selectedYears) && matchGroup(meta, selectedGroups)) {
-            if (meta.suffix !== "N/A") availableSuffixes.add(meta.suffix);
-        }
-        // 4. หัวข้อย่อย (Topic) จะกรองตาม ปีข้อสอบ + กลุ่มข้อสอบ + หมวดวิชาเฉพาะทาง ที่เลือก
-        if (matchYear(meta, selectedYears) && matchGroup(meta, selectedGroups) && matchSuffix(meta, selectedSuffixes)) {
-            if (meta.topic !== "N/A") availableTopics.add(meta.topic);
-        }
-    });
-
-    const sortedYears = Array.from(availableYears).sort();
-    const sortedExamGroups = Array.from(availableGroups).sort();
-    const sortedSuffixes = Array.from(availableSuffixes).sort();
-    const sortedTopics = Array.from(availableTopics).sort();
-
-    function getSuffixColorClass(suffix) {
-        const s = suffix.toUpperCase();
-        if (s.includes("RADIO") || s.includes("CLINICAL")) return "cat-clinical";
-        if (s.includes("ANATOMY") || s.includes("ANA")) return "cat-anatomy";
-        if (s.includes("PARASITO") || s.includes("MICRO")) return "cat-micro";
-        if (s.includes("PATHO")) return "cat-patho";
-        if (s.includes("PHYSIO") || s.includes("BIOCHEM")) return "cat-physio";
-        if (s.includes("PHARM")) return "cat-pharm";
-        return "cat-non";
-    }
-
-    const isChecked = (arr, val) => arr.includes(val) ? 'checked' : '';
-
-    let html = `
-        <div class="filter-group-container" style="display: flex; flex-direction: column; gap: 14px; text-align: left; background: var(--color-surface-2); padding: 18px; border-radius: var(--border-radius); border: 1px solid var(--color-border); box-sizing: border-box; width:100%;">
-            
-            <!-- 1. เลือกปีข้อสอบ -->
-            <div>
-                <h4 style="margin: 0 0 10px 0; font-size: 1.15rem; font-weight: 700; color: var(--color-primary); border-left: 4px solid var(--color-primary); padding-left: 8px;">1. เลือกปีข้อสอบ (Year)</h4>
-                <div class="button-grid" id="attr-year-grid">
-                    ${sortedYears.map(y => `
-                        <label class="category-label">
-                            <input type="checkbox" name="filter-year" id="filter-year-${y}" value="${y}" ${isChecked(selectedYears, y)} style="display: none;">
-                            <span class="toggle-button cat-non">ปี ${y}</span>
-                        </label>
-                    `).join('')}
-                </div>
-            </div>
-
-            <!-- 2. เลือกประเภทข้อสอบ -->
-            <div>
-                <h4 style="margin: 14px 0 10px 0; font-size: 1.15rem; font-weight: 700; color: var(--color-primary); border-left: 4px solid var(--color-primary); padding-left: 8px;">2. เลือกประเภทข้อสอบ (Exam Group)</h4>
-                <div class="button-grid" id="attr-group-grid">
-                    ${sortedExamGroups.map(eg => `
-                        <label class="category-label">
-                            <input type="checkbox" name="filter-examgroup" id="filter-examgroup-${eg}" value="${eg}" ${isChecked(selectedGroups, eg)} style="display: none;">
-                            <span class="toggle-button cat-non">${eg}</span>
-                        </label>
-                    `).join('')}
-                </div>
-            </div>
-
-            <!-- 3. เลือกรายวิชาเฉพาะทาง -->
-            <div>
-                <h4 style="margin: 14px 0 10px 0; font-size: 1.15rem; font-weight: 700; color: var(--color-primary); border-left: 4px solid var(--color-primary); padding-left: 8px;">3. เลือกหัวข้อวิชาเฉพาะทาง (SubGroup Suffix)</h4>
-                <div class="button-grid" id="attr-suffix-grid">
-                    ${sortedSuffixes.map(s => {
-        const colorClass = getSuffixColorClass(s);
-        return `
-                            <label class="category-label">
-                                <input type="checkbox" name="filter-suffix" id="filter-suffix-${s}" value="${s}" ${isChecked(selectedSuffixes, s)} style="display: none;">
-                                <span class="toggle-button ${colorClass}">${s}</span>
-                            </label>
-                        `;
-    }).join('')}
-                </div>
-            </div>
-
-            <!-- 4. เลือกหัวข้อย่อยเฉพาะ (Topic Name) -->
-            <div>
-                <h4 style="margin: 14px 0 10px 0; font-size: 1.15rem; font-weight: 700; color: var(--color-primary); border-left: 4px solid var(--color-primary); padding-left: 8px;">4. เลือกหัวข้อย่อย (Topic Name)</h4>
-                <div class="button-grid" id="attr-topic-grid" style="max-height: 250px; overflow-y: auto; padding: 5px; border: 1px solid var(--color-border-soft); border-radius: 6px; background: var(--color-surface);">
-                    ${sortedTopics.map(t => {
-        const mappedSuffix = topicToSuffix[t] || "N/A";
-        const colorClass = getSuffixColorClass(mappedSuffix);
-        return `
-                            <label class="category-label">
-                                <input type="checkbox" name="filter-topic" id="filter-topic-${t.replace(/"/g, '&quot;')}" value="${t.replace(/"/g, '&quot;')}" ${isChecked(selectedTopics, t)} style="display: none;">
-                                <span class="toggle-button ${colorClass}" style="font-size: 0.95rem; padding: 6px 12px; border-radius: 12px;">${t}</span>
-                            </label>
-                        `;
-    }).join('')}
-                </div>
-            </div>
-
-        </div>
-    `;
-
-    $container.html(html);
-
-    // ตรวจสอบการกดติ๊กช่องตัวเลือก ยิงคำสั่งอัปเดตเซตคำถาม และอัปเดตตัวกรอง cascading ทันที
-    $('input[type="checkbox"][name^="filter-"]').off('change').on('change', function () {
+    // ติ๊กแล้วอัปเดตเซตคำถาม + รีเรนเดอร์ให้จำนวนบน chip ตรงกับตัวเลือกล่าสุด
+    $container.find('input[type="checkbox"][name^="filter-"]').off('change').on('change', function () {
         window.updateQuestionSet();
         window.updateSelectedCategoryStatus();
-        window.renderAttributeFilterUI(); // รีเรนเดอร์เพื่ออัปเดต Cascading Choices
+        window.renderAttributeFilterUI();
     });
 };
 
@@ -388,10 +429,8 @@ window.setFilterMode = function (mode, skipUpdate) {
         $('#dynamic-accordion-area').hide();
         $('#attribute-filter-area').show();
 
-        // ถ้าแผง UI ตัวกรองละเอียดยังว่างอยู่ ให้ทำการสร้างมันขึ้นมา
-        if (!$('#attribute-filter-area').children().length) {
-            window.renderAttributeFilterUI();
-        }
+        // เรนเดอร์ใหม่ทุกครั้ง เพื่อให้จำนวนบน chip ถูกต้องหลัง db.js กู้คืนค่าที่ติ๊ก
+        window.renderAttributeFilterUI();
     }
     // skipUpdate = true เมื่อผู้เรียกจะสร้าง/กู้คืน currentQuestions เอง (เช่น loadProgressFromCache)
     // ป้องกัน updateQuestionSet(สุ่ม) + saveProgressToCache ทับ session ระหว่างกู้คืน
@@ -399,12 +438,15 @@ window.setFilterMode = function (mode, skipUpdate) {
         window.updateQuestionSet();
         window.updateSelectedCategoryStatus();
     }
+    window.updateSelectionBar();
 };
 
 window.clearAllAttributeFilters = function () {
     $('input[type="checkbox"][name^="filter-"]').prop('checked', false);
+    window.renderAttributeFilterUI();
     window.updateQuestionSet();
     window.updateSelectedCategoryStatus();
+    window.updateSelectionBar();
 };
 
 window.uncheckAttributeFilter = function (type, value) {
@@ -698,13 +740,6 @@ window.renderAccordionUI = function (data) {
         });
     }
 
-    // แถบสรุปจำนวนข้อ (sticky) — ข้อความ/การซ่อนอัปเดตโดย updateSelectionBar
-    $container.append(`
-        <div id="selection-sticky-bar" class="sel-sticky-bar" style="display: none;">
-            <span class="sel-sticky-text"></span>
-            <button type="button" class="sel-sticky-cta">เริ่มทำข้อสอบ ➔</button>
-        </div>`);
-
     // คืนค่า Checked ให้กับ Checkboxes ที่เพิ่งสร้างใหม่
     checkedIds.forEach(catId => {
         const targetEl = document.getElementById(`cat-${catId}`);
@@ -879,7 +914,8 @@ window.bindCategoryLimitHandlers = function () {
         }).then(r => { if (r.isConfirmed) doClear(); });
     });
 
-    $area.on('click', '.sel-sticky-cta', function () {
+    // แถบ sticky อยู่ใน index.html (นอก $area) ใช้ร่วมทั้งโหมด category และ attribute
+    $(document).off('click', '#selection-sticky-bar .sel-sticky-cta').on('click', '#selection-sticky-bar .sel-sticky-cta', function () {
         const qc = document.getElementById('quiz-container');
         if (qc) qc.scrollIntoView({ behavior: 'smooth' });
     });
@@ -955,14 +991,20 @@ window.updateSuperGroupBadges = function () {
     });
 };
 
-// แถบสรุปล่างจอ — M = currentQuestions จริง (หลังตัดซ้ำ + cap stepper); ซ่อนนอกโหมด category
+// แถบสรุปล่างจอ — M = currentQuestions จริง (หลังตัดซ้ำ + cap stepper); ซ่อนนอกโหมด category/attribute
 window.updateSelectionBar = function () {
     const $bar = $('#selection-sticky-bar');
     if ($bar.length === 0) return;
-    if (window.APP.filterMode !== "category") { $bar.hide(); return; }
-    const n = $('input[type="checkbox"][name="category"]:checked').length;
+    const mode = window.APP.filterMode;
+    if (mode !== "category" && mode !== "attribute") { $bar.hide(); return; }
     const m = (window.APP.currentQuestions || []).length;
-    $bar.find('.sel-sticky-text').text(n > 0 ? `เลือกแล้ว ${n} หมวด (${m} ข้อ)` : `ทุกข้อในวิชา (${m} ข้อ)`);
+    if (mode === "category") {
+        const n = $('input[type="checkbox"][name="category"]:checked').length;
+        $bar.find('.sel-sticky-text').text(n > 0 ? `เลือกแล้ว ${n} หมวด (${m} ข้อ)` : `ทุกข้อในวิชา (${m} ข้อ)`);
+    } else {
+        const labels = window.getAttrSelectionLabels();
+        $bar.find('.sel-sticky-text').text(labels.length > 0 ? `กำลังกรอง: ${window.joinAttrLabels(labels)} (${m} ข้อ)` : `ทุกข้อในวิชา (${m} ข้อ)`);
+    }
     $bar.toggleClass('is-hidden', !!window._quizInView).show();
 };
 
@@ -1019,22 +1061,15 @@ window.updateSelectedCategoryStatus = function () {
         } else {
             $status.append(`<button class="btn-clear-all" onclick="window.clearAllAttributeFilters()"><i class="fas fa-trash-alt"></i> ล้างตัวกรองทั้งหมด (${totalSelectedCount})</button>`);
 
-            selectedYears.each(function () {
+            // ค่าส่งผ่าน data-* (escape แล้ว) แทน inline string เพื่อไม่ให้ " ' \ ในชื่อหัวข้อทำให้ปุ่มเสีย
+            const appendStatusChip = (dim, prefix, $inputs) => $inputs.each(function () {
                 const val = this.value;
-                $status.append(`<button class="status-category-button" onclick="window.uncheckAttributeFilter('year', '${val}')">ปี: ${val} <i class="fas fa-times"></i></button>`);
+                $status.append(`<button class="status-category-button" data-dim="${dim}" data-val="${window.escapeAttrHtml(val)}" onclick="window.uncheckAttributeFilter(this.dataset.dim, this.dataset.val)">${prefix}: ${window.escapeAttrHtml(window.formatAttrLabel(dim, val))} <i class="fas fa-times"></i></button>`);
             });
-            selectedGroups.each(function () {
-                const val = this.value;
-                $status.append(`<button class="status-category-button" onclick="window.uncheckAttributeFilter('examgroup', '${val}')">กลุ่ม: ${val} <i class="fas fa-times"></i></button>`);
-            });
-            selectedSuffixes.each(function () {
-                const val = this.value;
-                $status.append(`<button class="status-category-button" onclick="window.uncheckAttributeFilter('suffix', '${val}')">วิชา: ${val} <i class="fas fa-times"></i></button>`);
-            });
-            selectedTopics.each(function () {
-                const val = this.value;
-                $status.append(`<button class="status-category-button" onclick="window.uncheckAttributeFilter('topic', '${val.replace(/'/g, "\\'")}')">หัวข้อ: ${val} <i class="fas fa-times"></i></button>`);
-            });
+            appendStatusChip('year', 'ปี', selectedYears);
+            appendStatusChip('examgroup', 'กลุ่ม', selectedGroups);
+            appendStatusChip('suffix', 'วิชา', selectedSuffixes);
+            appendStatusChip('topic', 'หัวข้อ', selectedTopics);
 
             // คำนวณสรุปจำนวนข้อสอบแยกตามปีและวิชาเฉพาะทาง (SubGroup Suffix) จากผลการกรองจริง
             const summaryMap = {};
