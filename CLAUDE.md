@@ -77,7 +77,6 @@ Image URLs from Google Drive are transformed via `window.transformUrl()` to use 
 
 ## Known Open Issues (this repo)
 
-- 🟠 `vote.js:~123` — downvote still pushes category into local `q.category` unconditionally regardless of `delta` sign.
 - 🟡 `auth-edit.js` `setupGoogleSSO` — if GIS init throws, `resumeSessionFromToken` is silently skipped (unverified, presumed unchanged).
 - 🟡 `ui.js:858` — export codes are plain Base64, score tamper possible (unverified, presumed unchanged).
 

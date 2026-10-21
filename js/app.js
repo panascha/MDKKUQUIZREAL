@@ -245,7 +245,8 @@ window.showSubjectPickerModal = async function () {
                                 display: 'block', width: '100%', textAlign: 'left',
                                 margin: '4px 0', padding: '10px 12px',
                                 border: '1px solid var(--color-border, #ddd)', borderRadius: '8px',
-                                background: 'var(--color-surface, #fff)', color: 'inherit',
+                                // สีตัวอักษรต้องคู่กับพื้น --color-surface — inherit จาก popup Swal (เทา) อ่านไม่ออกในธีม dark
+                                background: 'var(--color-surface, #fff)', color: 'var(--color-text, inherit)',
                                 cursor: 'pointer', fontSize: '0.95em'
                             })
                             .text(`${yearLabel}${s.id} - ${s.name}`)
