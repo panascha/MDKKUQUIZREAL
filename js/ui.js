@@ -551,6 +551,8 @@ window.renderAccordionUI = function (data) {
         return /^[456]$/.test(yr) ? `รุ่น ${batch} (${batch + 1972 + (+yr - 1)})` : `รุ่น ${batch}`;
     }
 
+    const NL_ROUND_RE = /^NL[12]_\d{4}R\d+$/i; // NL1/NL2 ปี+รอบ — เช่น NL2_2009R1
+
     function buildAccordion(groupName, categories, isExcludedGroup, displayOverride) {
         const helperText = !isExcludedGroup ? " (คำถามที่แยกเลคแล้ว/คำถามทั้งหมด)" : "";
         const btns = categories.map(c => buildCategoryButton(c, isExcludedGroup)).join('');
@@ -561,9 +563,11 @@ window.renderAccordionUI = function (data) {
         }
         if (typeof displayOverride === 'string') displayName = displayOverride;
         // accordion คลินิก (มี displayOverride) ที่มี ≥2 rotation → ปุ่ม "เลือกทุก Rotate" ติ๊ก/ล้างทั้งกลุ่มในคลิกเดียว
+        // NL2 MCQ (ปี/รอบ, ไม่มี displayOverride) ได้ปุ่มเดียวกันผ่าน NL_ROUND_RE
         let rotPill = '';
-        if (typeof displayOverride === 'string') {
-            const rots = categories.filter(c => /_ROT/i.test(c.categoryId));
+        const pillRe = typeof displayOverride === 'string' ? /_ROT/i : NL_ROUND_RE;
+        {
+            const rots = categories.filter(c => pillRe.test(c.categoryId));
             if (rots.length >= 2) {
                 const n = rots.reduce((s, c) => s + (categoryStats[c.categoryId] ? categoryStats[c.categoryId].total : 0), 0);
                 rotPill = `<div class="rot-all-wrap"><button type="button" class="rot-all-pill">☑️ เลือกทั้งหมด (${n} ข้อ)</button></div>`;
@@ -861,7 +865,7 @@ window.bindCategoryLimitHandlers = function () {
     // ปุ่ม "เลือกทุก Rotate" — ครบแล้วกดอีกครั้ง = ล้างทั้งกลุ่ม; change เดียวพอ (handler อ่านทุกกล่องเอง)
     $area.on('click', '.rot-all-pill', function () {
         const $boxes = $(this).closest('.accordion-group').find('input[name="category"]').filter(function () {
-            return /_ROT/i.test(this.value);
+            return /_ROT/i.test(this.value) || /^NL[12]_\d{4}R\d+$/i.test(this.value);
         });
         const allOn = $boxes.length > 0 && $boxes.filter(':checked').length === $boxes.length;
         $boxes.prop('checked', !allOn);
