@@ -120,13 +120,13 @@ window.renderSourcePdfLinks = function (q) {
         entry = window.SOURCE_PDF_MAP[catId];
     }
     if (!entry) return;
-    const pill = (f, label) => $('<a class="source-pdf-pill" target="_blank" rel="noopener"></a>')
+    const pill = (f, label, iconCls) => $('<a class="source-pdf-pill" target="_blank" rel="noopener"></a>')
         .attr('href', `https://drive.google.com/file/d/${encodeURIComponent(f.driveId)}/view`)
         .attr('title', f.fileName)
-        .text(label + ' ↗');
-    const many = (files, label) => files.forEach((f, i) => $box.append(pill(f, files.length > 1 ? `${label} ${i + 1}` : label)));
-    many(entry.exam || [], '📄 ข้อสอบต้นฉบับ');
-    many(entry.key || [], '🔑 เฉลยต้นฉบับ');
+        .append($('<i></i>').addClass('fas ' + iconCls), ' ', document.createTextNode(label + ' '), $('<i class="fas fa-arrow-up-right-from-square"></i>'));
+    const many = (files, label, iconCls) => files.forEach((f, i) => $box.append(pill(f, files.length > 1 ? `${label} ${i + 1}` : label, iconCls)));
+    many(entry.exam || [], 'ข้อสอบต้นฉบับ', 'fa-file-lines');
+    many(entry.key || [], 'เฉลยต้นฉบับ', 'fa-key');
     if ($box.children().length) $box.css('display', 'flex');
 };
 
@@ -654,7 +654,7 @@ window.updateQuestionSet = function (shouldSort = true, shouldShow = true) {
             window.APP.currentQuestions = hyFiltered;
         } else {
             $('#filter-high-yield').prop('checked', false);
-            $('#filter-high-yield-label').text('🔥 เฉพาะข้อออกซ้ำ (≥2 ปี)');
+            $('#filter-high-yield-label').text('เฉพาะข้อออกซ้ำ (≥2 ปี)');
             window.bgToast.fire({ icon: 'info', title: 'ชุดนี้ไม่มีข้อออกซ้ำ' });
         }
     }

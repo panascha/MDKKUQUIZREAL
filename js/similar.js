@@ -182,7 +182,7 @@ window.renderHighYieldStamp = function () {
     if (hy.count < 2) { $s.hide(); return; }
     const shown = hy.years.length > 4 ? hy.years.slice(-4) : hy.years;
     const extra = hy.years.length - shown.length;
-    $s.text('🔥 ออกซ้ำ ' + hy.count + ' ปี (' + shown.join(', ') + ')' + (extra > 0 ? ' +' + extra : ''))
+    $s.empty().append('<i class="fas fa-fire"></i> ', document.createTextNode('ออกซ้ำ ' + hy.count + ' ปี (' + shown.join(', ') + ')' + (extra > 0 ? ' +' + extra : '')))
         .removeClass('hy-tier1 hy-tier2')
         .addClass(hy.count >= 3 ? 'hy-tier2' : 'hy-tier1')
         .show();
@@ -224,7 +224,7 @@ window.renderSimilarPanel = function () {
     }
     const myYear = parseInt(window.similarYearOf(q), 10);
     const otherYears = window.getHighYieldInfo(q).years.filter(y => y !== myYear);
-    $('#similar-strip-label').text('🔥 ข้อแฝด ' + twins.length + ' ข้อ จาก ปี ' + otherYears.join(', '));
+    $('#similar-strip-label').empty().append('<i class="fas fa-fire"></i> ', document.createTextNode('ข้อแฝด ' + twins.length + ' ข้อ จาก ปี ' + otherYears.join(', ')));
     $panel.show();
 };
 
@@ -929,7 +929,7 @@ $(function () {
     // Cram filter: ติ๊ก → โหลด (chunked) → นับ N → สร้างชุดใหม่; เอาติ๊กออก → สร้างชุดใหม่ทันที
     $('#filter-high-yield').on('change', function () {
         const $cb = $(this), $lb = $('#filter-high-yield-label');
-        const base = '🔥 เฉพาะข้อออกซ้ำ (≥2 ปี)';
+        const base = 'เฉพาะข้อออกซ้ำ (≥2 ปี)';
         if (!this.checked) { $lb.text(base); window.updateQuestionSet(); return; }
         $cb.prop('disabled', true);
         $lb.text(base + ' · กำลังคำนวณ…');

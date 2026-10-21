@@ -264,7 +264,7 @@ window.formatAttrLabel = function (dim, raw, ctx) {
         return /^\d{4}$/.test(raw) ? `ปี ${raw}` : raw;
     }
     if (dim === 'examgroup') {
-        const map = { 'by AI': '🤖 AI Mock', MCQFIN: 'MCQ Final', MCQMID: 'MCQ Midterm', MOCK: 'Mock', LAB: 'Lab', QUIZ: 'Quiz' };
+        const map = { 'by AI': 'AI Mock', MCQFIN: 'MCQ Final', MCQMID: 'MCQ Midterm', MOCK: 'Mock', LAB: 'Lab', QUIZ: 'Quiz' };
         if (map[raw]) return map[raw];
         if ((m = raw.match(/^xxMCQ(\d+)$/))) return `MCQ ${m[1]} (ไม่ระบุรุ่น)`;
         if ((m = raw.match(/^MODULE0*(\d+)$/))) return `Module ${m[1]}`;
@@ -389,9 +389,9 @@ window.buildAttributeFilterHTML = function (facets, selected, ctx, opts) {
 
     return `<div class="filter-group-container attr-panel">`
         + `<div class="attr-toolbar"><span class="attr-summary" id="attr-summary">${esc(summary)}</span><button type="button" class="attr-clear-btn" onclick="window.clearAllAttributeFilters()">ล้างตัวกรอง</button></div>`
-        + section('attr-section-year', '📅 ปี / รุ่นข้อสอบ (Exam Year / Cohort)', 'attr-year-grid', years, 'year')
-        + section('attr-section-examgroup', '📝 ประเภทข้อสอบ (Exam Format / Type)', 'attr-group-grid', groups, 'examgroup')
-        + (discShown ? section('attr-section-disc', `🩺 ${discTitle}`, 'attr-disc-grid', discList, discDim, discDim === 'suffix' ? window.getAttrSuffixColorClass : null) : '')
+        + section('attr-section-year', '<i class="fas fa-calendar-days"></i> ปี / รุ่นข้อสอบ (Exam Year / Cohort)', 'attr-year-grid', years, 'year')
+        + section('attr-section-examgroup', '<i class="fas fa-clipboard-list"></i> ประเภทข้อสอบ (Exam Format / Type)', 'attr-group-grid', groups, 'examgroup')
+        + (discShown ? section('attr-section-disc', `<i class="fas fa-stethoscope"></i> ${discTitle}`, 'attr-disc-grid', discList, discDim, discDim === 'suffix' ? window.getAttrSuffixColorClass : null) : '')
         + detailsHtml
         + `</div>`;
 };
@@ -667,9 +667,9 @@ window.renderAccordionUI = function (data) {
 
     // แท็บ: 📄 ข้อสอบเก่า (mcq + standalone) / 📖 เลกเชอร์ / 🤖 AI — แท็บว่างซ่อน, เหลือแท็บเดียว = ไม่แสดงแถบแท็บ (เรนเดอร์แบบเดิม)
     const TAB_DEFS = [
-        { id: 'mcq', variant: 'mcq', label: '📄 ข้อสอบเก่า' },
-        { id: 'lec', variant: 'lec', label: '📖 เลกเชอร์' },
-        { id: 'ai', variant: 'ai', label: '🤖 AI' }
+        { id: 'mcq', variant: 'mcq', label: '<i class="fas fa-file-lines"></i> ข้อสอบเก่า' },
+        { id: 'lec', variant: 'lec', label: '<i class="fas fa-book-open"></i> เลกเชอร์' },
+        { id: 'ai', variant: 'ai', label: '<i class="fas fa-wand-magic-sparkles"></i> AI' }
     ];
     const sgList = Object.values(superGroups);
     const nonEmptyTabs = TAB_DEFS.filter(t =>
