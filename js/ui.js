@@ -667,6 +667,27 @@ window.renderAccordionUI = function (data) {
         }
     });
 
+    // เรียง accordion ข้อสอบ NL/คลินิก (ปี/รุ่น) ใหม่สุดขึ้นบน + ปุ่มรอบ/rotation น้อย→มาก
+    // คีย์มาจาก groupName เท่านั้น ("NL2 MCQ 2020" → ปี, "MED4 รุ่น 49 MCQ" → รุ่น); ไม่แปลงเป็น ค.ศ. (เทียบเลขดิบภายใน super-group เดียว)
+    // ถ้ามี accordion ใดใน super-group ไม่ตรงรูปแบบ → ไม่แตะ (กัน pre-clinic "CVS MCQ1/2/3" เปลี่ยนลำดับ)
+    function accordionSortKey(groupName) {
+        const m = String(groupName).match(/^NL[12] MCQ (\d{4})$/) || String(groupName).match(/ รุ่น (\d{2}) MCQ/);
+        return m ? +m[1] : null;
+    }
+    Object.values(superGroups).forEach(sg => {
+        if (sg.variant !== 'mcq' || sg.accordions.length < 2) return;
+        const keys = sg.accordions.map(a => accordionSortKey(a.groupName));
+        if (keys.some(k => k === null)) return;
+        sg.accordions = sg.accordions
+            .map((a, i) => ({ a, k: keys[i] }))
+            .sort((x, y) => y.k - x.k)
+            .map(x => ({
+                ...x.a,
+                categories: x.a.categories.slice().sort((p, q) =>
+                    String(p.categoryId).localeCompare(String(q.categoryId), undefined, { numeric: true }))
+            }));
+    });
+
     // แท็บ: 📄 ข้อสอบเก่า (mcq + standalone) / 📖 เลกเชอร์ / 🤖 AI — แท็บว่างซ่อน, เหลือแท็บเดียว = ไม่แสดงแถบแท็บ (เรนเดอร์แบบเดิม)
     const TAB_DEFS = [
         { id: 'mcq', variant: 'mcq', label: '<i class="fas fa-file-lines"></i> ข้อสอบเก่า' },
